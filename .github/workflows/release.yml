@@ -21,7 +21,7 @@ jobs:
   get_tag:
     if: github.repository == 'animiruorg/Animiru'
     name: Extract tag name
-    runs-on: 'ubuntu-24.04'
+    runs-on: 'ubuntu-26.04'
     outputs:
       tag: ${{ steps.extract.outputs.tag }}
 
@@ -33,7 +33,7 @@ jobs:
   build:
     if: github.repository == 'animiruorg/Animiru'
     name: Build
-    runs-on: 'ubuntu-24.04'
+    runs-on: 'ubuntu-26.04'
     needs: get_tag
 
     steps:
@@ -90,7 +90,7 @@ jobs:
   build_foss:
     if: github.repository == 'animiruorg/Animiru'
     name: Build (FOSS)
-    runs-on: 'ubuntu-24.04'
+    runs-on: ubuntu-26.04
     needs: get_tag
 
     steps:
@@ -140,7 +140,7 @@ jobs:
   release:
     if: github.repository == 'animiruorg/Animiru'
     name: Create GitHub Release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [get_tag, build, build_foss]
 
     steps:
