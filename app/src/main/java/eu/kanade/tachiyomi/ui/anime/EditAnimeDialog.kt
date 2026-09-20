@@ -27,7 +27,6 @@ import coil3.transform.RoundedCornersTransformation
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.databinding.EditAnimeDialogBinding
 import eu.kanade.tachiyomi.util.dropBlank
@@ -40,6 +39,7 @@ import kotlinx.coroutines.CoroutineScope
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.animiru.R
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.source.local.isLocal
@@ -218,7 +218,7 @@ private fun ChipGroup.setChips(items: List<String>, scope: CoroutineScope) {
             text = item
 
             isCloseIconVisible = true
-            closeIcon?.setTint(context.getResourceColor(R.attr.colorAccent))
+            closeIcon?.setTint(context.getResourceColor(androidx.appcompat.R.attr.colorAccent))
             setOnCloseIconClickListener {
                 removeView(this)
             }
@@ -230,9 +230,9 @@ private fun ChipGroup.setChips(items: List<String>, scope: CoroutineScope) {
     val addTagChip = Chip(context).apply {
         setText(R.string.add_tag)
 
-        chipIcon = ContextCompat.getDrawable(context, R.drawable.ic_add_24dp)?.apply {
+        chipIcon = ContextCompat.getDrawable(context, eu.kanade.tachiyomi.R.drawable.ic_add_24dp)?.apply {
             isChipIconVisible = true
-            setTint(context.getResourceColor(R.attr.colorAccent))
+            setTint(context.getResourceColor(androidx.appcompat.R.attr.colorAccent))
         }
 
         setOnClickListener {
@@ -242,10 +242,10 @@ private fun ChipGroup.setChips(items: List<String>, scope: CoroutineScope) {
                 .setTextInput {
                     newTag = it.trimOrNull()
                 }
-                .setPositiveButton(R.string.action_ok) { _, _ ->
+                .setPositiveButton(tachiyomi.i18n.R.string.action_ok) { _, _ ->
                     if (newTag != null) setChips(items + listOfNotNull(newTag), scope)
                 }
-                .setNegativeButton(R.string.action_cancel, null)
+                .setNegativeButton(tachiyomi.i18n.R.string.action_cancel, null)
                 .show()
         }
     }

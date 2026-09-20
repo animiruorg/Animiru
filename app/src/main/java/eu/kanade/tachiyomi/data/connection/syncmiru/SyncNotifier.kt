@@ -12,6 +12,9 @@ import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.util.system.cancelNotification
 import eu.kanade.tachiyomi.util.system.notificationBuilder
 import eu.kanade.tachiyomi.util.system.notify
+import tachiyomi.core.common.i18n.stringResource
+import tachiyomi.i18n.MR
+import tachiyomi.i18n.animiru.AMMR
 
 @Inject
 class SyncNotifier(
@@ -44,7 +47,7 @@ class SyncNotifier(
 
     fun showSyncProgress(content: String = "", progress: Int = 0, maxAmount: Int = 100): NotificationCompat.Builder {
         val builder = with(progressNotificationBuilder) {
-            setContentTitle(context.getString(R.string.syncing_library))
+            setContentTitle(context.stringResource(MR.strings.syncing_library))
 
             if (!preferences.hideNotificationContent.get()) {
                 setContentText(content)
@@ -56,7 +59,7 @@ class SyncNotifier(
             clearActions()
             addAction(
                 R.drawable.ic_close_24dp,
-                context.getString(R.string.action_cancel),
+                context.stringResource(MR.strings.action_cancel),
                 NotificationReceiver.cancelSyncPendingBroadcast(context, Notifications.ID_RESTORE_PROGRESS),
             )
         }
@@ -70,7 +73,7 @@ class SyncNotifier(
         context.cancelNotification(Notifications.ID_RESTORE_PROGRESS)
 
         with(completeNotificationBuilder) {
-            setContentTitle(context.getString(R.string.sync_error))
+            setContentTitle(context.stringResource(AMMR.strings.sync_error))
             setContentText(error)
 
             show(Notifications.ID_RESTORE_COMPLETE)
@@ -81,7 +84,7 @@ class SyncNotifier(
         context.cancelNotification(Notifications.ID_RESTORE_PROGRESS)
 
         with(completeNotificationBuilder) {
-            setContentTitle(context.getString(R.string.sync_complete))
+            setContentTitle(context.stringResource(AMMR.strings.sync_complete))
             setContentText(message)
 
             show(Notifications.ID_RESTORE_COMPLETE)

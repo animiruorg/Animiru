@@ -35,6 +35,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.model.Category.Companion.UNCATEGORIZED_ID
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
+import tachiyomi.i18n.aniyomi.AYMR
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -141,8 +142,8 @@ class DiscordRPCService : Service() {
             setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             setSmallIcon(R.drawable.ic_discord_24dp)
             setContentText(context.stringResource(AMMR.strings.pref_discord_rpc))
-            setContentTitle(context.getString(R.string.app_name))
-            addAction(R.drawable.ic_close_24dp, context.getString(R.string.action_stop), stopIntent)
+            setContentTitle(context.stringResource(MR.strings.app_name))
+            addAction(R.drawable.ic_close_24dp, context.stringResource(AYMR.strings.action_stop), stopIntent)
             setAutoCancel(false)
             setOngoing(true)
             setUsesChronometer(true)
