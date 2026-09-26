@@ -1,0 +1,6 @@
+-- Clean up non-existing parents
+UPDATE animes
+SET parent_id = NULL
+WHERE parent_id IS NOT NULL
+AND parent_id NOT IN (SELECT _id FROM animes)
+OR parent_id = _id;

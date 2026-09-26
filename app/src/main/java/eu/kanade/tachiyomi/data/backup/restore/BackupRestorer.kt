@@ -203,7 +203,7 @@ class BackupRestorer(
                         chunk.forEach {
                             ensureActive()
                             // AY -->
-                            val seasons = backupAnimes.filter { s -> s.parentId == it.id }
+                            val seasons = backupAnimes.filter { s -> s.parentId == it.id && s.id != s.parentId }
                             // <-- AY
                             // AM (CUSTOM_INFORMATION) -->
                             val customInfo = it.getCustomAnimeInfo()

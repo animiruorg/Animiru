@@ -55,11 +55,40 @@ class AnimeRestorer(
             .awaitAsList()
             .groupBy({ it.source }, { it.url })
 
-        return backupAnimes
-            .sortedWith(
-                compareBy<BackupAnime> { it.url in urlsBySource[it.source].orEmpty() }
-                    .then(compareByDescending { it.lastModifiedAt }),
-            )
+        val sortByNewComparator = compareBy<BackupAnime> { it.url in urlsBySource[it.source].orEmpty() }
+            .then(compareByDescending { it.lastModifiedAt })
+
+        // AM -->
+        val parents = backupAnimes.groupBy { it.parentId }
+        val ids = backupAnimes.map { it.id }.toSet()
+        val roots = backupAnimes
+            .filter { it.parentId == null || it.parentId !in ids }
+            .sortedWith(sortByNewComparator)
+
+        val output = mutableListOf<BackupAnime>()
+        val visited = mutableSetOf<Long?>()
+
+        fun visit(anime: BackupAnime) {
+            if (!visited.add(anime.id)) return
+            output.add(anime)
+
+            val children = parents[anime.id].orEmpty()
+            children.sortedWith(sortByNewComparator).forEach(::visit)
+        }
+
+        roots.forEach(::visit)
+
+        // For circular relationships
+        if (output.size < backupAnimes.size) {
+            val remaining = backupAnimes
+                .filter { it.id !in visited }
+                .sortedWith(sortByNewComparator)
+
+            remaining.forEach(::visit)
+        }
+
+        return output
+        // <-- AM
     }
 
     suspend fun restore(
@@ -76,7 +105,7 @@ class AnimeRestorer(
         database.transaction {
             // AM -->
             val animeToRestore = backupAnime.copy(
-                parentId = backupAnime.parentId.takeIf { hasParent },
+                parentId = backupAnime.parentId.takeIf { hasParent && backupAnime.id != backupAnime.parentId },
             )
             // <-- AM
 
@@ -124,11 +153,11 @@ class AnimeRestorer(
     private suspend fun restoreExistingAnime(anime: Anime, dbAnime: Anime): Anime {
         return if (anime.version > dbAnime.version) {
             updateAnime(
-                dbAnime.copyFrom(anime).copy(id = dbAnime.id, /* AY --> */ parentId = anime.parentId /* <-- AY */),
+                dbAnime.copyFrom(anime).copy(id = dbAnime.id, /* AY --> */ parentId = dbAnime.parentId /* <-- AY */),
             )
         } else {
             updateAnime(
-                anime.copyFrom(dbAnime).copy(id = dbAnime.id, /* AY --> */ parentId = anime.parentId /* <-- AY */),
+                anime.copyFrom(dbAnime).copy(id = dbAnime.id, /* AY --> */ parentId = dbAnime.parentId /* <-- AY */),
             )
         }
     }
