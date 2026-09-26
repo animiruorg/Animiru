@@ -114,6 +114,9 @@ fun AnimeScreen(
     alwaysUseExternalPlayer: Boolean,
     // <-- AY
     navigateUp: () -> Unit,
+    // AM -->
+    longNavigateUp: () -> Unit,
+    // <-- AM
     // AM (FILE_SIZE) -->
     showFileSize: Boolean,
     // <-- AM (FILE_SIZE)
@@ -201,6 +204,9 @@ fun AnimeScreen(
             alwaysUseExternalPlayer = alwaysUseExternalPlayer,
             // <-- AY
             navigateUp = navigateUp,
+            // AM -->
+            longNavigateUp = longNavigateUp,
+            // <-- AM
             // AM (FILE_SIZE) -->
             showFileSize = showFileSize,
             // <-- AM (FILE_SIZE)
@@ -261,6 +267,9 @@ fun AnimeScreen(
             alwaysUseExternalPlayer = alwaysUseExternalPlayer,
             // <-- AY
             navigateUp = navigateUp,
+            // AM -->
+            longNavigateUp = longNavigateUp,
+            // <-- AM
             // AM (FILE_SIZE) -->
             showFileSize = showFileSize,
             // <-- AM (FILE_SIZE)
@@ -324,6 +333,9 @@ private fun AnimeScreenSmallImpl(
     alwaysUseExternalPlayer: Boolean,
     // <-- AY
     navigateUp: () -> Unit,
+    // AM -->
+    longNavigateUp: () -> Unit,
+    // <-- AM
     // AM (FILE_SIZE) -->
     showFileSize: Boolean,
     // <-- AM (FILE_SIZE)
@@ -443,6 +455,9 @@ private fun AnimeScreenSmallImpl(
                     title = state.anime.title,
                     hasFilters = state.filterActive,
                     navigateUp = navigateUp,
+                    // AM -->
+                    longNavigateUp = longNavigateUp,
+                    // <-- AM
                     onClickFilter = onFilterClicked,
                     onClickShare = onShareClicked,
                     onClickDownload = onDownloadActionClicked,
@@ -729,6 +744,9 @@ fun AnimeScreenLargeImpl(
     alwaysUseExternalPlayer: Boolean,
     // <-- AY
     navigateUp: () -> Unit,
+    // AM -->
+    longNavigateUp: () -> Unit,
+    // <-- AM
     // AM (FILE_SIZE) -->
     showFileSize: Boolean,
     // <-- AM (FILE_SIZE)
@@ -838,6 +856,9 @@ fun AnimeScreenLargeImpl(
                     title = state.anime.title,
                     hasFilters = state.filterActive,
                     navigateUp = navigateUp,
+                    // AM -->
+                    longNavigateUp = longNavigateUp,
+                    // <-- AM
                     onClickFilter = onFilterButtonClicked,
                     onClickShare = onShareClicked,
                     onClickDownload = onDownloadActionClicked,
