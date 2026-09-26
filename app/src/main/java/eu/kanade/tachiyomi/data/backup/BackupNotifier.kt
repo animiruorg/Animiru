@@ -89,6 +89,7 @@ class BackupNotifier(
         }
     }
 
+    @Synchronized
     fun showRestoreProgress(
         content: String = "",
         progress: Int = 0,

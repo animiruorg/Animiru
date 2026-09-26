@@ -56,6 +56,9 @@ fun AnimeToolbar(
     titleAlphaProvider: () -> Float,
     backgroundAlphaProvider: () -> Float,
     modifier: Modifier = Modifier,
+    // AM -->
+    longNavigateUp: (() -> Unit)? = null,
+    // <-- AM
 ) {
     val isActionMode = actionModeCounter > 0
     AppBar(
@@ -71,6 +74,9 @@ fun AnimeToolbar(
             .surfaceColorAtElevation(3.dp)
             .copy(alpha = if (isActionMode) 1f else backgroundAlphaProvider()),
         navigateUp = navigateUp,
+        // AM -->
+        longNavigateUp = longNavigateUp,
+        // <-- AM
         actions = {
             var downloadExpanded by remember { mutableStateOf(false) }
             if (onClickDownload != null) {

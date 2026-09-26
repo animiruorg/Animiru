@@ -137,6 +137,16 @@ class AnimeScreen(
             alwaysUseExternalPlayer = viewModel.alwaysUseExternalPlayer,
             // <-- AY
             navigateUp = navigator::pop,
+            // AM -->
+            longNavigateUp = {
+                val parentId = successState.anime.parentId
+                if (parentId != null) {
+                    navigator.replace(AnimeScreen(parentId))
+                } else {
+                    navigator.pop()
+                }
+            },
+            // <-- AM
             // AM (FILE_SIZE) -->
             showFileSize = viewModel.showFileSize,
             // <-- AM (FILE_SIZE)

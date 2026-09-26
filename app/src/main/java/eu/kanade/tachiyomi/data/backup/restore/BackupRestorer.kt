@@ -192,6 +192,9 @@ class BackupRestorer(
         categoriesRestoreJob: Job?,
     ) = launch {
         categoriesRestoreJob?.join()
+        // AM -->
+        val ids = backupAnimes.map { it.id }.toSet()
+        // <-- AM
         animeRestorer.sortByNew(backupAnimes)
             .chunked(100)
             .forEach { chunk ->
@@ -200,12 +203,12 @@ class BackupRestorer(
                         chunk.forEach {
                             ensureActive()
                             // AY -->
-                            val seasons = backupAnimes.filter { s -> s.parentId == it.id }
+                            val seasons = backupAnimes.filter { s -> s.parentId == it.id && s.id != s.parentId }
                             // <-- AY
                             // AM (CUSTOM_INFORMATION) -->
                             val customInfo = it.getCustomAnimeInfo()
                             // <-- AM (CUSTOM_INFORMATION)
-                            animeRestorer.restore(it, backupCategories, customInfo, seasons)
+                            animeRestorer.restore(it, backupCategories, customInfo, seasons, it.parentId in ids)
                         }
                     }
                     true
@@ -228,7 +231,7 @@ class BackupRestorer(
                             // AM (CUSTOM_INFORMATION) -->
                             val customInfo = it.getCustomAnimeInfo()
                             // <-- AM (CUSTOM_INFORMATION)
-                            animeRestorer.restore(it, backupCategories, customInfo, seasons)
+                            animeRestorer.restore(it, backupCategories, customInfo, seasons, it.parentId in ids)
                         } catch (e: Exception) {
                             ensureActive()
                             val sourceName = sourceMapping[it.source] ?: it.source.toString()
