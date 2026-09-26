@@ -70,11 +70,18 @@ class AnimeRestorer(
         // <-- AM (CUSTOM_INFORMATION)
         // AY -->
         backupSeasons: List<BackupAnime>,
+        hasParent: Boolean,
         // <-- AY
     ) {
         database.transaction {
-            val dbAnime = findExistingAnime(backupAnime)
-            val anime = backupAnime.getAnimeImpl()
+            // AM -->
+            val animeToRestore = backupAnime.copy(
+                parentId = backupAnime.parentId.takeIf { hasParent },
+            )
+            // <-- AM
+
+            val dbAnime = findExistingAnime(animeToRestore)
+            val anime = animeToRestore.getAnimeImpl()
             val restoredAnime = if (dbAnime == null) {
                 restoreNewAnime(anime)
             } else {
