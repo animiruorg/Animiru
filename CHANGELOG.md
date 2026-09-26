@@ -11,6 +11,8 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - `Other` - for technical stuff.
 
 ## [Unreleased]
+### Improved
+- Long press on go back in anime screen now goes to parent anime ([@Secozzi](https://github.com/Secozzi)) ([#220](https://github.com/quickdesh/Animiru/pull/220))
 
 ## [v0.20.0.1] - 2026-09-14
 ### Fixed
