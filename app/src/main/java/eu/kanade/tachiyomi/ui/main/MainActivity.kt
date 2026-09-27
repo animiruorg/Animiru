@@ -79,7 +79,6 @@ import eu.kanade.tachiyomi.data.notification.NotificationReceiver
 import eu.kanade.tachiyomi.data.player.service.HttpServerService
 import eu.kanade.tachiyomi.data.updater.RELEASE_URL
 import eu.kanade.tachiyomi.extension.ExtensionManager
-import eu.kanade.tachiyomi.extension.api.ExtensionApi
 import eu.kanade.tachiyomi.ui.anime.AnimeScreen
 import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreen
@@ -147,8 +146,6 @@ class MainActivity : BaseActivity() {
     @Inject private lateinit var downloadCache: DownloadCache
 
     @Inject private lateinit var getIncognitoState: GetIncognitoState
-
-    @Inject private lateinit var extensionApi: ExtensionApi
 
     @Inject private lateinit var extensionManager: ExtensionManager
 
@@ -394,9 +391,7 @@ class MainActivity : BaseActivity() {
         // Extensions updates
         LaunchedEffect(Unit) {
             try {
-                extensionApi.checkForUpdates(
-                    extensionManager.getLoadedExtensions() + extensionManager.getNotLoadedExtensions(),
-                )
+                extensionManager.checkForUpdates()
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e)
             }
