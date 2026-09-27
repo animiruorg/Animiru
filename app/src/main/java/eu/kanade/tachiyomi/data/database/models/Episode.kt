@@ -62,5 +62,8 @@ fun Episode.toDomainEpisode(): DomainEpisode? {
         lastModifiedAt = last_modified,
         version = version,
         memo = memo,
+        // AM -->
+        thumbnailLastModifiedAt = 0,
+        // <-- AM
     )
 }

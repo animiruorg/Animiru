@@ -27,6 +27,9 @@ data class EpisodeUpdate(
     // <-- AY
     val version: Long? = null,
     val memo: JsonObject? = null,
+    // AM -->
+    val thumbnailLastModifiedAt: Long? = null,
+    // <-- AM
 )
 
 fun Episode.toEpisodeUpdate(): EpisodeUpdate {
@@ -55,5 +58,8 @@ fun Episode.toEpisodeUpdate(): EpisodeUpdate {
         // <-- AY
         version,
         memo,
+        // AM -->
+        thumbnailLastModifiedAt,
+        // <-- AM
     )
 }

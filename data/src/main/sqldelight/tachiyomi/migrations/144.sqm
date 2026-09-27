@@ -1,0 +1,2 @@
+-- Add thumbnail last modified at column
+ALTER TABLE episodes ADD COLUMN thumbnail_last_modified_at INTEGER NOT NULL DEFAULT 0;

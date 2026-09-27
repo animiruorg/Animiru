@@ -102,6 +102,9 @@ class EpisodeRepositoryImpl(
                     previewUrl = episodeUpdate.previewUrl,
                     // <-- AY
                     memo = episodeUpdate.memo?.let(MemoColumnAdapter::encode),
+                    // AM -->
+                    thumbnailLastModifiedAt = episodeUpdate.thumbnailLastModifiedAt,
+                    // <-- AM
                 )
             }
         }
@@ -186,6 +189,9 @@ class EpisodeRepositoryImpl(
         previewUrl: String?,
         // <-- AY
         memo: JsonObject,
+        // AM -->
+        thumbnailLastModifiedAt: Long,
+        // <-- AM
     ): Episode = Episode(
         id = id,
         animeId = animeId,
@@ -212,5 +218,8 @@ class EpisodeRepositoryImpl(
         lastModifiedAt = lastModifiedAt,
         version = version,
         memo = memo,
+        // AM -->
+        thumbnailLastModifiedAt = thumbnailLastModifiedAt,
+        // <-- AM
     )
 }
