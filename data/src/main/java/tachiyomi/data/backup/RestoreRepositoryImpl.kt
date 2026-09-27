@@ -306,17 +306,10 @@ class RestoreRepositoryImpl(
                         animeId = anime.id,
                     )
 
-                if (track.forComparison() == dbTrack.forComparison()) {
-                    // Same state; skip
-                    return@mapNotNull null
-                }
+                if (track.lastEpisodeSeen <= dbTrack.lastEpisodeSeen) return@mapNotNull null
 
                 // Update to an existing track
-                dbTrack.copy(
-                    remoteId = track.remoteId,
-                    libraryId = track.libraryId,
-                    lastEpisodeSeen = max(dbTrack.lastEpisodeSeen, track.lastEpisodeSeen),
-                )
+                dbTrack.copy(lastEpisodeSeen = track.lastEpisodeSeen)
             }
             .partition { it.id > 0 }
 
@@ -343,8 +336,6 @@ class RestoreRepositoryImpl(
             )
         }
     }
-
-    private fun Track.forComparison() = this.copy(id = 0L, animeId = 0L)
 
     private suspend fun restoreExcludedScanlators(anime: Anime, excludedScanlators: List<String>) {
         if (excludedScanlators.isEmpty()) return
