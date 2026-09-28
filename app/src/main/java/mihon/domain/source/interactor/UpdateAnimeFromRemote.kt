@@ -1,11 +1,13 @@
 package mihon.domain.source.interactor
 
+import animiru.core.cache.ThumbnailCache
 import dev.zacsweers.metro.Inject
 import eu.kanade.domain.anime.interactor.SyncSeasonsWithSource
 import eu.kanade.domain.anime.model.hasCustomBackground
 import eu.kanade.domain.anime.model.hasCustomCover
 import eu.kanade.domain.anime.model.toSAnime
 import eu.kanade.domain.episode.interactor.SyncEpisodesWithSource
+import eu.kanade.domain.episode.model.copyFromSEpisode
 import eu.kanade.domain.episode.model.toSEpisode
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -16,6 +18,8 @@ import mihon.domain.source.interactor.models.RemoteAnimeEpisodeUpdate
 import mihon.domain.source.interactor.models.RemoteAnimeSeasonUpdate
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.data.episode.EpisodeSanitizer
+import tachiyomi.data.episode.EpisodeSanitizer.sanitize
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.repository.AnimeRepository
@@ -33,7 +37,10 @@ class UpdateAnimeFromRemote(
     private val syncEpisodesWithSource: SyncEpisodesWithSource,
     private val syncSeasonsWithSource: SyncSeasonsWithSource,
     private val coverCache: CoverCache,
+    // AM -->
     private val backgroundCache: BackgroundCache,
+    private val thumbnailCache: ThumbnailCache,
+    // <-- AM
 ) {
     suspend fun awaitEpisodesUpdate(
         anime: Anime,
@@ -73,8 +80,40 @@ class UpdateAnimeFromRemote(
                 )
             }
             awaitUpdateFromSource(anime, update.anime, manualFetch)
+
+            // AM -->
+            val sourceEpisodes = update.episodes
+                .distinctBy { it.url }
+                .mapIndexed { i, sEpisode ->
+                    val ep = Episode.create()
+                        .copyFromSEpisode(sEpisode)
+                        .copy(name = with(EpisodeSanitizer) { sEpisode.name.sanitize(anime.title) })
+                        .copy(animeId = anime.id, sourceOrder = i.toLong())
+
+                    val localEpisode = episodes.find { it.url == ep.url }
+
+                    val thumbnailLastModified =
+                        when {
+                            // Never refresh thumbnails if the url is empty to avoid "losing" existing thumbnails
+                            ep.previewUrl.isNullOrEmpty() -> null
+                            !manualFetch && localEpisode?.previewUrl == ep.previewUrl -> null
+                            anime.isLocal() -> Clock.System.now().toEpochMilliseconds()
+                            else -> {
+                                localEpisode?.previewUrl?.let {
+                                    thumbnailCache.deleteFromCache(it)
+                                }
+                                Clock.System.now().toEpochMilliseconds()
+                            }
+                        }
+
+                    ep.copy(
+                        thumbnailLastModifiedAt = thumbnailLastModified ?: ep.thumbnailLastModifiedAt,
+                    )
+                }
+            // <-- AM
+
             val newEpisodes = syncEpisodesWithSource.await(
-                rawSourceEpisodes = update.episodes,
+                sourceEpisodes = sourceEpisodes,
                 anime = anime,
                 source = source,
                 manualFetch = manualFetch,

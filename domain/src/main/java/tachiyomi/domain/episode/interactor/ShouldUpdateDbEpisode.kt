@@ -17,6 +17,9 @@ class ShouldUpdateDbEpisode {
             dbEpisode.fillermark != sourceEpisode.fillermark ||
             dbEpisode.previewUrl != sourceEpisode.previewUrl ||
             // <-- AY
-            dbEpisode.memo != sourceEpisode.memo
+            dbEpisode.memo != sourceEpisode.memo ||
+            // AM -->
+            dbEpisode.thumbnailLastModifiedAt != sourceEpisode.thumbnailLastModifiedAt
+        // <-- AM
     }
 }

@@ -1,5 +1,6 @@
 package eu.kanade.domain.episode.interactor
 
+import animiru.core.cache.ThumbnailCache
 import dev.zacsweers.metro.Inject
 import eu.kanade.domain.anime.interactor.GetExcludedScanlators
 import eu.kanade.domain.anime.interactor.UpdateAnime
@@ -41,39 +42,33 @@ class SyncEpisodesWithSource(
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     private val getExcludedScanlators: GetExcludedScanlators,
     private val libraryPreferences: LibraryPreferences,
+    // AM -->
+    private val thumbnailCache: ThumbnailCache,
+    // <-- AM
 ) {
 
     /**
      * Method to synchronize db episodes with source ones
      *
-     * @param rawSourceEpisodes the episodes from the source.
+     * @param sourceEpisodes the episodes from the source.
      * @param anime the anime the episodes belong to.
      * @param source the source the anime belongs to.
      * @return Newly added episodes
      */
     suspend fun await(
-        rawSourceEpisodes: List<SEpisode>,
+        sourceEpisodes: List<Episode>,
         anime: Anime,
         source: AnimeSource,
         manualFetch: Boolean = false,
         fetchWindow: Pair<Long, Long> = Pair(0, 0),
     ): List<Episode> {
-        if (rawSourceEpisodes.isEmpty() && !source.isLocal()) {
+        if (sourceEpisodes.isEmpty() && !source.isLocal()) {
             throw NoEpisodesException()
         }
 
         val timeZone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(timeZone)
         val nowMillis = now.toInstant(timeZone).toEpochMilliseconds()
-
-        val sourceEpisodes = rawSourceEpisodes
-            .distinctBy { it.url }
-            .mapIndexed { i, sEpisode ->
-                Episode.create()
-                    .copyFromSEpisode(sEpisode)
-                    .copy(name = with(EpisodeSanitizer) { sEpisode.name.sanitize(anime.title) })
-                    .copy(animeId = anime.id, sourceOrder = i.toLong())
-            }
 
         val dbEpisodes = getEpisodesByAnimeId.await(anime.id)
 
@@ -141,6 +136,10 @@ class SyncEpisodesWithSource(
                         // <-- AY
                         sourceOrder = episode.sourceOrder,
                         memo = episode.memo,
+                        // AM -->
+                        previewUrl = episode.previewUrl,
+                        thumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
+                        // <-- AM
                     )
 
                     if (episode.dateUpload != 0L) {

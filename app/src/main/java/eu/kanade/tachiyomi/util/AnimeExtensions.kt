@@ -1,11 +1,13 @@
 package eu.kanade.tachiyomi.util
 
+import animiru.core.cache.ThumbnailCache
 import eu.kanade.domain.anime.interactor.UpdateAnime
 import eu.kanade.domain.anime.model.toSAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.episode.model.Episode
 import tachiyomi.source.local.image.LocalBackgroundManager
 import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.image.LocalEpisodeThumbnailManager
@@ -32,6 +34,17 @@ fun Anime.removeBackgrounds(backgroundCache: BackgroundCache): Anime {
     }
 }
 // <-- AY
+
+// AM -->
+fun Episode.removeThumbnail(thumbnailCache: ThumbnailCache, isLocal: Boolean): Episode {
+    if (isLocal || this.previewUrl.isNullOrEmpty()) return this
+    return if (thumbnailCache.deleteFromCache(this.previewUrl!!) > 0) {
+        copy(thumbnailLastModifiedAt = Clock.System.now().toEpochMilliseconds())
+    } else {
+        this
+    }
+}
+// <-- AM
 
 suspend fun Anime.editCover(
     coverManager: LocalCoverManager,
