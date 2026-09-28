@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.compose.ui.util.fastAny
+import androidx.core.app.ServiceCompat
 import dev.zacsweers.metro.Inject
 import eu.kanade.domain.connection.service.ConnectionPreferences
 import eu.kanade.tachiyomi.BuildConfig
@@ -56,8 +57,6 @@ class DiscordRPCService : Service() {
             return
         }
 
-        notification(this)
-
         val status = when (connectionPreferences.discordRPCStatus.get()) {
             -1 -> "dnd"
             0 -> "idle"
@@ -91,13 +90,18 @@ class DiscordRPCService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val token = connectionPreferences.connectionToken(connectionManager.discord).get()
+        if (!connectionPreferences.enableDiscordRPC.get() || token.isBlank()) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        notification(this)
+
         when (intent?.action) {
             ACTION_RESTART -> restartRPC()
-            STOP_SERVICE -> {
-                stopSelf()
-                return START_NOT_STICKY
-            }
         }
+
         return START_STICKY
     }
 
@@ -144,15 +148,16 @@ class DiscordRPCService : Service() {
             setUsesChronometer(true)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                Notifications.ID_DISCORD_RPC,
-                builder.build(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
-            )
-        } else {
-            startForeground(Notifications.ID_DISCORD_RPC, builder.build())
-        }
+        ServiceCompat.startForeground(
+            this,
+            Notifications.ID_DISCORD_RPC,
+            builder.build(),
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            } else {
+                0
+            },
+        )
     }
 
     companion object {
@@ -163,7 +168,6 @@ class DiscordRPCService : Service() {
         internal val discordScope = CoroutineScope(Dispatchers.IO + job)
 
         private const val ACTION_RESTART = "${BuildConfig.APPLICATION_ID}.DISCORD_RPC_RESTART"
-        private const val STOP_SERVICE = "${BuildConfig.APPLICATION_ID}.DISCORD_RPC_STOP"
 
         fun start(context: Context) {
             val connectionManager = context.appGraph.connectionManager
@@ -178,6 +182,8 @@ class DiscordRPCService : Service() {
                     since = System.currentTimeMillis()
                     context.startForegroundService(Intent(context, DiscordRPCService::class.java))
                 }
+            } else {
+                stop(context, delay = 0L)
             }
         }
 
@@ -185,21 +191,14 @@ class DiscordRPCService : Service() {
             handler.removeCallbacksAndMessages(null)
             if (delay > 0) {
                 handler.postDelayed({
-                    val stopIntent = Intent(context, DiscordRPCService::class.java).apply {
-                        action = STOP_SERVICE
-                    }
                     try {
-                        context.startService(stopIntent)
                     } catch (e: Exception) {
                         logcat(LogPriority.ERROR, e) { "Failed to stop discord rpc service" }
                     }
                 }, delay)
             } else {
-                val stopIntent = Intent(context, DiscordRPCService::class.java).apply {
-                    action = STOP_SERVICE
-                }
                 try {
-                    context.startService(stopIntent)
+                    context.stopService(Intent(context, DiscordRPCService::class.java))
                 } catch (e: Exception) {
                     logcat(LogPriority.ERROR, e) { "Failed to stop discord rpc service" }
                 }
