@@ -16,6 +16,7 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 
 ### Fixed
 - Fix episode thumbnails not being fetched with source headers ([@Secozzi](https://github.com/Secozzi)) ([#225](https://github.com/animiruorg/Animiru/pull/225))
+- Fix animiru crashing for rpc when rpc is turned off ([@Secozzi](https://github.com/Secozzi)) ([#228](https://github.com/animiruorg/Animiru/pull/228))
 
 ## [v0.20.0.1] - 2026-09-14
 ### Fixed
