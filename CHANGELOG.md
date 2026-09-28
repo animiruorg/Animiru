@@ -14,6 +14,9 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ### Improved
 - Long press on go back in anime screen now goes to parent anime ([@Secozzi](https://github.com/Secozzi)) ([#220](https://github.com/quickdesh/Animiru/pull/220))
 
+### Fixed
+- Fix episode thumbnails not being fetched with source headers ([@Secozzi](https://github.com/Secozzi)) ([#225](https://github.com/quickdesh/Animiru/pull/225))
+
 ## [v0.20.0.1] - 2026-09-14
 ### Fixed
 - Fixed per-category sorting mode ([@Secozzi](https://github.com/Secozzi)) ([#209](https://github.com/quickdesh/Animiru/pull/209))
