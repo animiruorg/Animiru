@@ -11,15 +11,15 @@ Animiru is a fork of [Aniyomi](https://github.com/aniyomiorg/aniyomi)
 Discover and watch anime, donghua, series, and more – easier than ever on your Android device.
 
 [![Discord server](https://img.shields.io/discord/1009125884491468861.svg?label=&labelColor=6A7EC2&color=7389D8&logo=discord&logoColor=FFFFFF)](https://discord.gg/yDuHDMwxhv)
-[![GitHub downloads](https://img.shields.io/github/downloads/quickdesh/Animiru/total?label=downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/quickdesh/Animiru/releases/latest)
+[![GitHub downloads](https://img.shields.io/github/downloads/animiruorg/Animiru/total?label=downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/animiruorg/Animiru/releases/latest)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/quickdesh/Animiru/build.yml?labelColor=27303D)](https://github.com/quickdesh/Animiru/actions/workflows/release.yml)
-[![License: Apache-2.0](https://img.shields.io/github/license/quickdesh/Animiru?labelColor=27303D&color=0877d2)](/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/animiruorg/Animiru/build.yml?labelColor=27303D)](https://github.com/animiruorg/Animiru/actions/workflows/release.yml)
+[![License: Apache-2.0](https://img.shields.io/github/license/animiruorg/Animiru?labelColor=27303D&color=0877d2)](/LICENSE)
 [![Translation status](https://img.shields.io/weblate/progress/aniyomi?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/aniyomi/)
 
 ## Download
 
-[![Animiru](https://img.shields.io/github/release/quickdesh/Animiru.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b69)](https://github.com/quickdesh/Animiru/releases/latest)
+[![Animiru](https://img.shields.io/github/release/animiruorg/Animiru.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b69)](https://github.com/animiruorg/Animiru/releases/latest)
 
 *Requires Android 8.0 or higher.*
 
@@ -45,7 +45,7 @@ Features include:
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-Before reporting a new issue, take a look at the [FAQ](https://aniyomi.org/docs/faq/general), the [changelog](https://github.com/quickdesh/Animiru/blob/animiru-new-main/CHANGELOG.md) and the already opened [issues](https://github.com/quickdesh/Animiru/issues); if you got any questions, join our [Discord server](https://discord.gg/yDuHDMwxhv).
+Before reporting a new issue, take a look at the [FAQ](https://aniyomi.org/docs/faq/general), the [changelog](https://github.com/animiruorg/Animiru/blob/animiru-new-main/CHANGELOG.md) and the already opened [issues](https://github.com/animiruorg/Animiru/issues); if you got any questions, join our [Discord server](https://discord.gg/yDuHDMwxhv).
 
 
 ### Repositories
@@ -57,8 +57,8 @@ Before reporting a new issue, take a look at the [FAQ](https://aniyomi.org/docs/
 
 Thank you to all the people who have contributed!
 
-<a href="https://github.com/quickdesh/Animiru/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=quickdesh/Animiru" alt="Animiru app contributors" title="Animiru app contributors" width="800"/>
+<a href="https://github.com/animiruorg/Animiru/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=animiruorg/Animiru" alt="Animiru app contributors" title="Animiru app contributors" width="800"/>
 </a>
 
 ### Disclaimer

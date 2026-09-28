@@ -192,7 +192,7 @@ object AboutScreen : Screen() {
                         LinkIcon(
                             label = "GitHub",
                             icon = CustomIcons.Github,
-                            url = "https://github.com/quickdesh/Animiru",
+                            url = "https://github.com/animiruorg/Animiru",
                         )
                     }
                 }

@@ -97,7 +97,7 @@ body:
           required: true
         - label: I have gone through the [FAQ](https://aniyomi.org/docs/faq/general) and [troubleshooting guide](https://aniyomi.org/docs/guides/troubleshooting/).
           required: true
-        - label: I have updated the app to version **[0.20.0.1](https://github.com/Quickdesh/Animiru/releases/latest)**.
+        - label: I have updated the app to version **[0.20.0.1](https://github.com/animiruorg/Animiru/releases/latest)**.
           required: true
         - label: I have filled out all of the requested information in this form, including specific version numbers.
           required: true

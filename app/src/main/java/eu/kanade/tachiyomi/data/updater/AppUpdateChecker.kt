@@ -37,9 +37,9 @@ class AppUpdateChecker(
 
 val GITHUB_REPO: String by lazy {
     if (isPreviewBuildType) {
-        "quickdesh/Animiru-preview"
+        "animiruorg/animiru-preview"
     } else {
-        "quickdesh/Animiru"
+        "animiruorg/Animiru"
     }
 }
 
