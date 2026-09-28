@@ -338,6 +338,9 @@ class AnimeRestorer(
                     version = episode.version,
                     isSyncing = 0,
                     memo = episode.memo.let(MemoColumnAdapter::encode),
+                    // AM -->
+                    thumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
+                    // <-- AM
                 )
             }
         }

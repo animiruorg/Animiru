@@ -14,6 +14,9 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import animiru.core.cache.ThumbnailCache
+import animiru.core.coil.EpisodeThumbnailFetcher
+import animiru.core.coil.EpisodeThumbnailKeyer
 import animiru.domain.player.service.PlayerPreferences
 import animiru.domain.torrent.service.TorrentUtilsHolder
 import animiru.domain.torrent.service.TorrentUtilsImpl
@@ -104,6 +107,8 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     // AM -->
     @Inject private lateinit var backgroundCache: BackgroundCache
+
+    @Inject private lateinit var thumbnailCache: ThumbnailCache
     // <-- AM
 
     // AM (SYNC) -->
@@ -240,9 +245,15 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 add(BufferedSourceFetcher.Factory())
                 add(AnimeImageFetcher.AnimeCoverFactory(callFactoryLazy, coverCache, sourceManager))
                 add(AnimeImageFetcher.AnimeFactory(callFactoryLazy, coverCache, backgroundCache, sourceManager))
+                // AM -->
+                add(EpisodeThumbnailFetcher.EpisodeFactory(callFactoryLazy, thumbnailCache, sourceManager))
+                // <-- AM
                 // Keyer
                 add(AnimeCoverKeyer(coverCache))
                 add(AnimeKeyer())
+                // AM -->
+                add(EpisodeThumbnailKeyer())
+                // <-- AM
             }
 
             memoryCache(

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.util.fastAny
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import animiru.core.cache.ThumbnailCache
 import animiru.domain.player.service.GesturePreferences
 import animiru.domain.player.service.PlayerPreferences
 import aniyomi.core.common.torrent.TorrentPreferences
@@ -65,6 +66,7 @@ import eu.kanade.tachiyomi.util.AniChartApi
 import eu.kanade.tachiyomi.util.episode.getNextUnseen
 import eu.kanade.tachiyomi.util.nullIfEmpty
 import eu.kanade.tachiyomi.util.removeCovers
+import eu.kanade.tachiyomi.util.removeThumbnail
 import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.trimOrNull
 import kotlinx.coroutines.CoroutineScope
@@ -185,6 +187,9 @@ class AnimeViewModel(
     private val sourceManager: SourceManager,
     private val refreshTracks: RefreshTracks,
     private val coverCache: CoverCache,
+    // AM -->
+    private val thumbnailCache: ThumbnailCache,
+    // <-- AM
     // AM (FILE_SIZE) -->
     storagePreferences: StoragePreferences,
     // <-- AM (FILE_SIZE)
@@ -624,6 +629,18 @@ class AnimeViewModel(
                     if (anime.removeCovers(coverCache) != anime) {
                         updateAnime.awaitUpdateCoverLastModified(anime.id)
                     }
+
+                    // AM -->
+                    if (anime.fetchType == FetchType.Episodes) {
+                        val episodes = state.episodes.map { it.episode }
+                        episodes.forEach {
+                            if (it.removeThumbnail(thumbnailCache, anime.isLocal()) != it) {
+                                updateEpisode.awaitUpdateThumbnailLastModified(it.id)
+                            }
+                        }
+                    }
+                    // <-- AM
+
                     withUIContext { onRemoved() }
                 }
             } else {

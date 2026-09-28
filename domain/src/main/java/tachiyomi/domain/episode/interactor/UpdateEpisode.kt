@@ -5,6 +5,7 @@ import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.episode.repository.EpisodeRepository
+import kotlin.time.Clock
 
 @Inject
 class UpdateEpisode(
@@ -25,5 +26,14 @@ class UpdateEpisode(
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
         }
+    }
+
+    suspend fun awaitUpdateThumbnailLastModified(episodeId: Long) {
+        episodeRepository.update(
+            EpisodeUpdate(
+                id = episodeId,
+                thumbnailLastModifiedAt = Clock.System.now().toEpochMilliseconds(),
+            ),
+        )
     }
 }

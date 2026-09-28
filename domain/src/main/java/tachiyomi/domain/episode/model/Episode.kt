@@ -29,6 +29,9 @@ data class Episode(
     val lastModifiedAt: Long,
     val version: Long,
     val memo: JsonObject,
+    // AM -->
+    val thumbnailLastModifiedAt: Long,
+    // <-- AM
 ) {
     val isRecognizedNumber: Boolean
         get() = episodeNumber >= 0f
@@ -77,6 +80,9 @@ data class Episode(
             lastModifiedAt = 0,
             version = 1,
             memo = JsonObject.EMPTY,
+            // AM -->
+            thumbnailLastModifiedAt = 0L,
+            // <-- AM
         )
     }
 }

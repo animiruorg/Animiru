@@ -1346,6 +1346,12 @@ private fun LazyGridScope.sharedEpisodeItems(
                     // AY -->
                     modifier = itemModifier,
                     // <-- AY
+                    // AM -->
+                    animeId = anime.id,
+                    sourceId = anime.source,
+                    isLibraryAnime = anime.favorite,
+                    thumbnailLastModified = item.episode.thumbnailLastModifiedAt,
+                    // <-- AM
                 )
             }
         }

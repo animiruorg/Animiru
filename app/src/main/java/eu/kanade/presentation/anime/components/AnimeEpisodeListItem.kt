@@ -47,9 +47,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import animiru.domain.episode.model.EpisodeThumbnail
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import eu.kanade.tachiyomi.data.download.model.Download
+import me.saket.swipe.SwipeAction
 import me.saket.swipe.SwipeableActionsBox
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.i18n.MR
@@ -91,6 +93,12 @@ fun AnimeEpisodeListItem(
     // AM (FILE_SIZE) -->
     fileSize: Long?,
     // <-- AM (FILE_SIZE)
+    // AM -->
+    animeId: Long,
+    sourceId: Long,
+    isLibraryAnime: Boolean,
+    thumbnailLastModified: Long,
+    // <-- AM
     modifier: Modifier = Modifier,
 ) {
     val start = getSwipeAction(
@@ -161,7 +169,15 @@ fun AnimeEpisodeListItem(
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    EpisodeThumbnail(previewUrl = previewUrl)
+                    EpisodeThumbnail(
+                        episodeThumbnail = EpisodeThumbnail(
+                            animeId = animeId,
+                            sourceId = sourceId,
+                            isLibraryAnime = isLibraryAnime,
+                            url = previewUrl,
+                            lastModified = thumbnailLastModified,
+                        ),
+                    )
 
                     Column {
                         Row(
@@ -298,7 +314,7 @@ private fun getSwipeAction(
     downloadState: Download.State,
     background: Color,
     onSwipe: () -> Unit,
-): me.saket.swipe.SwipeAction? {
+): SwipeAction? {
     return when (action) {
         LibraryPreferences.EpisodeSwipeAction.ToggleSeen -> swipeAction(
             icon = if (!seen) Icons.Outlined.Done else Icons.Outlined.RemoveDone,
@@ -377,7 +393,7 @@ private fun swipeAction(
     icon: ImageVector,
     background: Color,
     isUndo: Boolean = false,
-): me.saket.swipe.SwipeAction {
+): SwipeAction {
     return me.saket.swipe.SwipeAction(
         icon = {
             Icon(
@@ -398,16 +414,16 @@ private val swipeActionThreshold = 56.dp
 // AY -->
 @Composable
 private fun EpisodeThumbnail(
-    previewUrl: String?,
+    episodeThumbnail: EpisodeThumbnail?,
 ) {
     val targetWidth = ((LocalConfiguration.current.screenWidthDp * 0.4f).coerceAtMost(250f))
-    if (previewUrl != null) {
+    if (episodeThumbnail != null) {
         AnimeCover.Thumb(
             modifier = Modifier
                 .width(targetWidth.dp)
                 .padding(end = 8.dp),
             data = ImageRequest.Builder(LocalContext.current)
-                .data(previewUrl)
+                .data(episodeThumbnail)
                 .crossfade(true)
                 .build(),
         )
@@ -565,6 +581,12 @@ fun AnimeEpisodeListItemPreview() {
         // AM (FILE_SIZE) -->
         fileSize = null,
         // <-- AM (FILE_SIZE)
+        // AM -->
+        animeId = 0L,
+        sourceId = 0L,
+        isLibraryAnime = false,
+        thumbnailLastModified = 0L,
+        // <-- AM
     )
 }
 // <-- AY
