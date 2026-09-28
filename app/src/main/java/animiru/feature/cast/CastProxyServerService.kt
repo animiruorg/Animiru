@@ -7,6 +7,7 @@ import android.content.pm.ServiceInfo
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.IBinder
+import androidx.core.app.ServiceCompat
 import animiru.domain.player.service.PlayerPreferences
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.BuildConfig
@@ -94,15 +95,16 @@ class CastProxyServerService : Service() {
             setUsesChronometer(true)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                Notifications.ID_CAST_SERVER,
-                builder.build(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
-            )
-        } else {
-            startForeground(Notifications.ID_CAST_SERVER, builder.build())
-        }
+        ServiceCompat.startForeground(
+            this,
+            Notifications.ID_CAST_SERVER,
+            builder.build(),
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            } else {
+                0
+            },
+        )
 
         return START_STICKY
     }
