@@ -17,7 +17,7 @@ const val RICH_PRESENCE_APPLICATION_ID = "952899285983326208"
 
 // Constant for buttons list
 const val DOWNLOAD_BUTTON_LABEL = "Download"
-const val DOWNLOAD_BUTTON_URL = "https://github.com/Quickdesh/Animiru"
+const val DOWNLOAD_BUTTON_URL = "https://github.com/animiruorg/Animiru"
 const val DISCORD_BUTTON_LABEL = "Discord"
 const val DISCORD_BUTTON_URL = "https://discord.gg/yDuHDMwxhv"
 

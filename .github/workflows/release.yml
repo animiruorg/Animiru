@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   get_tag:
-    if: github.repository == 'quickdesh/Animiru'
+    if: github.repository == 'animiruorg/Animiru'
     name: Extract tag name
     runs-on: 'ubuntu-24.04'
     outputs:
@@ -31,7 +31,7 @@ jobs:
         run: echo "tag=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
 
   build:
-    if: github.repository == 'quickdesh/Animiru'
+    if: github.repository == 'animiruorg/Animiru'
     name: Build
     runs-on: 'ubuntu-24.04'
     needs: get_tag
@@ -88,7 +88,7 @@ jobs:
             Animiru-x86_64-${{ needs.get_tag.outputs.tag }}.apk
 
   build_foss:
-    if: github.repository == 'quickdesh/Animiru'
+    if: github.repository == 'animiruorg/Animiru'
     name: Build (FOSS)
     runs-on: 'ubuntu-24.04'
     needs: get_tag
@@ -138,7 +138,7 @@ jobs:
           path: Animiru-${{ needs.get_tag.outputs.tag }}-foss.apk
 
   release:
-    if: github.repository == 'quickdesh/Animiru'
+    if: github.repository == 'animiruorg/Animiru'
     name: Create GitHub Release
     runs-on: ubuntu-24.04
     needs: [get_tag, build, build_foss]
@@ -163,7 +163,7 @@ jobs:
           tag_name: ${{ needs.get_tag.outputs.tag }}
           name: Animiru ${{ needs.get_tag.outputs.tag }}
           body: |
-            Check out the [past release notes](https://github.com/quickdesh/Animiru/releases) if you’re upgrading from an earlier version.
+            Check out the [past release notes](https://github.com/animiruorg/Animiru/releases) if you’re upgrading from an earlier version.
 
             <!-->
 
