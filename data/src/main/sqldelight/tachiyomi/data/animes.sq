@@ -140,6 +140,7 @@ track_dupes AS (
     INNER JOIN anime_sync S2
     ON S1.sync_id = S2.sync_id
     AND S1.remote_id = S2.remote_id
+    AND S1.remote_id != 0
     AND S1.anime_id != S2.anime_id
     WHERE S1.anime_id = :id
 ),
