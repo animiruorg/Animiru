@@ -1241,7 +1241,16 @@ private fun LazyGridScope.sharedEpisodeItems(
                 is EpisodeList.Item -> "episode-${item.id}"
             }
         },
-        contentType = { AnimeScreenItem.EPISODE },
+        contentType = {
+            when (it) {
+                is EpisodeList.MissingCount -> AnimeScreenItem.EPISODE_MISSING_COUNT
+                is EpisodeList.Item -> when {
+                    it.episode.previewUrl != null -> AnimeScreenItem.THUMBNAIL_EPISODE
+                    !it.episode.summary.isNullOrBlank() -> AnimeScreenItem.SUMMARY_EPISODE
+                    else -> AnimeScreenItem.SIMPLE_EPISODE
+                }
+            }
+        },
         // AY -->
         span = { GridItemSpan(maxLineSpan) },
         // <-- AY
