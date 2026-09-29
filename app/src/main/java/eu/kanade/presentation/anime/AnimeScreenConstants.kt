@@ -19,7 +19,13 @@ enum class AnimeScreenItem {
     ACTION_ROW,
     DESCRIPTION_WITH_TAG,
     EPISODE_HEADER,
-    EPISODE,
+
+    // AM -->
+    EPISODE_MISSING_COUNT,
+    SIMPLE_EPISODE,
+    THUMBNAIL_EPISODE,
+    SUMMARY_EPISODE,
+    // <-- AM
 
     // AY -->
     AIRING_TIME,
