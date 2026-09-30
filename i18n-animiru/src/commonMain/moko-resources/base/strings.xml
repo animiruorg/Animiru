@@ -60,6 +60,9 @@
     <string name="am.pref_disallow_non_ascii_filenames_details">Ensures compatibility with certain storage media that don't support Unicode. When this is enabled, you'll need to manually rename source and anime folders by replacing non-ASCII characters with their lowercase UTF-8 hexadecimal representations. Episode files don't need to be renamed.</string>
     <string name="am.action_filter_unseen">Unseen</string>
 
+    <!-- Anime -->
+    <string name="animeScreen.thumbnailSize">Thumbnail size</string>
+
     <!-- Migration -->
     <string name="migrationListScreen.mismatchedFetchType">Mismatched fetch type</string>
 

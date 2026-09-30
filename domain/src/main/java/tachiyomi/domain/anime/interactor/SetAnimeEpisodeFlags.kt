@@ -82,7 +82,7 @@ class SetAnimeEpisodeFlags(
         )
     }
 
-// AY -->
+    // AY -->
     suspend fun awaitShowEpisodePreviews(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
             AnimeUpdate(
@@ -100,7 +100,19 @@ class SetAnimeEpisodeFlags(
             ),
         )
     }
-// <-- AY
+    // <-- AY
+
+    // AM -->
+    suspend fun awaitSetThumbnailSize(anime: Anime, size: Int): Boolean {
+        val flag = size.toLong() shl Anime.EPISODE_THUMBNAIL_SIZE_BIT_OFFSET
+        return animeRepository.update(
+            AnimeUpdate(
+                id = anime.id,
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_THUMBNAIL_SIZE_MASK),
+            ),
+        )
+    }
+    // <-- AM
 
     suspend fun awaitSetAllFlags(
         animeId: Long,
@@ -117,6 +129,7 @@ class SetAnimeEpisodeFlags(
         showPreviews: Long,
         showSummaries: Long,
         // <-- AY
+        thumbnailSize: Int,
     ): Boolean {
         return animeRepository.update(
             AnimeUpdate(
@@ -132,8 +145,14 @@ class SetAnimeEpisodeFlags(
                     .setFlag(displayMode, Anime.EPISODE_DISPLAY_MASK)
                     // AY -->
                     .setFlag(showPreviews, Anime.EPISODE_PREVIEWS_MASK)
-                    .setFlag(showSummaries, Anime.EPISODE_SUMMARIES_MASK),
-                // <-- AY
+                    .setFlag(showSummaries, Anime.EPISODE_SUMMARIES_MASK)
+                    // <-- AY
+                    // AM -->
+                    .setFlag(
+                        thumbnailSize.toLong() shl Anime.EPISODE_THUMBNAIL_SIZE_BIT_OFFSET,
+                        Anime.EPISODE_THUMBNAIL_SIZE_MASK,
+                    ),
+                // <-- AM
             ),
         )
     }

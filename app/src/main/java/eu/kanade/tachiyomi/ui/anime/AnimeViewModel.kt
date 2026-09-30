@@ -1407,6 +1407,16 @@ class AnimeViewModel(
     }
     // <-- AY
 
+    // AM -->
+    fun setEpisodeThumbnailSize(size: Int) {
+        val anime = successState?.anime ?: return
+
+        viewModelScope.launchNonCancellable {
+            setAnimeEpisodeFlags.awaitSetThumbnailSize(anime, size)
+        }
+    }
+    // <-- AM
+
     fun setCurrentSettingsAsDefault(applyToExisting: Boolean) {
         val anime = successState?.anime ?: return
         viewModelScope.launchNonCancellable {

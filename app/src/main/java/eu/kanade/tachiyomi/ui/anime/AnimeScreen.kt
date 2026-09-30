@@ -336,6 +336,9 @@ class AnimeScreen(
                 onShowPreviewsEnabled = viewModel::showEpisodePreviews,
                 onShowSummariesEnabled = viewModel::showEpisodeSummaries,
                 // <-- AY
+                // AM -->
+                onSetThumbnailSize = viewModel::setEpisodeThumbnailSize,
+                // <-- AM
                 onSetAsDefault = viewModel::setCurrentSettingsAsDefault,
                 onResetToDefault = viewModel::resetToDefaultSettings,
                 scanlatorFilterActive = successState.scanlatorFilterActive,
