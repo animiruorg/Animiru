@@ -262,6 +262,11 @@ data class Anime(
     }
     // <-- AY
 
+    // AM -->
+    val episodeThumbnailSize: Int
+        get() = ((episodeFlags and EPISODE_THUMBNAIL_SIZE_MASK) shr EPISODE_THUMBNAIL_SIZE_BIT_OFFSET).toInt()
+    // <-- AM
+
     companion object {
         // Generic filter that does not filter anything
         const val SHOW_ALL = 0x00000000L
@@ -305,6 +310,11 @@ data class Anime(
         const val EPISODE_DISPLAY_NAME = 0x00000000L
         const val EPISODE_DISPLAY_NUMBER = 0x00100000L
         const val EPISODE_DISPLAY_MASK = 0x00100000L
+
+        // AM -->
+        const val EPISODE_THUMBNAIL_SIZE_MASK = 0x01E00000L
+        const val EPISODE_THUMBNAIL_SIZE_BIT_OFFSET = 21
+        // <-- AM
 
         // AY -->
         const val SEASON_SORT_DESC = 0x00000000L

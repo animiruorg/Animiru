@@ -1360,6 +1360,7 @@ private fun LazyGridScope.sharedEpisodeItems(
                     sourceId = anime.source,
                     isLibraryAnime = anime.favorite,
                     thumbnailLastModified = item.episode.thumbnailLastModifiedAt,
+                    thumbnailSize = (anime.episodeThumbnailSize + 1) / 5f,
                     // <-- AM
                 )
             }

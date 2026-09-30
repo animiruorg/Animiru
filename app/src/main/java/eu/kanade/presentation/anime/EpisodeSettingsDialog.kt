@@ -35,14 +35,17 @@ import mihon.app.di.appGraph
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.CheckboxItem
 import tachiyomi.presentation.core.components.LabeledCheckbox
 import tachiyomi.presentation.core.components.RadioItem
+import tachiyomi.presentation.core.components.SliderItem
 import tachiyomi.presentation.core.components.SortItem
 import tachiyomi.presentation.core.components.TriStateItem
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.theme.active
+import java.util.Locale
 
 @Composable
 fun EpisodeSettingsDialog(
@@ -62,6 +65,9 @@ fun EpisodeSettingsDialog(
     onShowPreviewsEnabled: (Long) -> Unit,
     onShowSummariesEnabled: (Long) -> Unit,
     // <-- AY
+    // AM -->
+    onSetThumbnailSize: (Int) -> Unit,
+    // <-- AM
     onSetAsDefault: (applyToExistingAnime: Boolean) -> Unit,
     onResetToDefault: () -> Unit,
 ) {
@@ -140,6 +146,10 @@ fun EpisodeSettingsDialog(
                         showSummaries = anime?.showSummaries() ?: true,
                         onShowSummariesEnabled = onShowSummariesEnabled,
                         // <-- AY
+                        // AM -->
+                        thumbnailSize = anime?.episodeThumbnailSize ?: 0,
+                        // <-- AM
+                        onSetThumbnailSize = onSetThumbnailSize,
                     )
                 }
             }
@@ -249,6 +259,10 @@ private fun ColumnScope.DisplayPage(
     showSummaries: Boolean,
     onShowSummariesEnabled: (Long) -> Unit,
     // <-- AY
+    // AM -->
+    thumbnailSize: Int,
+    onSetThumbnailSize: (Int) -> Unit,
+    // <-- AM
 ) {
     listOf(
         MR.strings.show_title to Anime.EPISODE_DISPLAY_NAME,
@@ -274,6 +288,17 @@ private fun ColumnScope.DisplayPage(
         onClick = { onShowSummariesEnabled(showSummariesFlag) },
     )
     // <-- AY
+
+    // AM -->
+    SliderItem(
+        value = thumbnailSize,
+        valueRange = 0 until 10,
+        label = stringResource(AMMR.strings.animeScreen_thumbnailSize),
+        valueString = "${ String.format(Locale.US, "%.1f", (thumbnailSize + 1) / 5.0) }x",
+        onChange = { onSetThumbnailSize(it) },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
+    // <-- AM
 }
 
 @Composable

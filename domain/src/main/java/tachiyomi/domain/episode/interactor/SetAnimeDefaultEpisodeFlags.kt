@@ -32,6 +32,9 @@ class SetAnimeDefaultEpisodeFlags(
                     showPreviews = showEpisodeThumbnailPreviews.get(),
                     showSummaries = showEpisodeSummaries.get(),
                     // <-- AY
+                    // AM -->
+                    thumbnailSize = episodeThumbnailSize.get(),
+                    // <-- AM
                 )
             }
         }

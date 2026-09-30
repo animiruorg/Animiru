@@ -98,6 +98,7 @@ fun AnimeEpisodeListItem(
     sourceId: Long,
     isLibraryAnime: Boolean,
     thumbnailLastModified: Long,
+    thumbnailSize: Float,
     // <-- AM
     modifier: Modifier = Modifier,
 ) {
@@ -177,6 +178,7 @@ fun AnimeEpisodeListItem(
                             url = previewUrl,
                             lastModified = thumbnailLastModified,
                         ),
+                        thumbnailSize = thumbnailSize,
                     )
 
                     Column {
@@ -415,12 +417,13 @@ private val swipeActionThreshold = 56.dp
 @Composable
 private fun EpisodeThumbnail(
     episodeThumbnail: EpisodeThumbnail?,
+    thumbnailSize: Float,
 ) {
     val targetWidth = ((LocalConfiguration.current.screenWidthDp * 0.4f).coerceAtMost(250f))
     if (episodeThumbnail != null) {
         AnimeCover.Thumb(
             modifier = Modifier
-                .width(targetWidth.dp)
+                .width(targetWidth.dp * thumbnailSize)
                 .padding(end = 8.dp),
             data = ImageRequest.Builder(LocalContext.current)
                 .data(episodeThumbnail)
@@ -586,6 +589,7 @@ fun AnimeEpisodeListItemPreview() {
         sourceId = 0L,
         isLibraryAnime = false,
         thumbnailLastModified = 0L,
+        thumbnailSize = 1f,
         // <-- AM
     )
 }

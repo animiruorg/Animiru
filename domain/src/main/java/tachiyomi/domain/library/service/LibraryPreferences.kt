@@ -215,6 +215,16 @@ class LibraryPreferences(
     )
     // <-- AY
 
+    // AM -->
+    // 0-3 -> 0.2x - 0.8x
+    // 4 -> 1x
+    // 5-9 -> 1.2x-2x
+    val episodeThumbnailSize: Preference<Int> = preferenceStore.getInt(
+        "default_episode_thumbnail_size",
+        4,
+    )
+    // <-- AM
+
     fun setEpisodeSettingsDefault(anime: Anime) {
         filterEpisodeBySeen.set(anime.unseenFilterRaw)
         filterEpisodeByDownloaded.set(anime.downloadedFilterRaw)
@@ -231,6 +241,9 @@ class LibraryPreferences(
         showEpisodeThumbnailPreviews.set(anime.showPreviewsRaw)
         showEpisodeSummaries.set(anime.showSummariesRaw)
         // <-- AY
+        // AM -->
+        episodeThumbnailSize.set(anime.episodeThumbnailSize)
+        // <-- AM
     }
 
     val hideMissingEpisodes: Preference<Boolean> = preferenceStore.getBoolean(
