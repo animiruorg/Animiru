@@ -581,14 +581,17 @@ class MainActivity : BaseActivity() {
             hosterList: List<Hoster>? = null,
         ) {
             if (extPlayer) {
-                val sourceId = sourceId ?: (context.appGraph.getAnime.await(animeId)?.source ?: -1L)
-                val (success, port) = startHttpServerService(context, sourceId)
-                if (!success) {
-                    withUIContext { context.toast(AYMR.strings.http_server_start_failure) }
-                    return
-                }
+                var video = video
+                if (video?.usesHttpServer() == true) {
+                    val sourceId = sourceId ?: (context.appGraph.getAnime.await(animeId)?.source ?: -1L)
+                    val (success, port) = startHttpServerService(context, sourceId)
+                    if (!success) {
+                        withUIContext { context.toast(AYMR.strings.http_server_start_failure) }
+                        return
+                    }
 
-                val video = video?.copyHttpServer(port)
+                    video = video.copyHttpServer(port)
+                }
                 val intent = try {
                     ExternalIntents.newIntent(context, animeId, episodeId, video)
                 } catch (e: Exception) {
