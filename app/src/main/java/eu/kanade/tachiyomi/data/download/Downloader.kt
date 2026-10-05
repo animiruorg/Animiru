@@ -23,6 +23,7 @@ import eu.kanade.tachiyomi.animesource.model.HttpServer
 import eu.kanade.tachiyomi.animesource.model.Track
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
+import eu.kanade.tachiyomi.data.download.downloader.VideoDownloader
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.library.LibraryUpdateNotifier
 import eu.kanade.tachiyomi.data.notification.NotificationHandler
@@ -105,6 +106,9 @@ class Downloader(
     private val torrentServerUtils: TorrentServerUtils,
     private val torrentPreferences: TorrentPreferences,
     // <-- AY
+    // AM -->
+    private val videoDownloader: VideoDownloader,
+    // <-- AM
 ) {
 
     /**
@@ -485,7 +489,8 @@ class Downloader(
                             download.video = download.video?.copyHttpServer(httpServer?.listeningPort ?: 0)
                         }
 
-                        downloadVideo(download, tmpDir, filename)
+                        videoDownloader.download(download, tmpDir, filename)
+                        // downloadVideo(download, tmpDir, filename)
                     } else {
                         if (download.video!!.usesHttpServer()) {
                             val (success, port) = MainActivity.startHttpServerService(context, download.source.id)

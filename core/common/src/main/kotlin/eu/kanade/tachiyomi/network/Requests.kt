@@ -82,6 +82,19 @@ fun DELETE(
         .build()
 }
 
+// AM -->
+fun HEAD(
+    url: String,
+    headers: Headers = DEFAULT_HEADERS,
+): Request {
+    return Request.Builder()
+        .url(url)
+        .headers(headers)
+        .head()
+        .build()
+}
+// <-- AM
+
 // AY -->
 
 /**
@@ -137,3 +150,12 @@ suspend fun OkHttpClient.post(
     return newCall(POST(url, headers, body, cache)).awaitSuccess()
 }
 // <-- AY
+
+// AM -->
+suspend fun OkHttpClient.head(
+    url: String,
+    headers: Headers = DEFAULT_HEADERS,
+): Response {
+    return newCall(HEAD(url, headers)).awaitSuccess()
+}
+// <-- AM
