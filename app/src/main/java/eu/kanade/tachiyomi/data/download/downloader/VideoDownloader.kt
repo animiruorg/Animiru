@@ -9,6 +9,7 @@ import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import eu.kanade.tachiyomi.animesource.model.Track
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -37,6 +38,12 @@ enum class DownloadType {
 data class DownloadTrack(
     val name: String,
     val ffmpegInput: String,
+)
+
+data class PlaylistResult(
+    val ffmpegInput: String,
+    val subtitleTracks: List<Track>,
+    val audioTracks: List<Track>,
 )
 
 @Serializable
@@ -68,7 +75,14 @@ class VideoDownloader(
         val downloadDir = UniFile.fromFile(getDownloadCacheDir(download))!!
             .createDirectory(md5(downloadKey).take(16))!!
 
-        val subtitleTracks = video.subtitleTracks.mapIndexedNotNull { i, track ->
+        val playlistResult = downloadPlaylist(
+            url = video.videoUrl,
+            headers = videoHeaders,
+            destDir = downloadDir,
+            name = "vid",
+        )
+
+        val subtitleTracks = (playlistResult.subtitleTracks + video.subtitleTracks).mapIndexedNotNull { i, track ->
             try {
                 val input = downloadItem(
                     url = track.url,
@@ -88,7 +102,7 @@ class VideoDownloader(
             }
         }
 
-        val audioTracks = video.audioTracks.mapIndexedNotNull { i, track ->
+        val audioTracks = (playlistResult.audioTracks + video.audioTracks).mapIndexedNotNull { i, track ->
             try {
                 val input = downloadItem(
                     url = track.url,
@@ -107,16 +121,9 @@ class VideoDownloader(
             }
         }
 
-        val videoInput = downloadItem(
-            url = video.videoUrl,
-            headers = videoHeaders,
-            destDir = downloadDir,
-            name = "vid",
-        )
-
         return merge(
             video = video,
-            videoInput = videoInput,
+            videoInput = playlistResult.ffmpegInput,
             subtitleTracks = subtitleTracks,
             audioTracks = audioTracks,
             downloadDir = downloadDir,
@@ -128,6 +135,21 @@ class VideoDownloader(
     private fun getDownloadCacheDir(download: Download): File {
         return context.getExternalFilesDir(DOWNLOADS_DIR)
             ?: File(context.filesDir, DOWNLOADS_DIR).also { it.mkdirs() }
+    }
+
+    private suspend fun downloadPlaylist(
+        url: String,
+        headers: Headers,
+        destDir: UniFile,
+        name: String,
+    ): PlaylistResult {
+        val type = getType(url, headers)
+
+        return when (type) {
+            DownloadType.Dash -> TODO()
+            DownloadType.Hls -> hlsDownloader.downloadPlaylist(url, headers, destDir, name)
+            DownloadType.Direct -> directDownloader.downloadPlaylist(url, headers, destDir, name)
+        }
     }
 
     private suspend fun downloadItem(

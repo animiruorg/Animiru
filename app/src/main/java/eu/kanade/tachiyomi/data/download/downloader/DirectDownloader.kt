@@ -24,6 +24,16 @@ class DirectDownloader(
 ) {
     private val client = networkHelper.client
 
+    suspend fun downloadPlaylist(
+        url: String,
+        headers: Headers,
+        destDir: UniFile,
+        name: String,
+    ): PlaylistResult {
+        val ffmpegInput = download(url, headers, destDir, name, false)
+        return PlaylistResult(ffmpegInput, emptyList(), emptyList())
+    }
+
     suspend fun download(
         url: String,
         headers: Headers,
