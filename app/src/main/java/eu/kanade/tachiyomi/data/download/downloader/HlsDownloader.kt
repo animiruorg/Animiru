@@ -17,7 +17,9 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import okhttp3.Headers
 import java.net.URI
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 
 @Inject
 @SingleIn(AppScope::class)
@@ -43,7 +45,7 @@ class HlsDownloader(
         val url: String?,
     )
 
-    suspend fun downloadPlaylist(
+    suspend fun parsePlaylist(
         url: String,
         headers: Headers,
         destDir: UniFile,
@@ -105,17 +107,17 @@ class HlsDownloader(
                     Track(lang = trackName, url = it.url!!)
                 }
 
-            val ffmpegInput = download(variant.url, headers, destDir, name)
-            PlaylistResult(
-                ffmpegInput = ffmpegInput,
+            PlaylistResult.Url(
+                url = variant.url,
                 subtitleTracks = tracks("SUBTITLES", variant.subtitleGroup),
                 audioTracks = tracks("AUDIO", variant.audioGroup),
             )
         } else {
             val (playlist, fragments) = getSegments(url, playlistContent, name)
-            val ffmpegInput = download(headers, playlist, fragments, destDir, name)
-            PlaylistResult(
-                ffmpegInput = ffmpegInput,
+            PlaylistResult.Content(
+                type = DownloadType.Hls,
+                content = playlist,
+                fragments = fragments,
                 subtitleTracks = emptyList(),
                 audioTracks = emptyList(),
             )
@@ -125,17 +127,19 @@ class HlsDownloader(
     suspend fun download(
         url: String,
         headers: Headers,
+        progress: ItemProgress,
         destDir: UniFile,
         name: String,
     ): String {
         val (playlist, fragments) = getSegments(url, headers, name)
-        return download(headers, playlist, fragments, destDir, name)
+        return download(headers, playlist, fragments, progress, destDir, name)
     }
 
     suspend fun download(
         headers: Headers,
         playlist: String,
         fragments: List<DownloadFragment>,
+        progress: ItemProgress,
         destDir: UniFile,
         name: String,
     ): String {
@@ -144,6 +148,20 @@ class HlsDownloader(
 
         val totalItems = fragments.size
         val threadCount = 5.coerceIn(1, fragmentQueue.size.coerceAtLeast(1))
+
+        val finished = AtomicInteger(totalItems - fragmentQueue.size)
+        val downloading = ConcurrentHashMap<String, Float>()
+
+        fun report() {
+            if (totalItems == 0) {
+                progress.report(1f)
+                return
+            }
+            val prog = (finished.get() + downloading.values.sum()) / totalItems
+            progress.report(prog)
+        }
+
+        report()
 
         coroutineScope {
             List(threadCount) {
@@ -157,8 +175,11 @@ class HlsDownloader(
                             listener = object : ProgressListener {
                                 override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
                                     job.ensureActive()
-                                    val progress = (100 * (bytesRead.toFloat() / contentLength)).toInt()
-                                    // TODO(dl):
+                                    if (contentLength > 0) {
+                                        val progress = (bytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
+                                        downloading[fragment.name] = progress
+                                        report()
+                                    }
                                 }
                             },
                             destDir = destDir,
@@ -173,6 +194,8 @@ class HlsDownloader(
         index.openOutputStream().use { output ->
             output.write(playlist.toByteArray())
         }
+
+        progress.report(1f)
 
         return "-f hls -i \"${index.filePath!!}\""
     }

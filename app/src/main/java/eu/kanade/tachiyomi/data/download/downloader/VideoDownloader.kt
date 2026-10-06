@@ -40,7 +40,26 @@ data class DownloadTrack(
     val ffmpegInput: String,
 )
 
-data class PlaylistResult(
+sealed interface PlaylistResult {
+    abstract val subtitleTracks: List<Track>
+    abstract val audioTracks: List<Track>
+
+    data class Url(
+        val url: String,
+        override val subtitleTracks: List<Track>,
+        override val audioTracks: List<Track>,
+    ) : PlaylistResult
+
+    data class Content(
+        val type: DownloadType,
+        val content: String,
+        val fragments: List<DownloadFragment>,
+        override val subtitleTracks: List<Track>,
+        override val audioTracks: List<Track>,
+    ) : PlaylistResult
+}
+
+data class PlaylisstResult(
     val ffmpegInput: String,
     val subtitleTracks: List<Track>,
     val audioTracks: List<Track>,
@@ -75,18 +94,30 @@ class VideoDownloader(
         val downloadDir = UniFile.fromFile(getDownloadCacheDir(download))!!
             .createDirectory(md5(downloadKey).take(16))!!
 
-        val playlistResult = downloadPlaylist(
+        val progress = ProgressAggregator { percent ->
+            download.progress = percent
+        }
+
+        val playlistResult = parsePlaylist(
             url = video.videoUrl,
             headers = videoHeaders,
             destDir = downloadDir,
             name = "vid",
         )
 
-        val subtitleTracks = (playlistResult.subtitleTracks + video.subtitleTracks).mapIndexedNotNull { i, track ->
+        val subtitleTracks = playlistResult.subtitleTracks + video.subtitleTracks
+        val audioTracks = playlistResult.audioTracks + video.audioTracks
+
+        val videoProgress = progress.register(VIDEO_WEIGHT)
+        val subtitleProgress = subtitleTracks.map { progress.register(SUBTITLE_WEIGHT) }
+        val audioProgress = subtitleProgress.map { progress.register(AUDIO_WEIGHT) }
+
+        val subtitleDownloadTracks = subtitleTracks.mapIndexedNotNull { i, track ->
             try {
                 val input = downloadItem(
                     url = track.url,
                     headers = videoHeaders,
+                    progress = subtitleProgress[i],
                     destDir = downloadDir,
                     name = "sub$i",
                     forceSingle = true,
@@ -102,11 +133,12 @@ class VideoDownloader(
             }
         }
 
-        val audioTracks = (playlistResult.audioTracks + video.audioTracks).mapIndexedNotNull { i, track ->
+        val audioDownloadTracks = (playlistResult.audioTracks + video.audioTracks).mapIndexedNotNull { i, track ->
             try {
                 val input = downloadItem(
                     url = track.url,
                     headers = videoHeaders,
+                    progress = audioProgress[i],
                     destDir = downloadDir,
                     name = "aud$i",
                 )
@@ -121,11 +153,19 @@ class VideoDownloader(
             }
         }
 
+        val videoInput = downloadPlaylist(
+            playlistResult = playlistResult,
+            headers = videoHeaders,
+            progress = videoProgress,
+            destDir = downloadDir,
+            name = "vid",
+        )
+
         return merge(
             video = video,
-            videoInput = playlistResult.ffmpegInput,
-            subtitleTracks = subtitleTracks,
-            audioTracks = audioTracks,
+            videoInput = videoInput,
+            subtitleTracks = subtitleDownloadTracks,
+            audioTracks = audioDownloadTracks,
             downloadDir = downloadDir,
             destDir = destDir,
             filename = filename,
@@ -137,7 +177,7 @@ class VideoDownloader(
             ?: File(context.filesDir, DOWNLOADS_DIR).also { it.mkdirs() }
     }
 
-    private suspend fun downloadPlaylist(
+    private suspend fun parsePlaylist(
         url: String,
         headers: Headers,
         destDir: UniFile,
@@ -147,14 +187,56 @@ class VideoDownloader(
 
         return when (type) {
             DownloadType.Dash -> TODO()
-            DownloadType.Hls -> hlsDownloader.downloadPlaylist(url, headers, destDir, name)
-            DownloadType.Direct -> directDownloader.downloadPlaylist(url, headers, destDir, name)
+            DownloadType.Hls -> hlsDownloader.parsePlaylist(url, headers, destDir, name)
+            DownloadType.Direct -> directDownloader.parsePlaylist(url, headers, destDir, name)
+        }
+    }
+
+    private suspend fun downloadPlaylist(
+        playlistResult: PlaylistResult,
+        headers: Headers,
+        progress: ItemProgress,
+        destDir: UniFile,
+        name: String,
+    ): String {
+        return when (playlistResult) {
+            is PlaylistResult.Url -> {
+                val type = getType(playlistResult.url, headers)
+
+                when (type) {
+                    DownloadType.Dash -> TODO()
+                    DownloadType.Hls -> hlsDownloader.download(playlistResult.url, headers, progress, destDir, name)
+                    DownloadType.Direct -> directDownloader.download(
+                        playlistResult.url,
+                        headers,
+                        progress,
+                        destDir,
+                        name,
+                        false,
+                    )
+                }
+            }
+            is PlaylistResult.Content -> {
+                when (playlistResult.type) {
+                    DownloadType.Dash -> TODO()
+                    DownloadType.Hls -> hlsDownloader.download(
+                        headers = headers,
+                        playlist = playlistResult.content,
+                        fragments = playlistResult.fragments,
+                        progress = progress,
+                        destDir = destDir,
+                        name = name,
+                    )
+                    DownloadType.Direct -> throw IllegalStateException("Content not supported for direct download")
+                }
+            }
         }
     }
 
     private suspend fun downloadItem(
         url: String,
         headers: Headers,
+        progress: ItemProgress,
         destDir: UniFile,
         name: String,
         forceSingle: Boolean = false,
@@ -163,8 +245,8 @@ class VideoDownloader(
 
         return when (type) {
             DownloadType.Dash -> TODO()
-            DownloadType.Hls -> hlsDownloader.download(url, headers, destDir, name)
-            DownloadType.Direct -> directDownloader.download(url, headers, destDir, name, forceSingle)
+            DownloadType.Hls -> hlsDownloader.download(url, headers, progress, destDir, name)
+            DownloadType.Direct -> directDownloader.download(url, headers, progress, destDir, name, forceSingle)
         }
     }
 
@@ -321,5 +403,9 @@ class VideoDownloader(
 
     companion object {
         private const val DOWNLOADS_DIR = "downloads"
+
+        private const val VIDEO_WEIGHT = 100.0
+        private const val AUDIO_WEIGHT = 8.0
+        private const val SUBTITLE_WEIGHT = 0.5
     }
 }

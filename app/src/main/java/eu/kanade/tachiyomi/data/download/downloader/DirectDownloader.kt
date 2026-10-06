@@ -15,6 +15,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import okhttp3.Headers
+import java.util.concurrent.atomic.AtomicLongArray
 
 @Inject
 @SingleIn(AppScope::class)
@@ -24,19 +25,19 @@ class DirectDownloader(
 ) {
     private val client = networkHelper.client
 
-    suspend fun downloadPlaylist(
+    suspend fun parsePlaylist(
         url: String,
         headers: Headers,
         destDir: UniFile,
         name: String,
     ): PlaylistResult {
-        val ffmpegInput = download(url, headers, destDir, name, false)
-        return PlaylistResult(ffmpegInput, emptyList(), emptyList())
+        return PlaylistResult.Url(url, emptyList(), emptyList())
     }
 
     suspend fun download(
         url: String,
         headers: Headers,
+        progress: ItemProgress,
         destDir: UniFile,
         name: String,
         forceSingle: Boolean,
@@ -66,10 +67,38 @@ class DirectDownloader(
             // download.totalSize = size
         }
 
-        val threadCount = 64
+        val threadCount = 4
 
         return if (!forceSingle && size > 0 && supportsRanges && threadCount > 1) {
             val partSize = size / threadCount
+            fun partLength(i: Int): Long {
+                return if (i == threadCount - 1) {
+                    size * partSize
+                } else {
+                    partSize
+                }
+            }
+
+            val downloadedParts = AtomicLongArray(threadCount)
+            (0 until threadCount).forEach {
+                val partLength = partLength(it)
+                val finished = destDir.findFile("$name-part$it")?.exists() == true
+                val downloadedSize = if (finished) {
+                    partLength
+                } else {
+                    destDir.findFile("$name-part$it.tmp")?.length() ?: 0L
+                }
+
+                downloadedParts.set(it, downloadedSize.coerceIn(0L, partLength))
+            }
+
+            fun report() {
+                val downloaded = (0 until threadCount).sumOf {
+                    downloadedParts.get(it)
+                }
+                progress.report(downloaded.toFloat() / size)
+            }
+            report()
 
             coroutineScope {
                 List(threadCount) {
@@ -84,6 +113,13 @@ class DirectDownloader(
                         val listener = object : ProgressListener {
                             override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
                                 job.ensureActive()
+                                downloadedParts.accumulateAndGet(
+                                    it,
+                                    bytesRead.coerceAtMost(partLength(it)),
+                                ) { a, b ->
+                                    maxOf(a, b)
+                                }
+                                report()
                             }
                         }
 
@@ -109,10 +145,10 @@ class DirectDownloader(
                 }.joinAll()
             }
 
+            progress.report(1f)
             val parts = (0 until threadCount).joinToString("|") { "${destDir.filePath!!}/$name-part$it" }
             "-i \"concat:$parts\""
         } else {
-            var oldProg = 0
             val job = currentCoroutineContext().job
 
             val file = downloader.downloadFile(
@@ -120,20 +156,18 @@ class DirectDownloader(
                 headersBuilder = { headers },
                 listener = object : ProgressListener {
                     override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
-                        // TODO(dl):
                         job.ensureActive()
-                        val progress = if (contentLength > 0) {
-                            (100 * (bytesRead.toFloat() / contentLength)).toInt()
-                        } else {
-                            -1
+                        if (contentLength > 0) {
+                            val prog = (bytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
+                            progress.report(prog)
                         }
-                        oldProg = progress
                     }
                 },
                 destDir = destDir,
                 fileName = name,
             )
 
+            progress.report(1f)
             "-i \"${file.filePath!!}\""
         }
     }
