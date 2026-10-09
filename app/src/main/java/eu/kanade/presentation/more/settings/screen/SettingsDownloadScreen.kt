@@ -74,7 +74,7 @@ object SettingsDownloadScreen : SearchableSettings {
                     currentSpeedLimit = speedLimit
                 },
                 onValueChanged = {
-                    currentSpeedLimit = it
+                    currentSpeedLimit = it.coerceIn(0, 1000000)
                 },
                 onConfirm = {
                     speedLimitPref.set(currentSpeedLimit)

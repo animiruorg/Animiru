@@ -489,8 +489,43 @@ class Downloader(
                             download.video = download.video?.copyHttpServer(httpServer?.listeningPort ?: 0)
                         }
 
+                        // Start torrent server if needed
+                        val isTorrent = isTorrent(download.video)
+                        if (isTorrent) {
+                            if (!torrentPreferences.torrServerEnable.get()) {
+                                throw Exception("Torrserver isn't enabled")
+                            }
+
+                            val video = download.video!!
+                            TorrentServerService.start(context)
+                            if (video.videoUrl.startsWith(torrentServerApi.hostUrl)) {
+                                val hash = video.videoUrl.substringAfter("link=").substringBefore("&")
+                                val index = video.videoUrl.substringAfter("index=").substringBefore("&").toInt()
+                                val magnet = "magnet:?xt=urn:btih:$hash&index=$index"
+                                video.videoUrl = magnet
+                            }
+                            val currentTorrent = torrentServerApi.addTorrent(
+                                video.videoUrl,
+                                video.videoTitle,
+                                "",
+                                "",
+                                false,
+                            )
+                            var index = 0
+                            if (video.videoUrl.contains("index=")) {
+                                index = try {
+                                    video.videoUrl.substringAfter("index=")
+                                        .substringBefore("&").toInt()
+                                } catch (_: Exception) {
+                                    0
+                                }
+                            }
+                            val torrentUrl = torrentServerUtils.getTorrentPlayLink(currentTorrent, index)
+                            video.videoUrl = torrentUrl
+                        }
+
                         if (downloadPreferences.useInternalDownloader.get()) {
-                            videoDownloader.download(download, tmpDir, filename)
+                            videoDownloader.download(download, tmpDir, filename, isTorrent)
                         } else {
                             downloadVideo(download, tmpDir, filename)
                         }
@@ -546,11 +581,7 @@ class Downloader(
             tmpDir.findFile("$filename.tmp")?.delete()
             val videoFile = tmpDir.createFile("$filename.tmp")!!
             try {
-                if (torrentPreferences.torrServerEnable.get() && isTorrent(download.video)) {
-                    torrentDownload(download, tmpDir, videoFile, filename)
-                } else {
-                    ffmpegDownload(download, tmpDir, videoFile, filename)
-                }
+                ffmpegDownload(download, tmpDir, videoFile, filename)
             } catch (e: Exception) {
                 videoFile.delete()
                 throw e
@@ -574,35 +605,6 @@ class Downloader(
     private fun isTorrent(video: Video?): Boolean {
         val url = video?.videoUrl ?: return false
         return url.startsWith("magnet") || url.endsWith(".torrent") || url.startsWith(torrentServerApi.hostUrl)
-    }
-
-    private suspend fun torrentDownload(
-        download: Download,
-        tmpDir: UniFile,
-        videoFile: UniFile,
-        filename: String,
-    ) {
-        val video = download.video!!
-        TorrentServerService.start(context)
-        if (video.videoUrl.startsWith(torrentServerApi.hostUrl)) {
-            val hash = video.videoUrl.substringAfter("link=").substringBefore("&")
-            val index = video.videoUrl.substringAfter("index=").substringBefore("&").toInt()
-            val magnet = "magnet:?xt=urn:btih:$hash&index=$index"
-            video.videoUrl = magnet
-        }
-        val currentTorrent = torrentServerApi.addTorrent(video.videoUrl, video.videoTitle, "", "", false)
-        var index = 0
-        if (video.videoUrl.contains("index=")) {
-            index = try {
-                video.videoUrl.substringAfter("index=")
-                    .substringBefore("&").toInt()
-            } catch (_: Exception) {
-                0
-            }
-        }
-        val torrentUrl = torrentServerUtils.getTorrentPlayLink(currentTorrent, index)
-        video.videoUrl = torrentUrl
-        ffmpegDownload(download, tmpDir, videoFile, filename)
     }
 
     // ffmpeg is always on safe mode

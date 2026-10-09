@@ -98,7 +98,12 @@ class VideoDownloader(
 ) {
     private val client = network.client
 
-    suspend fun download(download: Download, destDir: UniFile, filename: String): UniFile {
+    suspend fun download(
+        download: Download,
+        destDir: UniFile,
+        filename: String,
+        isTorrent: Boolean,
+    ): UniFile {
         val video = download.video!!
         val videoHeaders = video.headers ?: Headers.EMPTY
 
@@ -189,6 +194,7 @@ class VideoDownloader(
             threadCount = threadCount,
             destDir = downloadDir,
             name = "vid",
+            forceSingle = isTorrent,
         )
 
         return merge(
@@ -231,6 +237,7 @@ class VideoDownloader(
         threadCount: Int,
         destDir: UniFile,
         name: String,
+        forceSingle: Boolean,
     ): String {
         return when (playlistResult) {
             is PlaylistResult.Url -> {
@@ -269,7 +276,7 @@ class VideoDownloader(
                         threadCount = threadCount,
                         destDir = destDir,
                         name = name,
-                        forceSingle = false,
+                        forceSingle = forceSingle,
                     )
                 }
             }
@@ -539,7 +546,6 @@ class VideoDownloader(
     private fun formatMetadata(tracks: List<DownloadTrack>, type: String) = tracks.mapIndexed { i, track ->
         "-metadata:s:$type:$i \"title=${track.name}\""
     }.joinToString(" ")
-
 
     private suspend fun getDuration(ffmpegInput: String): Float? {
         val durationFile = context.createFileInCacheDir("dl_ffprobe_duration.txt")
