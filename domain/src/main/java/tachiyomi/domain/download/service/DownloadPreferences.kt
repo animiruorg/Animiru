@@ -22,6 +22,21 @@ class DownloadPreferences(
         "pref_download_ignore_broken_tracks",
         false,
     )
+
+    val useInternalDownloader: Preference<Boolean> = preferenceStore.getBoolean(
+        "pref_download_use_internal",
+        true,
+    )
+
+    val downloadThreads: Preference<Int> = preferenceStore.getInt(
+        "pref_download_threads",
+        4,
+    )
+
+    val downloadSpeedLimit: Preference<Int> = preferenceStore.getInt(
+        "pref_download_speed",
+        0,
+    )
     // <-- AM
 
     // AY -->

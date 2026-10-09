@@ -41,6 +41,8 @@ data class Download(
         }
     // <-- AY
 
+    var totalSize: Long = -1L
+
     enum class State(val value: Int) {
         NOT_DOWNLOADED(0),
         QUEUE(1),

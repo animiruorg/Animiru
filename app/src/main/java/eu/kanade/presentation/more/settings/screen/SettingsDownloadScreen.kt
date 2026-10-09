@@ -1,25 +1,39 @@
 package eu.kanade.presentation.more.settings.screen
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.util.fastMap
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.presentation.category.visualName
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.widget.TriStateListDialog
+import eu.kanade.presentation.player.components.OutlinedNumericChooser
 import mihon.app.di.appGraph
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.i18n.aniyomi.AYMR
+import tachiyomi.presentation.core.components.material.TextButton
+import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
@@ -41,6 +55,35 @@ object SettingsDownloadScreen : SearchableSettings {
         // AY -->
         val basePreferences = remember { context.appGraph.basePreferences }
         // <-- AY
+
+        // AM -->
+        val internalDownloaderPref = downloadPreferences.useInternalDownloader
+        val internalDownloader by internalDownloaderPref.collectAsState()
+
+        val speedLimitPref = downloadPreferences.downloadSpeedLimit
+        val speedLimit by speedLimitPref.collectAsState()
+
+        var showDownloadLimitDialog by rememberSaveable { mutableStateOf(false) }
+        var currentSpeedLimit by remember { mutableIntStateOf(speedLimit) }
+
+        if (showDownloadLimitDialog) {
+            DownloadLimitDialog(
+                initialValue = currentSpeedLimit,
+                onDismissRequest = {
+                    showDownloadLimitDialog = false
+                    currentSpeedLimit = speedLimit
+                },
+                onValueChanged = {
+                    currentSpeedLimit = it.coerceIn(0, 1000000)
+                },
+                onConfirm = {
+                    speedLimitPref.set(currentSpeedLimit)
+                    showDownloadLimitDialog = false
+                },
+            )
+        }
+        // <-- AM
+
         return listOf(
             Preference.PreferenceItem.SwitchPreference(
                 preference = downloadPreferences.downloadOnlyOverWifi,
@@ -58,6 +101,28 @@ object SettingsDownloadScreen : SearchableSettings {
                 title = stringResource(MR.strings.pref_download_concurrent_sources),
                 onValueChanged = { downloadPreferences.parallelSourceLimit.set(it) },
             ),
+            // AM -->
+            Preference.PreferenceItem.SwitchPreference(
+                preference = internalDownloaderPref,
+                title = stringResource(AMMR.strings.pref_download_use_internal),
+            ),
+            Preference.PreferenceItem.ListPreference(
+                preference = downloadPreferences.downloadThreads,
+                entries = (1..64).associateWith { it.toString() },
+                title = stringResource(AMMR.strings.pref_download_threads),
+                enabled = internalDownloader,
+            ),
+            Preference.PreferenceItem.TextPreference(
+                title = stringResource(AMMR.strings.am_download_speed_limit),
+                subtitle = if (speedLimit == 0) {
+                    stringResource(MR.strings.off)
+                } else {
+                    stringResource(AMMR.strings.am_download_speed_limit_value, speedLimit)
+                },
+                enabled = internalDownloader,
+                onClick = { showDownloadLimitDialog = true },
+            ),
+            // <-- AM
             getDeleteEpisodesGroup(
                 downloadPreferences = downloadPreferences,
                 categories = allCategories,
@@ -256,4 +321,59 @@ object SettingsDownloadScreen : SearchableSettings {
         )
     }
     // <-- AY
+
+    // AM -->
+    @Composable
+    private fun DownloadLimitDialog(
+        initialValue: Int,
+        onDismissRequest: () -> Unit,
+        onValueChanged: (newValue: Int) -> Unit,
+        onConfirm: () -> Unit,
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismissRequest,
+            title = { Text(stringResource(AYMR.strings.download_speed_limit)) },
+            text = {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .padding(bottom = MaterialTheme.padding.medium)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        OutlinedNumericChooser(
+                            value = initialValue,
+                            onChange = onValueChanged,
+                            max = 1000000,
+                            step = 100,
+                            min = 0,
+                            label = {
+                                Text(stringResource(AMMR.strings.am_download_speed_limit))
+                            },
+                            suffix = {
+                                Text(stringResource(AMMR.strings.am_download_speed_limit_unit))
+                            },
+                        )
+                    }
+                    Text(text = stringResource(AYMR.strings.download_speed_limit_hint))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissRequest) {
+                    Text(text = stringResource(MR.strings.action_cancel))
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onConfirm()
+                    },
+                ) {
+                    Text(text = stringResource(MR.strings.action_ok))
+                }
+            },
+        )
+    }
+    // <-- AM
 }

@@ -12,6 +12,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import okio.Throttler
 import rx.Observable
 import rx.Producer
 import rx.Subscription
@@ -120,13 +121,30 @@ suspend fun Call.awaitSuccess(): Response {
     return response
 }
 
-fun OkHttpClient.newCachelessCallWithProgress(request: Request, listener: ProgressListener): Call {
+fun OkHttpClient.newCachelessCallWithProgress(
+    request: Request,
+    listener: ProgressListener,
+    existingSize: Long = 0L,
+    // AM -->
+    throttler: Throttler? = null,
+    // <-- AM
+): Call {
     val progressClient = newBuilder()
         .cache(null)
         .addNetworkInterceptor { chain ->
-            val originalResponse = chain.proceed(chain.request())
+            val request = chain.request()
+                .newBuilder()
+                .apply {
+                    if (existingSize > 0 && request.header("Range") == null) {
+                        header("Range", "bytes=$existingSize-")
+                    }
+                }
+                .build()
+
+            val originalResponse = chain.proceed(request)
+            val actualExistingSize = if (originalResponse.code == 206) existingSize else 0L
             originalResponse.newBuilder()
-                .body(ProgressResponseBody(originalResponse.body, listener))
+                .body(ProgressResponseBody(originalResponse.body, listener, actualExistingSize, throttler))
                 .build()
         }
         .build()
