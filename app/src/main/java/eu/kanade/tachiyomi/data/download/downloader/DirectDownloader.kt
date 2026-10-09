@@ -15,6 +15,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import okhttp3.Headers
+import okio.Throttler
 import java.util.concurrent.atomic.AtomicLongArray
 
 @Inject
@@ -37,6 +38,8 @@ class DirectDownloader(
         url: String,
         headers: Headers,
         progress: ItemProgress,
+        throttler: Throttler?,
+        threadCount: Int,
         destDir: UniFile,
         name: String,
         forceSingle: Boolean,
@@ -65,8 +68,6 @@ class DirectDownloader(
             // TODO(dl): Update download size
             // download.totalSize = size
         }
-
-        val threadCount = 4
 
         return if (!forceSingle && size > 0 && supportsRanges && threadCount > 1) {
             val partSize = size / threadCount
@@ -137,6 +138,7 @@ class DirectDownloader(
                                     .build()
                             },
                             listener = listener,
+                            throttler = throttler,
                             destDir = destDir,
                             fileName = "$name-part$it",
                         )
@@ -162,6 +164,7 @@ class DirectDownloader(
                         }
                     }
                 },
+                throttler = throttler,
                 destDir = destDir,
                 fileName = name,
             )

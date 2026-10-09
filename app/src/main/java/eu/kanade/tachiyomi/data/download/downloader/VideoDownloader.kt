@@ -22,7 +22,9 @@ import kotlinx.serialization.Serializable
 import logcat.LogPriority
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okio.Throttler
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.download.service.DownloadPreferences
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -87,12 +89,21 @@ class VideoDownloader(
     private val hlsDownloader: HlsDownloader,
     private val dashDownloader: DashDownloader,
     private val directDownloader: DirectDownloader,
+    private val downloadPreferences: DownloadPreferences,
 ) {
     private val client = network.client
 
     suspend fun download(download: Download, destDir: UniFile, filename: String): UniFile {
         val video = download.video!!
         val videoHeaders = video.headers ?: Headers.EMPTY
+
+        val threadCount = downloadPreferences.downloadThreads.get()
+        val skipTracks = downloadPreferences.ignoreBrokenTracks.get()
+        val speedLimit = downloadPreferences.downloadSpeedLimit.get()
+        val throttler = Throttler().takeIf { speedLimit > 0 }
+        throttler?.apply {
+            bytesPerSecond(speedLimit * 1024L)
+        }
 
         val downloadKey = listOf(
             download.source.name,
@@ -128,6 +139,8 @@ class VideoDownloader(
                     trackResult = track,
                     headers = videoHeaders,
                     progress = subtitleProgress[i],
+                    throttler = throttler,
+                    threadCount = threadCount,
                     destDir = downloadDir,
                     name = "sub$i",
                     forceSingle = true,
@@ -137,8 +150,7 @@ class VideoDownloader(
                     ffmpegInput = input,
                 )
             } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                // TODO(dl): throw
+                if (e is CancellationException || !skipTracks) throw e
                 null
             }
         }
@@ -149,6 +161,8 @@ class VideoDownloader(
                     trackResult = track,
                     headers = videoHeaders,
                     progress = audioProgress[i],
+                    throttler = throttler,
+                    threadCount = threadCount,
                     destDir = downloadDir,
                     name = "aud$i",
                 )
@@ -157,8 +171,7 @@ class VideoDownloader(
                     ffmpegInput = input,
                 )
             } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                // TODO(dl): throw
+                if (e is CancellationException || !skipTracks) throw e
                 null
             }
         }
@@ -167,6 +180,8 @@ class VideoDownloader(
             playlistResult = playlistResult,
             headers = videoHeaders,
             progress = videoProgress,
+            throttler = throttler,
+            threadCount = threadCount,
             destDir = downloadDir,
             name = "vid",
         )
@@ -206,6 +221,8 @@ class VideoDownloader(
         playlistResult: PlaylistResult,
         headers: Headers,
         progress: ItemProgress,
+        throttler: Throttler?,
+        threadCount: Int,
         destDir: UniFile,
         name: String,
     ): String {
@@ -214,7 +231,15 @@ class VideoDownloader(
                 val type = getType(playlistResult.url, headers)
 
                 when (type) {
-                    DownloadType.Hls -> hlsDownloader.download(playlistResult.url, headers, progress, destDir, name)
+                    DownloadType.Hls -> hlsDownloader.download(
+                        url = playlistResult.url,
+                        headers = headers,
+                        progress = progress,
+                        throttler = throttler,
+                        threadCount = threadCount,
+                        destDir = destDir,
+                        name = name,
+                    )
                     DownloadType.Dash -> {
                         val track = TrackResult.Url(
                             url = playlistResult.url,
@@ -224,17 +249,21 @@ class VideoDownloader(
                             headers = headers,
                             track = track,
                             progress = progress,
+                            throttler = throttler,
+                            threadCount = threadCount,
                             destDir = destDir,
                             name = name,
                         )
                     }
                     DownloadType.Direct -> directDownloader.download(
-                        playlistResult.url,
-                        headers,
-                        progress,
-                        destDir,
-                        name,
-                        false,
+                        url = playlistResult.url,
+                        headers = headers,
+                        progress = progress,
+                        throttler = throttler,
+                        threadCount = threadCount,
+                        destDir = destDir,
+                        name = name,
+                        forceSingle = false,
                     )
                 }
             }
@@ -245,6 +274,8 @@ class VideoDownloader(
                         playlist = playlistResult.content,
                         fragments = playlistResult.fragments,
                         progress = progress,
+                        throttler = throttler,
+                        threadCount = threadCount,
                         destDir = destDir,
                         name = name,
                     )
@@ -259,6 +290,8 @@ class VideoDownloader(
                             headers = headers,
                             track = track,
                             progress = progress,
+                            throttler = throttler,
+                            threadCount = threadCount,
                             destDir = destDir,
                             name = name,
                         )
@@ -273,6 +306,8 @@ class VideoDownloader(
         trackResult: TrackResult,
         headers: Headers,
         progress: ItemProgress,
+        throttler: Throttler?,
+        threadCount: Int,
         destDir: UniFile,
         name: String,
         forceSingle: Boolean = false,
@@ -283,15 +318,34 @@ class VideoDownloader(
                 val type = getType(url, headers)
 
                 when (type) {
-                    DownloadType.Hls -> hlsDownloader.download(url, headers, progress, destDir, name)
+                    DownloadType.Hls -> hlsDownloader.download(
+                        url = url,
+                        headers = headers,
+                        progress = progress,
+                        throttler = throttler,
+                        threadCount = threadCount,
+                        destDir = destDir,
+                        name = name,
+                    )
                     DownloadType.Dash -> dashDownloader.downloadTrack(
                         headers = headers,
                         track = trackResult,
                         progress = progress,
+                        throttler = throttler,
+                        threadCount = threadCount,
                         destDir = destDir,
                         name = name,
                     )
-                    DownloadType.Direct -> directDownloader.download(url, headers, progress, destDir, name, forceSingle)
+                    DownloadType.Direct -> directDownloader.download(
+                        url = url,
+                        headers = headers,
+                        progress = progress,
+                        throttler = throttler,
+                        threadCount = threadCount,
+                        destDir = destDir,
+                        name = name,
+                        forceSingle = forceSingle,
+                    )
                 }
             }
             is TrackResult.Playlist -> {
@@ -301,6 +355,8 @@ class VideoDownloader(
                         playlist = trackResult.content,
                         fragments = trackResult.fragments,
                         progress = progress,
+                        throttler = throttler,
+                        threadCount = threadCount,
                         destDir = destDir,
                         name = name,
                     )
@@ -309,6 +365,8 @@ class VideoDownloader(
                             headers = headers,
                             track = trackResult,
                             progress = progress,
+                            throttler = throttler,
+                            threadCount = threadCount,
                             destDir = destDir,
                             name = name,
                         )

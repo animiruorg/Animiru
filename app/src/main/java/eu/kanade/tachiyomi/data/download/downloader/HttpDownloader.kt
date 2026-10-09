@@ -23,7 +23,7 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import okhttp3.Headers
-import java.security.MessageDigest
+import okio.Throttler
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
@@ -47,6 +47,7 @@ class HttpDownloader(
         headers: Headers?,
         fragment: DownloadFragment,
         listener: ProgressListener,
+        throttler: Throttler?,
         destDir: UniFile,
     ): UniFile {
         return downloadFile(
@@ -67,6 +68,7 @@ class HttpDownloader(
                 headersBuilder.build()
             },
             listener = listener,
+            throttler = throttler,
             destDir = destDir,
             fileName = fragment.name,
         )
@@ -76,6 +78,7 @@ class HttpDownloader(
         url: String,
         headersBuilder: (UniFile) -> Headers,
         listener: ProgressListener,
+        throttler: Throttler?,
         destDir: UniFile,
         fileName: String,
     ): UniFile {
@@ -90,6 +93,7 @@ class HttpDownloader(
                     request = GET(url, headers),
                     listener = listener,
                     existingSize = file.length(),
+                    throttler = throttler,
                 )
                     .awaitSuccess()
                     .use { response ->
@@ -126,6 +130,8 @@ class HttpDownloader(
         playlist: String,
         fragments: List<DownloadFragment>,
         progress: ItemProgress,
+        throttler: Throttler?,
+        threadCount: Int,
         destDir: UniFile,
         name: String,
         ffmpegName: String,
@@ -136,7 +142,7 @@ class HttpDownloader(
         val fragmentQueue = ConcurrentLinkedQueue(fragments.filter { it.name !in downloaded })
 
         val totalItems = fragments.size
-        val threadCount = 5.coerceIn(1, fragmentQueue.size.coerceAtLeast(1))
+        val threadCount = threadCount.coerceIn(1, fragmentQueue.size.coerceAtLeast(1))
 
         val finished = AtomicInteger(totalItems - fragmentQueue.size)
         val downloading = ConcurrentHashMap<String, Float>()
@@ -171,6 +177,7 @@ class HttpDownloader(
                                     }
                                 }
                             },
+                            throttler = throttler,
                             destDir = destDir,
                         )
                     }
@@ -195,23 +202,5 @@ class HttpDownloader(
         )
             .filter(String::isNotEmpty)
             .joinToString(" ")
-    }
-
-    fun md5(file: UniFile): String {
-        val digest = MessageDigest.getInstance("MD5")
-
-        file.openInputStream().use { input ->
-            val buffer = ByteArray(8 * 1024)
-
-            while (true) {
-                val bytesRead = input.read(buffer)
-                if (bytesRead == -1) break
-
-                digest.update(buffer, 0, bytesRead)
-            }
-        }
-
-        return digest.digest()
-            .joinToString("") { "%02x".format(it) }
     }
 }

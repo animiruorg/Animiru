@@ -489,8 +489,11 @@ class Downloader(
                             download.video = download.video?.copyHttpServer(httpServer?.listeningPort ?: 0)
                         }
 
-                        videoDownloader.download(download, tmpDir, filename)
-                        // downloadVideo(download, tmpDir, filename)
+                        if (downloadPreferences.useInternalDownloader.get()) {
+                            videoDownloader.download(download, tmpDir, filename)
+                        } else {
+                            downloadVideo(download, tmpDir, filename)
+                        }
                     } else {
                         if (download.video!!.usesHttpServer()) {
                             val (success, port) = MainActivity.startHttpServerService(context, download.source.id)

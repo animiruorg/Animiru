@@ -7,6 +7,7 @@ import dev.zacsweers.metro.SingleIn
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.get
 import okhttp3.Headers
+import okio.Throttler
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -92,6 +93,8 @@ class DashDownloader(
         headers: Headers,
         track: TrackResult,
         progress: ItemProgress,
+        throttler: Throttler?,
+        threadCount: Int,
         destDir: UniFile,
         name: String,
     ): String {
@@ -101,6 +104,8 @@ class DashDownloader(
                     url = track.url,
                     headers = headers,
                     progress = progress,
+                    throttler = throttler,
+                    threadCount = threadCount,
                     destDir = destDir,
                     name = name,
                     forceSingle = false,
@@ -112,6 +117,8 @@ class DashDownloader(
                     playlist = track.content,
                     fragments = track.fragments,
                     progress = progress,
+                    throttler = throttler,
+                    threadCount = threadCount,
                     destDir = destDir,
                     name = name,
                     ffmpegName = "playlist",

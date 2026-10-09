@@ -7,6 +7,7 @@ import dev.zacsweers.metro.SingleIn
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.get
 import okhttp3.Headers
+import okio.Throttler
 
 @Inject
 @SingleIn(AppScope::class)
@@ -114,11 +115,13 @@ class HlsDownloader(
         url: String,
         headers: Headers,
         progress: ItemProgress,
+        throttler: Throttler?,
+        threadCount: Int,
         destDir: UniFile,
         name: String,
     ): String {
         val (playlist, fragments) = getSegments(url, headers, name)
-        return download(headers, playlist, fragments, progress, destDir, name)
+        return download(headers, playlist, fragments, progress, throttler, threadCount, destDir, name)
     }
 
     suspend fun download(
@@ -126,6 +129,8 @@ class HlsDownloader(
         playlist: String,
         fragments: List<DownloadFragment>,
         progress: ItemProgress,
+        throttler: Throttler?,
+        threadCount: Int,
         destDir: UniFile,
         name: String,
     ): String {
@@ -134,6 +139,8 @@ class HlsDownloader(
             playlist = playlist,
             fragments = fragments,
             progress = progress,
+            throttler = throttler,
+            threadCount = threadCount,
             destDir = destDir,
             name = name,
             ffmpegName = "index",
