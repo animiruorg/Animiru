@@ -70,23 +70,22 @@ import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import logcat.LogPriority
-import logcat.logcat
 import mihon.app.di.appGraph
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.storage.displayablePath
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withUIContext
@@ -544,15 +543,24 @@ class SettingsStorageViewModel(
     private val downloadManager: DownloadManager,
 ) : ViewModel() {
 
-    private val filesFlow = flow {
-        val dirs = withIOContext {
-            getDownloadCacheDir()
-                .listFiles()!!
-                .mapNotNull { it.name }
-        }
+    private val refreshFlow = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
 
-        emit(dirs)
-    }
+    private val filesFlow = refreshFlow
+        .onStart { emit(Unit) }
+        .mapLatest {
+            try {
+                withIOContext {
+                    getDownloadCacheDir()
+                        .listFiles()!!
+                        .mapNotNull { it.name }
+                }
+            } catch (_: Throwable) {
+                emptyList()
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val canDelete = combine(
@@ -571,6 +579,7 @@ class SettingsStorageViewModel(
         getDownloadCacheDir().listFiles { _, filename -> filename in dirs }.orEmpty().forEach {
             it.delete()
         }
+        refreshFlow.tryEmit(Unit)
     }
 
     private fun getDownloadKey(download: Download): String {
