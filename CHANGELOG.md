@@ -13,6 +13,7 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 ### Added
 - Added option to change size of episode thumbnails ([@Secozzi](https://github.com/Secozzi)) ([#231](https://github.com/animiruorg/Animiru/pull/231))
+- Added new downloader ([@Secozzi](https://github.com/Secozzi)) ([#236](https://github.com/animiruorg/Animiru/pull/236))
 
 ### Improved
 - Long press on go back in anime screen now goes to parent anime ([@Secozzi](https://github.com/Secozzi)) ([#220](https://github.com/animiruorg/Animiru/pull/220))
