@@ -44,7 +44,6 @@ class DirectDownloader(
         name: String,
         forceSingle: Boolean,
     ): String {
-        // TODO(dl): Update download size
         var size = -1L
         var supportsRanges = false
 
@@ -64,9 +63,6 @@ class DirectDownloader(
                     }
                 }
             } catch (_: Exception) { }
-
-            // TODO(dl): Update download size
-            // download.totalSize = size
         }
 
         return if (!forceSingle && size > 0 && supportsRanges && threadCount > 1) {

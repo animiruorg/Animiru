@@ -1,8 +1,11 @@
 package eu.kanade.tachiyomi.data.download.downloader
 
 import android.content.Context
+import androidx.core.net.toUri
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.FFmpegKitConfig
+import com.arthenica.ffmpegkit.FFprobeKit
+import com.arthenica.ffmpegkit.Level
 import com.arthenica.ffmpegkit.LogCallback
 import com.arthenica.ffmpegkit.StatisticsCallback
 import com.hippo.unifile.UniFile
@@ -23,8 +26,10 @@ import logcat.LogPriority
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okio.Throttler
+import tachiyomi.core.common.util.system.createFileInCacheDir
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.download.service.DownloadPreferences
+import java.io.BufferedReader
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -187,6 +192,7 @@ class VideoDownloader(
         )
 
         return merge(
+            download = download,
             video = video,
             videoInput = videoInput,
             subtitleTracks = subtitleDownloadTracks,
@@ -423,6 +429,7 @@ class VideoDownloader(
     }
 
     private suspend fun merge(
+        download: Download,
         video: Video,
         videoInput: String,
         subtitleTracks: List<DownloadTrack>,
@@ -433,6 +440,9 @@ class VideoDownloader(
     ): UniFile {
         destDir.findFile("$filename.tmp")?.delete()
         val videoFile = destDir.createFile("$filename.tmp")!!
+
+        val duration = getDuration(videoInput)
+        download.progress = 0
 
         val ffmpegFilename = videoFile.uri.toFFmpegString(context)
         val ffmpegOptions = getFfmpegOptions(
@@ -445,7 +455,7 @@ class VideoDownloader(
         )
 
         val logCallback = LogCallback { log ->
-            if (true) {
+            if (log.level <= Level.AV_LOG_WARNING) {
                 log.message?.let {
                     logcat(LogPriority.ERROR) { it }
                 }
@@ -453,6 +463,10 @@ class VideoDownloader(
         }
 
         val statCallback = StatisticsCallback { s ->
+            val outTime = (s.time / 1000.0).toLong()
+            if (duration != null && duration != 0f && outTime > 0) {
+                download.progress = (100 * outTime / duration).toInt()
+            }
         }
 
         suspendCancellableCoroutine { continuation ->
@@ -525,6 +539,33 @@ class VideoDownloader(
     private fun formatMetadata(tracks: List<DownloadTrack>, type: String) = tracks.mapIndexed { i, track ->
         "-metadata:s:$type:$i \"title=${track.name}\""
     }.joinToString(" ")
+
+
+    private suspend fun getDuration(ffmpegInput: String): Float? {
+        val durationFile = context.createFileInCacheDir("dl_ffprobe_duration.txt")
+        val durationFilePath = durationFile.toUri().toFFmpegString(context)
+
+        val ffprobeCommand = FFmpegKitConfig.parseArguments(
+            listOf(
+                "-v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1",
+                "-o \"$durationFilePath\"",
+                ffmpegInput,
+            ).joinToString(" "),
+        )
+
+        suspendCancellableCoroutine { continuation ->
+            val session = FFprobeKit.executeWithArgumentsAsync(ffprobeCommand) {
+                if (it.returnCode.isValueSuccess) {
+                    continuation.resume(it)
+                } else {
+                    continuation.resumeWithException(Exception(it.output))
+                }
+            }
+            continuation.invokeOnCancellation { session.cancel() }
+        }
+
+        return durationFile.bufferedReader().use(BufferedReader::readText).trim().toFloatOrNull()
+    }
 
     companion object {
         const val DOWNLOADS_DIR = "downloads"
