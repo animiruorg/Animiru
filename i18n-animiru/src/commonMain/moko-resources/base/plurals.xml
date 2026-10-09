@@ -18,4 +18,10 @@
         <item quantity="one">Missing %1$s season</item>
         <item quantity="other">Missing %1$s seasons</item>
     </plurals>
+
+    <!-- Downloads -->
+    <plurals name="download_cache_entries">
+        <item quantity="one">%1$d entry</item>
+        <item quantity="other">%1$d entries</item>
+    </plurals>
 </resources>

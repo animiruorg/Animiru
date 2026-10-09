@@ -38,9 +38,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.core.net.toUri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.hippo.unifile.UniFile
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.data.CreateBackupScreen
 import eu.kanade.presentation.more.settings.screen.data.RestoreBackupScreen
@@ -50,20 +59,37 @@ import eu.kanade.presentation.more.settings.widget.PrefsHorizontalPadding
 import eu.kanade.presentation.util.relativeTimeSpanString
 import eu.kanade.tachiyomi.data.backup.create.BackupCreateJob
 import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob
+import eu.kanade.tachiyomi.data.download.DownloadManager
+import eu.kanade.tachiyomi.data.download.downloader.VideoDownloader.Companion.DOWNLOADS_DIR
+import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.export.LibraryExporter
 import eu.kanade.tachiyomi.data.export.LibraryExporter.ExportOptions
 import eu.kanade.tachiyomi.ui.storage.StorageScreen
+import eu.kanade.tachiyomi.util.lang.Hash.md5
 import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import logcat.logcat
 import mihon.app.di.appGraph
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.storage.displayablePath
+import tachiyomi.core.common.util.lang.launchIO
+import tachiyomi.core.common.util.lang.launchNonCancellable
+import tachiyomi.core.common.util.lang.withIOContext
+import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.backup.service.BackupPreferences
@@ -71,8 +97,11 @@ import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.TextButton
+import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
+import java.io.File
+import kotlin.time.Duration.Companion.seconds
 
 object SettingsDataScreen : SearchableSettings {
 
@@ -100,13 +129,38 @@ object SettingsDataScreen : SearchableSettings {
         val backupPreferences = remember { context.appGraph.backupPreferences }
         val storagePreferences = remember { context.appGraph.storagePreferences }
 
+        // AM -->
+        val viewModel = metroViewModel<SettingsStorageViewModel>()
+        val canDelete by viewModel.canDelete.collectAsStateWithLifecycle()
+        val scope = rememberCoroutineScope()
+        // <-- AM
+
         return listOf(
             getStorageLocationPref(storagePreferences = storagePreferences),
             Preference.PreferenceItem.InfoPreference(stringResource(AMMR.strings.am_pref_storage_location_info)),
 
             getBackupAndRestoreGroup(backupPreferences = backupPreferences),
             // AM (FILE_SIZE) -->
-            getDataGroup(storagePreferences = storagePreferences),
+            getDataGroup(
+                storagePreferences = storagePreferences,
+                canDelete = canDelete,
+                onDelete = {
+                    if (it.isEmpty()) return@getDataGroup
+                    scope.launchNonCancellable {
+                        try {
+                            viewModel.delete(it)
+                            withUIContext {
+                                context.toast(context.stringResource(MR.strings.cache_deleted, it.size))
+                            }
+                        } catch (e: Throwable) {
+                            logcat(LogPriority.ERROR, e)
+                            withUIContext {
+                                context.toast(MR.strings.cache_delete_error)
+                            }
+                        }
+                    }
+                },
+            ),
             // <-- AM (FILE_SIZE)
             getExportGroup(),
         )
@@ -277,7 +331,13 @@ object SettingsDataScreen : SearchableSettings {
     }
 
     @Composable
-    private fun getDataGroup(storagePreferences: StoragePreferences): Preference.PreferenceGroup {
+    private fun getDataGroup(
+        storagePreferences: StoragePreferences,
+        // AM -->
+        canDelete: List<String>,
+        onDelete: (List<String>) -> Unit,
+        // <-- AM
+    ): Preference.PreferenceGroup {
         // AM (STORAGE_SCREEN) -->
         val navigator = LocalNavigator.currentOrThrow
         // <-- AM (STORAGE_SCREEN)
@@ -310,6 +370,17 @@ object SettingsDataScreen : SearchableSettings {
                         },
                     )
                 },
+                // AM -->
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(AMMR.strings.am_pref_download_clear_cache),
+                    subtitle = pluralStringResource(
+                        AMMR.plurals.download_cache_entries,
+                        canDelete.size,
+                        canDelete.size,
+                    ),
+                    onClick = { onDelete(canDelete) },
+                ),
+                // <-- AM
                 // AM (STORAGE_SCREEN) -->
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(AMMR.strings.pref_storage_overview),
@@ -463,3 +534,60 @@ object SettingsDataScreen : SearchableSettings {
         )
     }
 }
+
+// AM -->
+@Inject
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
+class SettingsStorageViewModel(
+    private val context: Context,
+    private val downloadManager: DownloadManager,
+) : ViewModel() {
+
+    private val filesFlow = flow {
+        val dirs = withIOContext {
+            getDownloadCacheDir()
+                .listFiles()!!
+                .mapNotNull { it.name }
+        }
+
+        emit(dirs)
+    }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val canDelete = combine(
+        filesFlow.filterNotNull(),
+        downloadManager.queueState,
+    ) { files, queue ->
+        val downloading = queue
+            .filter { it.status == Download.State.DOWNLOADING || it.status == Download.State.QUEUE }
+            .map(::getDownloadKey)
+
+        files.filterNot { it in downloading }
+    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
+
+    fun delete(dirs: List<String>) {
+        getDownloadCacheDir().listFiles { _, filename -> filename in dirs }.orEmpty().forEach {
+            it.delete()
+        }
+    }
+
+    private fun getDownloadKey(download: Download): String {
+        val downloadKey = listOf(
+            download.source.name,
+            download.anime.ogTitle,
+            download.episode.scanlator,
+            download.episode.name,
+        ).joinToString("_")
+
+        return md5(downloadKey).take(16)
+    }
+
+    private fun getDownloadCacheDir(): UniFile {
+        val file = context.getExternalFilesDir(DOWNLOADS_DIR)
+            ?: File(context.filesDir, DOWNLOADS_DIR).also { it.mkdirs() }
+        return UniFile.fromFile(file)!!
+    }
+}
+// <-- AM

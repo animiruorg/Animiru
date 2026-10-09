@@ -83,6 +83,7 @@
     <string name="am.download_speed_limit">Download speed limit</string>
     <string name="am.download_speed_limit_unit">KiB/s</string>
     <string name="am.download_speed_limit_value">%1$d KiB/s</string>
+    <string name="am.pref_download_clear_cache">Clear download cache</string>
     <string name="am.update_check_notification_download_in_progress">Downloading…</string>
 
     <!-- Storage overview -->

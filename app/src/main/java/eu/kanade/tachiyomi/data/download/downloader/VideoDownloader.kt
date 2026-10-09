@@ -111,7 +111,7 @@ class VideoDownloader(
             download.episode.scanlator,
             download.episode.name,
         ).joinToString("_")
-        val downloadDir = UniFile.fromFile(getDownloadCacheDir(download))!!
+        val downloadDir = UniFile.fromFile(getDownloadCacheDir())!!
             .createDirectory(md5(downloadKey).take(16))!!
 
         val progress = ProgressAggregator { percent ->
@@ -197,7 +197,7 @@ class VideoDownloader(
         )
     }
 
-    private fun getDownloadCacheDir(download: Download): File {
+    private fun getDownloadCacheDir(): File {
         return context.getExternalFilesDir(DOWNLOADS_DIR)
             ?: File(context.filesDir, DOWNLOADS_DIR).also { it.mkdirs() }
     }
@@ -527,7 +527,7 @@ class VideoDownloader(
     }.joinToString(" ")
 
     companion object {
-        private const val DOWNLOADS_DIR = "downloads"
+        const val DOWNLOADS_DIR = "downloads"
 
         private const val VIDEO_WEIGHT = 100.0
         private const val AUDIO_WEIGHT = 8.0
