@@ -123,7 +123,6 @@ class DashDownloader(
                     name = name,
                     ffmpegName = "playlist",
                     ffmpegType = "dash",
-                    ffmpegArgs = "-allowed_extensions ALL",
                 )
             }
         }

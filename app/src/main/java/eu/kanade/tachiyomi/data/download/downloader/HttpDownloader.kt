@@ -136,7 +136,6 @@ class HttpDownloader(
         name: String,
         ffmpegName: String,
         ffmpegType: String,
-        ffmpegArgs: String = "",
     ): String {
         val downloaded = destDir.listFiles().orEmpty().mapNotNull { it.name }.toHashSet()
         val fragmentQueue = ConcurrentLinkedQueue(fragments.filter { it.name !in downloaded })
@@ -194,7 +193,7 @@ class HttpDownloader(
         progress.report(1f)
 
         return listOf(
-            ffmpegArgs,
+            "-allowed_extensions ALL",
             "-f",
             ffmpegType,
             "-i",
