@@ -22,6 +22,8 @@ import eu.kanade.tachiyomi.util.storage.toFFmpegString
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
 import logcat.LogPriority
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -31,6 +33,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.download.service.DownloadPreferences
 import java.io.BufferedReader
 import java.io.File
+import java.io.FileOutputStream
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -95,6 +98,7 @@ class VideoDownloader(
     private val dashDownloader: DashDownloader,
     private val directDownloader: DirectDownloader,
     private val downloadPreferences: DownloadPreferences,
+    private val json: Json,
 ) {
     private val client = network.client
 
@@ -107,7 +111,7 @@ class VideoDownloader(
         val video = download.video!!
         val videoHeaders = video.headers ?: Headers.EMPTY
 
-        val threadCount = downloadPreferences.downloadThreads.get()
+        var threadCount = downloadPreferences.downloadThreads.get()
         val skipTracks = downloadPreferences.ignoreBrokenTracks.get()
         val speedLimit = downloadPreferences.downloadSpeedLimit.get()
         val throttler = Throttler().takeIf { speedLimit > 0 }
@@ -121,8 +125,30 @@ class VideoDownloader(
             download.episode.scanlator,
             download.episode.name,
         ).joinToString("_")
-        val downloadDir = UniFile.fromFile(getDownloadCacheDir())!!
-            .createDirectory(md5(downloadKey).take(16))!!
+        var downloadDir = getDownloadCacheDir(download)
+
+        val journal = downloadDir.findFile("journal")
+        if (journal != null) {
+            val journalData = journal.openInputStream().use {
+                json.decodeFromStream<Journal>(it)
+            }
+
+            if (journalData.videoTitle != video.videoTitle) {
+                downloadDir.delete()
+                downloadDir = getDownloadCacheDir(download)
+            } else {
+                // Direct downloader can't change thread count, read what was used before
+                threadCount = journalData.threadCount
+            }
+        }
+        journal?.delete()
+        val journalData = json.encodeToString(
+            Journal(threadCount, video.videoTitle),
+        )
+        downloadDir.createFile("journal")!!
+            .openOutputStream()
+            .also { (it as? FileOutputStream)?.channel?.truncate(0) }
+            .use { it.write(journalData.toByteArray()) }
 
         val progress = ProgressAggregator { percent ->
             download.progress = percent
@@ -209,9 +235,19 @@ class VideoDownloader(
         )
     }
 
-    private fun getDownloadCacheDir(): File {
-        return context.getExternalFilesDir(DOWNLOADS_DIR)
+    private fun getDownloadCacheDir(download: Download): UniFile {
+        val downloadKey = listOf(
+            download.source.name,
+            download.anime.ogTitle,
+            download.episode.scanlator,
+            download.episode.name,
+        ).joinToString("_")
+
+        val file = context.getExternalFilesDir(DOWNLOADS_DIR)
             ?: File(context.filesDir, DOWNLOADS_DIR).also { it.mkdirs() }
+
+        return UniFile.fromFile(file)!!
+            .createDirectory(md5(downloadKey).take(16))!!
     }
 
     private suspend fun parsePlaylist(
