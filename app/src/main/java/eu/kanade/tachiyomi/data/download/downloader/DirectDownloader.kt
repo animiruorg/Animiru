@@ -28,7 +28,6 @@ class DirectDownloader(
     suspend fun parsePlaylist(
         url: String,
         headers: Headers,
-        destDir: UniFile,
         name: String,
     ): PlaylistResult {
         return PlaylistResult.Url(url, emptyList(), emptyList())

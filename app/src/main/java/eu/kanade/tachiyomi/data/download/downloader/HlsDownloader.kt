@@ -4,22 +4,9 @@ import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import eu.kanade.tachiyomi.animesource.model.Track
 import eu.kanade.tachiyomi.network.NetworkHelper
-import eu.kanade.tachiyomi.network.ProgressListener
 import eu.kanade.tachiyomi.network.get
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
 import okhttp3.Headers
-import java.net.URI
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicInteger
 
 @Inject
 @SingleIn(AppScope::class)
@@ -48,7 +35,6 @@ class HlsDownloader(
     suspend fun parsePlaylist(
         url: String,
         headers: Headers,
-        destDir: UniFile,
         name: String,
     ): PlaylistResult {
         val playlistContent = client.get(url, headers).body.string()
@@ -104,7 +90,7 @@ class HlsDownloader(
                         }
                         it.lang?.let { s -> append("($s)") }
                     }
-                    Track(lang = trackName, url = it.url!!)
+                    TrackResult.Url(url = it.url!!, name = trackName)
                 }
 
             PlaylistResult.Url(
@@ -143,61 +129,16 @@ class HlsDownloader(
         destDir: UniFile,
         name: String,
     ): String {
-        val downloaded = destDir.listFiles().orEmpty().mapNotNull { it.name }.toHashSet()
-        val fragmentQueue = ConcurrentLinkedQueue(fragments.filter { it.name !in downloaded })
-
-        val totalItems = fragments.size
-        val threadCount = 5.coerceIn(1, fragmentQueue.size.coerceAtLeast(1))
-
-        val finished = AtomicInteger(totalItems - fragmentQueue.size)
-        val downloading = ConcurrentHashMap<String, Float>()
-
-        fun report() {
-            if (totalItems == 0) {
-                progress.report(1f)
-                return
-            }
-            val prog = (finished.get() + downloading.values.sum()) / totalItems
-            progress.report(prog)
-        }
-
-        report()
-
-        coroutineScope {
-            List(threadCount) {
-                launch {
-                    val job = currentCoroutineContext().job
-                    while (isActive) {
-                        val fragment = fragmentQueue.poll() ?: break
-                        downloader.downloadFragment(
-                            headers = headers,
-                            fragment = fragment,
-                            listener = object : ProgressListener {
-                                override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
-                                    job.ensureActive()
-                                    if (contentLength > 0) {
-                                        val progress = (bytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
-                                        downloading[fragment.name] = progress
-                                        report()
-                                    }
-                                }
-                            },
-                            destDir = destDir,
-                        )
-                    }
-                }
-            }.joinAll()
-        }
-
-        destDir.findFile("$name-index")?.delete()
-        val index = destDir.createFile("$name-index")!!
-        index.openOutputStream().use { output ->
-            output.write(playlist.toByteArray())
-        }
-
-        progress.report(1f)
-
-        return "-f hls -i \"${index.filePath!!}\""
+        return downloader.downloadPlaylist(
+            headers = headers,
+            playlist = playlist,
+            fragments = fragments,
+            progress = progress,
+            destDir = destDir,
+            name = name,
+            ffmpegName = "index",
+            ffmpegType = "hls",
+        )
     }
 
     private suspend fun getSegments(
@@ -209,7 +150,7 @@ class HlsDownloader(
         return getSegments(playlistUrl, playlistContent, name)
     }
 
-    private suspend fun getSegments(
+    private fun getSegments(
         playlistUrl: String,
         playlistContent: String,
         name: String,
@@ -343,9 +284,6 @@ class HlsDownloader(
 
         return Pair(rewrittenPlaylist.toString(), fragments)
     }
-
-    private fun resolveUrl(base: String, relative: String): String =
-        URI(base).resolve(relative).toString()
 
     private fun parseAttrs(s: String): Map<String, String> =
         attrRegex.findAll(s).associate { it.groupValues[1] to it.groupValues[2].removeSurrounding("\"") }

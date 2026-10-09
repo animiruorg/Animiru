@@ -11,12 +11,22 @@ import eu.kanade.tachiyomi.network.ProgressListener
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.newCachelessCallWithProgress
 import eu.kanade.tachiyomi.util.storage.saveTo
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import okhttp3.Headers
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
 
 data class DownloadFragment(
@@ -109,6 +119,82 @@ class HttpDownloader(
                 }
             }
             .first()
+    }
+
+    suspend fun downloadPlaylist(
+        headers: Headers,
+        playlist: String,
+        fragments: List<DownloadFragment>,
+        progress: ItemProgress,
+        destDir: UniFile,
+        name: String,
+        ffmpegName: String,
+        ffmpegType: String,
+        ffmpegArgs: String = "",
+    ): String {
+        val downloaded = destDir.listFiles().orEmpty().mapNotNull { it.name }.toHashSet()
+        val fragmentQueue = ConcurrentLinkedQueue(fragments.filter { it.name !in downloaded })
+
+        val totalItems = fragments.size
+        val threadCount = 5.coerceIn(1, fragmentQueue.size.coerceAtLeast(1))
+
+        val finished = AtomicInteger(totalItems - fragmentQueue.size)
+        val downloading = ConcurrentHashMap<String, Float>()
+
+        fun report() {
+            if (totalItems == 0) {
+                progress.report(1f)
+                return
+            }
+            val prog = (finished.get() + downloading.values.sum()) / totalItems
+            progress.report(prog)
+        }
+
+        report()
+
+        coroutineScope {
+            List(threadCount) {
+                launch {
+                    val job = currentCoroutineContext().job
+                    while (isActive) {
+                        val fragment = fragmentQueue.poll() ?: break
+                        downloadFragment(
+                            headers = headers,
+                            fragment = fragment,
+                            listener = object : ProgressListener {
+                                override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
+                                    job.ensureActive()
+                                    if (contentLength > 0) {
+                                        val progress = (bytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
+                                        downloading[fragment.name] = progress
+                                        report()
+                                    }
+                                }
+                            },
+                            destDir = destDir,
+                        )
+                    }
+                }
+            }.joinAll()
+        }
+
+        destDir.findFile("$name-$ffmpegName")?.delete()
+        val index = destDir.createFile("$name-$ffmpegName")!!
+        index.openOutputStream().use { output ->
+            output.write(playlist.toByteArray())
+        }
+
+        progress.report(1f)
+
+        return listOf(
+            ffmpegArgs,
+            "-f",
+            ffmpegType,
+            "-i",
+            "\"${index.filePath!!}\"",
+        )
+            .filter(String::isNotEmpty)
+            .joinToString(" ")
     }
 
     fun md5(file: UniFile): String {

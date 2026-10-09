@@ -156,6 +156,6 @@ suspend fun OkHttpClient.head(
     url: String,
     headers: Headers = DEFAULT_HEADERS,
 ): Response {
-    return newCall(HEAD(url, headers)).awaitSuccess()
+    return newCall(HEAD(url, headers)).await()
 }
 // <-- AM
