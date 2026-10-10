@@ -4,19 +4,16 @@ import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.get
 import okhttp3.Headers
+import okhttp3.OkHttpClient
 import okio.Throttler
 
 @Inject
 @SingleIn(AppScope::class)
 class HlsDownloader(
-    private val networkHelper: NetworkHelper,
     private val downloader: HttpDownloader,
 ) {
-    private val client = networkHelper.client
-
     private class Variant(
         val url: String,
         val bandwidth: Long?,
@@ -36,6 +33,7 @@ class HlsDownloader(
     suspend fun parsePlaylist(
         url: String,
         headers: Headers,
+        client: OkHttpClient,
         name: String,
     ): PlaylistResult {
         val playlistContent = client.get(url, headers).body.string()
@@ -114,18 +112,20 @@ class HlsDownloader(
     suspend fun download(
         url: String,
         headers: Headers,
+        client: OkHttpClient,
         progress: ItemProgress,
         throttler: Throttler?,
         threadCount: Int,
         destDir: UniFile,
         name: String,
     ): String {
-        val (playlist, fragments) = getSegments(url, headers, name)
-        return download(headers, playlist, fragments, progress, throttler, threadCount, destDir, name)
+        val (playlist, fragments) = getSegments(url, headers, client, name)
+        return download(headers, client, playlist, fragments, progress, throttler, threadCount, destDir, name)
     }
 
     suspend fun download(
         headers: Headers,
+        client: OkHttpClient,
         playlist: String,
         fragments: List<DownloadFragment>,
         progress: ItemProgress,
@@ -136,6 +136,7 @@ class HlsDownloader(
     ): String {
         return downloader.downloadPlaylist(
             headers = headers,
+            client = client,
             playlist = playlist,
             fragments = fragments,
             progress = progress,
@@ -151,6 +152,7 @@ class HlsDownloader(
     private suspend fun getSegments(
         playlistUrl: String,
         headers: Headers,
+        client: OkHttpClient,
         name: String,
     ): Pair<String, List<DownloadFragment>> {
         val playlistContent = client.get(playlistUrl, headers).body.string()

@@ -23,6 +23,7 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import okhttp3.Headers
+import okhttp3.OkHttpClient
 import okio.Throttler
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -38,13 +39,10 @@ data class DownloadFragment(
 
 @Inject
 @SingleIn(AppScope::class)
-class HttpDownloader(
-    private val networkHelper: NetworkHelper,
-) {
-    private val client = networkHelper.client
-
+class HttpDownloader {
     suspend fun downloadFragment(
         headers: Headers?,
+        client: OkHttpClient,
         fragment: DownloadFragment,
         listener: ProgressListener,
         throttler: Throttler?,
@@ -67,6 +65,7 @@ class HttpDownloader(
                 }
                 headersBuilder.build()
             },
+            client = client,
             listener = listener,
             throttler = throttler,
             destDir = destDir,
@@ -77,6 +76,7 @@ class HttpDownloader(
     suspend fun downloadFile(
         url: String,
         headersBuilder: (UniFile) -> Headers,
+        client: OkHttpClient,
         listener: ProgressListener,
         throttler: Throttler?,
         destDir: UniFile,
@@ -127,6 +127,7 @@ class HttpDownloader(
 
     suspend fun downloadPlaylist(
         headers: Headers,
+        client: OkHttpClient,
         playlist: String,
         fragments: List<DownloadFragment>,
         progress: ItemProgress,
@@ -165,6 +166,7 @@ class HttpDownloader(
                         val fragment = fragmentQueue.poll() ?: break
                         downloadFragment(
                             headers = headers,
+                            client = client,
                             fragment = fragment,
                             listener = object : ProgressListener {
                                 override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {

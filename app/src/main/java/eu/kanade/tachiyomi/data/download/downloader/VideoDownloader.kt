@@ -27,13 +27,13 @@ import kotlinx.serialization.json.decodeFromStream
 import logcat.LogPriority
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okio.Throttler
 import tachiyomi.core.common.util.system.createFileInCacheDir
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.download.service.DownloadPreferences
 import java.io.BufferedReader
 import java.io.File
-import java.io.FileOutputStream
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -110,6 +110,7 @@ class VideoDownloader(
     ): UniFile {
         val video = download.video!!
         val videoHeaders = video.headers ?: Headers.EMPTY
+        val client = download.source.client
 
         var threadCount = downloadPreferences.downloadThreads.get()
         val skipTracks = downloadPreferences.ignoreBrokenTracks.get()
@@ -150,6 +151,7 @@ class VideoDownloader(
         val playlistResult = parsePlaylist(
             url = video.videoUrl,
             headers = videoHeaders,
+            client = client,
             destDir = downloadDir,
             name = "vid",
         )
@@ -167,6 +169,7 @@ class VideoDownloader(
                 val input = downloadItem(
                     trackResult = track,
                     headers = videoHeaders,
+                    client = client,
                     progress = subtitleProgress[i],
                     throttler = throttler,
                     threadCount = threadCount,
@@ -189,6 +192,7 @@ class VideoDownloader(
                 val input = downloadItem(
                     trackResult = track,
                     headers = videoHeaders,
+                    client = client,
                     progress = audioProgress[i],
                     throttler = throttler,
                     threadCount = threadCount,
@@ -208,6 +212,7 @@ class VideoDownloader(
         val videoInput = downloadPlaylist(
             playlistResult = playlistResult,
             headers = videoHeaders,
+            client = client,
             progress = videoProgress,
             throttler = throttler,
             threadCount = threadCount,
@@ -246,14 +251,15 @@ class VideoDownloader(
     private suspend fun parsePlaylist(
         url: String,
         headers: Headers,
+        client: OkHttpClient,
         destDir: UniFile,
         name: String,
     ): PlaylistResult {
         val type = getType(url, headers)
 
         return when (type) {
-            DownloadType.Hls -> hlsDownloader.parsePlaylist(url, headers, name)
-            DownloadType.Dash -> dashDownloader.parsePlaylist(url, headers, name)
+            DownloadType.Hls -> hlsDownloader.parsePlaylist(url, headers, client, name)
+            DownloadType.Dash -> dashDownloader.parsePlaylist(url, headers, client, name)
             DownloadType.Direct -> directDownloader.parsePlaylist(url, headers, name)
         }
     }
@@ -261,6 +267,7 @@ class VideoDownloader(
     private suspend fun downloadPlaylist(
         playlistResult: PlaylistResult,
         headers: Headers,
+        client: OkHttpClient,
         progress: ItemProgress,
         throttler: Throttler?,
         threadCount: Int,
@@ -276,6 +283,7 @@ class VideoDownloader(
                     DownloadType.Hls -> hlsDownloader.download(
                         url = playlistResult.url,
                         headers = headers,
+                        client = client,
                         progress = progress,
                         throttler = throttler,
                         threadCount = threadCount,
@@ -289,6 +297,7 @@ class VideoDownloader(
                         )
                         dashDownloader.downloadTrack(
                             headers = headers,
+                            client = client,
                             track = track,
                             progress = progress,
                             throttler = throttler,
@@ -300,6 +309,7 @@ class VideoDownloader(
                     DownloadType.Direct -> directDownloader.download(
                         url = playlistResult.url,
                         headers = headers,
+                        client = client,
                         progress = progress,
                         throttler = throttler,
                         threadCount = threadCount,
@@ -313,6 +323,7 @@ class VideoDownloader(
                 when (playlistResult.type) {
                     DownloadType.Hls -> hlsDownloader.download(
                         headers = headers,
+                        client = client,
                         playlist = playlistResult.content,
                         fragments = playlistResult.fragments,
                         progress = progress,
@@ -330,6 +341,7 @@ class VideoDownloader(
                         )
                         dashDownloader.downloadTrack(
                             headers = headers,
+                            client = client,
                             track = track,
                             progress = progress,
                             throttler = throttler,
@@ -347,6 +359,7 @@ class VideoDownloader(
     private suspend fun downloadItem(
         trackResult: TrackResult,
         headers: Headers,
+        client: OkHttpClient,
         progress: ItemProgress,
         throttler: Throttler?,
         threadCount: Int,
@@ -363,6 +376,7 @@ class VideoDownloader(
                     DownloadType.Hls -> hlsDownloader.download(
                         url = url,
                         headers = headers,
+                        client = client,
                         progress = progress,
                         throttler = throttler,
                         threadCount = threadCount,
@@ -371,6 +385,7 @@ class VideoDownloader(
                     )
                     DownloadType.Dash -> dashDownloader.downloadTrack(
                         headers = headers,
+                        client = client,
                         track = trackResult,
                         progress = progress,
                         throttler = throttler,
@@ -381,6 +396,7 @@ class VideoDownloader(
                     DownloadType.Direct -> directDownloader.download(
                         url = url,
                         headers = headers,
+                        client = client,
                         progress = progress,
                         throttler = throttler,
                         threadCount = threadCount,
@@ -394,6 +410,7 @@ class VideoDownloader(
                 when (trackResult.type) {
                     DownloadType.Hls -> hlsDownloader.download(
                         headers = headers,
+                        client = client,
                         playlist = trackResult.content,
                         fragments = trackResult.fragments,
                         progress = progress,
@@ -405,6 +422,7 @@ class VideoDownloader(
                     DownloadType.Dash -> {
                         dashDownloader.downloadTrack(
                             headers = headers,
+                            client = client,
                             track = trackResult,
                             progress = progress,
                             throttler = throttler,

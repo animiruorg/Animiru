@@ -15,17 +15,15 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import okhttp3.Headers
+import okhttp3.OkHttpClient
 import okio.Throttler
 import java.util.concurrent.atomic.AtomicLongArray
 
 @Inject
 @SingleIn(AppScope::class)
 class DirectDownloader(
-    private val networkHelper: NetworkHelper,
     private val downloader: HttpDownloader,
 ) {
-    private val client = networkHelper.client
-
     suspend fun parsePlaylist(
         url: String,
         headers: Headers,
@@ -37,6 +35,7 @@ class DirectDownloader(
     suspend fun download(
         url: String,
         headers: Headers,
+        client: OkHttpClient,
         progress: ItemProgress,
         throttler: Throttler?,
         threadCount: Int,
@@ -133,6 +132,7 @@ class DirectDownloader(
                                     .set("Range", "bytes=$start-$end")
                                     .build()
                             },
+                            client = client,
                             listener = listener,
                             throttler = throttler,
                             destDir = destDir,
@@ -151,6 +151,7 @@ class DirectDownloader(
             val file = downloader.downloadFile(
                 url = url,
                 headersBuilder = { headers },
+                client = client,
                 listener = object : ProgressListener {
                     override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
                         job.ensureActive()

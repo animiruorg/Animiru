@@ -4,9 +4,9 @@ import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.get
 import okhttp3.Headers
+import okhttp3.OkHttpClient
 import okio.Throttler
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -18,12 +18,9 @@ import kotlin.math.ceil
 @Inject
 @SingleIn(AppScope::class)
 class DashDownloader(
-    private val networkHelper: NetworkHelper,
     private val directDownloader: DirectDownloader,
     private val downloader: HttpDownloader,
 ) {
-    private val client = networkHelper.client
-
     enum class Kind { VIDEO, AUDIO, SUBTITLE, OTHER }
 
     private data class Pick(
@@ -36,6 +33,7 @@ class DashDownloader(
     suspend fun parsePlaylist(
         url: String,
         headers: Headers,
+        client: OkHttpClient,
         name: String,
     ): PlaylistResult {
         val xml = client.get(url, headers).body.string()
@@ -91,6 +89,7 @@ class DashDownloader(
 
     suspend fun downloadTrack(
         headers: Headers,
+        client: OkHttpClient,
         track: TrackResult,
         progress: ItemProgress,
         throttler: Throttler?,
@@ -103,6 +102,7 @@ class DashDownloader(
                 directDownloader.download(
                     url = track.url,
                     headers = headers,
+                    client = client,
                     progress = progress,
                     throttler = throttler,
                     threadCount = threadCount,
@@ -114,6 +114,7 @@ class DashDownloader(
             is TrackResult.Playlist -> {
                 downloader.downloadPlaylist(
                     headers = headers,
+                    client = client,
                     playlist = track.content,
                     fragments = track.fragments,
                     progress = progress,

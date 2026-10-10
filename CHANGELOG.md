@@ -18,13 +18,14 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ### Improved
 - Long press on go back in anime screen now goes to parent anime ([@Secozzi](https://github.com/Secozzi)) ([#220](https://github.com/animiruorg/Animiru/pull/220))
 - Make the scrollbar in an anime entry less buggy when scrolling and dragging the thumb ([@Secozzi](https://github.com/Secozzi)) ([#229](https://github.com/animiruorg/Animiru/pull/229))
+- Use extension client for downloading ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
 
 ### Fixed
 - Fix episode thumbnails not being fetched with source headers ([@Secozzi](https://github.com/Secozzi)) ([#225](https://github.com/animiruorg/Animiru/pull/225))
 - Fix animiru crashing for rpc when rpc is turned off ([@Secozzi](https://github.com/Secozzi)) ([#228](https://github.com/animiruorg/Animiru/pull/228))
 - Fixed entries being incorrectly marked as duplicates when tracked with some trackers ([@Secozzi](https://github.com/Secozzi)) ([#230](https://github.com/animiruorg/Animiru/pull/230))
 - Fixed being unable to use external player ([@Secozzi](https://github.com/Secozzi)) ([#232](https://github.com/animiruorg/Animiru/pull/232))
-- Fix download notifications and downloads from local http servers ([#237](https://github.com/animiruorg/Animiru/pull/237))
+- Fix download notifications and downloads from local http servers ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
 
 ## [v0.20.0.1] - 2026-09-14
 ### Fixed
