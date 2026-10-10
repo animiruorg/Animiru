@@ -560,6 +560,7 @@ class Downloader(
             httpServer?.stop()
             if (e is CancellationException) throw e
             video.status = Video.State.ERROR
+            logcat(LogPriority.ERROR, e) { "Downloading failed" }
             notifier.onError(e.message, download.episode.name, download.anime.title, download.anime.id)
             progressJob?.cancel()
         }
