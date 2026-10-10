@@ -181,6 +181,7 @@ class HttpDownloader {
                             throttler = throttler,
                             destDir = destDir,
                         )
+                        downloading[fragment.name] = 1f
                     }
                 }
             }.joinAll()
