@@ -119,12 +119,6 @@ class VideoDownloader(
             bytesPerSecond(speedLimit * 1024L)
         }
 
-        val downloadKey = listOf(
-            download.source.name,
-            download.anime.ogTitle,
-            download.episode.scanlator,
-            download.episode.name,
-        ).joinToString("_")
         var downloadDir = getDownloadCacheDir(download)
 
         val journal = downloadDir.findFile("journal")
@@ -147,7 +141,6 @@ class VideoDownloader(
         )
         downloadDir.createFile("journal")!!
             .openOutputStream()
-            .also { (it as? FileOutputStream)?.channel?.truncate(0) }
             .use { it.write(journalData.toByteArray()) }
 
         val progress = ProgressAggregator { percent ->
@@ -431,7 +424,8 @@ class VideoDownloader(
         if (path.endsWith(".m3u8")) return DownloadType.Hls
         if (path.endsWith(".mpd")) return DownloadType.Dash
 
-        val contentType = client.head(url, headers).use {
+        val headHeaders = headers.newBuilder().set("Connection", "close").build()
+        val contentType = client.head(url, headHeaders).use {
             it.header("Content-Type")?.lowercase()
         }
 
