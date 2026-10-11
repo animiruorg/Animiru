@@ -52,7 +52,7 @@ class GlobalSearchViewModel(
         }
     }
 
-    override fun getEnabledSources(): List<AnimeSource> {
+    override suspend fun getEnabledSources(): List<AnimeSource> {
         return super.getEnabledSources()
             .filter { state.value.sourceFilter != SourceFilter.PinnedOnly || "${it.id}" in pinnedSources }
     }

@@ -20,7 +20,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
@@ -134,7 +133,6 @@ class DownloadCache(
      * @param episodeUrl the url of the chapter to query
      * @param animeTitle the title of the anime to query.
      * @param sourceId the id of the source of the episode.
-     * @param skipCache whether to skip the directory cache and check in the filesystem.
      */
     fun isEpisodeDownloaded(
         episodeName: String,
@@ -142,13 +140,7 @@ class DownloadCache(
         episodeUrl: String,
         animeTitle: String,
         sourceId: Long,
-        skipCache: Boolean,
     ): Boolean {
-        if (skipCache) {
-            val source = sourceManager.getOrStub(sourceId)
-            return provider.findEpisodeDir(episodeName, episodeScanlator, episodeUrl, animeTitle, source) != null
-        }
-
         renewCache()
 
         val sourceDir = rootDownloadsDir.sourceDirs[sourceId]
@@ -398,8 +390,6 @@ class DownloadCache(
             // Try to wait until extensions and sources have loaded
             var sources = emptyList<AnimeSource>()
             withTimeoutOrNull(30.seconds) {
-                sourceManager.isInitialized.first { it }
-
                 sources = getSources()
             }
 
@@ -466,7 +456,7 @@ class DownloadCache(
         notifyChanges()
     }
 
-    private fun getSources(): List<AnimeSource> {
+    private suspend fun getSources(): List<AnimeSource> {
         return sourceManager.getAll() + sourceManager.getStubSources()
     }
 

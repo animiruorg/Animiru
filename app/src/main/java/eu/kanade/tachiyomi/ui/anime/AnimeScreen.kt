@@ -21,7 +21,6 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
-import eu.kanade.core.util.ifSourcesLoaded
 import eu.kanade.domain.anime.model.hasCustomBackground
 import eu.kanade.domain.anime.model.hasCustomCover
 import eu.kanade.domain.anime.model.toSAnime
@@ -87,11 +86,6 @@ class AnimeScreen(
 
     @Composable
     override fun Content() {
-        if (!ifSourcesLoaded()) {
-            LoadingScreen()
-            return
-        }
-
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
         val haptic = LocalHapticFeedback.current

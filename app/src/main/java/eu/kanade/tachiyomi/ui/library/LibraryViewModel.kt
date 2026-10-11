@@ -315,7 +315,7 @@ class LibraryViewModel(
         }
     }
 
-    private fun List<LibraryItem>.applyGrouping(
+    private suspend fun List<LibraryItem>.applyGrouping(
         categories: List<Category>,
         showSystemCategory: Boolean,
         // AM (GROUPING) -->
@@ -863,7 +863,7 @@ class LibraryViewModel(
     }
 
     // AM (GROUPING) -->
-    private fun getGroupedItems(
+    private suspend fun getGroupedItems(
         groupType: Int,
         libraryAnime: List<LibraryItem>,
     ): Map<Category, List</* LibraryItem */ Long>> {

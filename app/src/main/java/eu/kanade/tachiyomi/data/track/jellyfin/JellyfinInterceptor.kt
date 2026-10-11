@@ -4,6 +4,7 @@ package eu.kanade.tachiyomi.data.track.jellyfin
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.animesource.ConfigurableAnimeSource
 import eu.kanade.tachiyomi.animesource.sourcePreferences
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import tachiyomi.domain.source.service.SourceManager
@@ -48,7 +49,7 @@ class JellyfinInterceptor(private val sourceManager: SourceManager) : Intercepto
 
     private fun getApiKey(userId: String): String? {
         for (i in 1..MAX_JELLYFIN_SOURCES) {
-            val source = sourceManager.get(getId(i, 2)) ?: sourceManager.get(getId(i, 3))
+            val source = runBlocking { sourceManager.get(getId(i, 2)) ?: sourceManager.get(getId(i, 3)) }
             val preferences = (source as ConfigurableAnimeSource).sourcePreferences()
             val sourceUserId = preferences.getString("user_id", "")
 

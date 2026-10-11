@@ -11,7 +11,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
-import eu.kanade.core.util.ifSourcesLoaded
 import eu.kanade.presentation.browse.BrowseSourceContent
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.util.Screen
@@ -35,11 +34,6 @@ data class MigrateSeasonSelectScreen(
 ) : Screen() {
     @Composable
     override fun Content() {
-        if (!ifSourcesLoaded()) {
-            LoadingScreen()
-            return
-        }
-
         val uriHandler = LocalUriHandler.current
         val navigator = LocalNavigator.currentOrThrow
 
@@ -47,6 +41,12 @@ data class MigrateSeasonSelectScreen(
             create(animeId = anime.id, sourceId = anime.source)
         }
         val state by viewModel.state.collectAsState()
+
+        val source = state.source
+        if (source == null) {
+            LoadingScreen()
+            return
+        }
 
         val snackbarHostState = remember { SnackbarHostState() }
 
@@ -68,19 +68,19 @@ data class MigrateSeasonSelectScreen(
                 viewModel.setDialog(dialog)
             }
             BrowseSourceContent(
-                source = viewModel.source,
+                source = source,
                 animeList = viewModel.seasonPagerFlowFlow.collectAsLazyPagingItems(),
                 columns = viewModel.getColumnsPreference(LocalConfiguration.current.orientation),
                 displayMode = viewModel.displayMode,
                 snackbarHostState = snackbarHostState,
                 contentPadding = paddingValues,
                 onWebViewClick = {
-                    val source = viewModel.source as? AnimeHttpSource ?: return@BrowseSourceContent
+                    val httpSource = source as? AnimeHttpSource ?: return@BrowseSourceContent
                     navigator.push(
                         WebViewScreen(
-                            url = source.getHomeUrl(),
-                            initialTitle = source.name,
-                            sourceId = source.id,
+                            url = httpSource.getHomeUrl(),
+                            initialTitle = httpSource.name,
+                            sourceId = httpSource.id,
                         ),
                     )
                 },

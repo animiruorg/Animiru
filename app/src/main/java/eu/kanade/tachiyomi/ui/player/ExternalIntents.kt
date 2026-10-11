@@ -187,15 +187,14 @@ class ExternalIntents(
             val isOnDevice = if (anime.isLocal()) {
                 true
             } else {
-                downloadManager.isEpisodeDownloaded(
+                downloadManager.isEpisodeDownloadedOnDisk(
                     episodeName = episode.name,
                     episodeScanlator = episode.scanlator,
                     episodeUrl = episode.url,
                     // AM (CUSTOM_INFORMATION) -->
                     animeTitle = anime.ogTitle,
                     // <-- AM (CUSTOM_INFORMATION)
-                    sourceId = anime.source,
-                    skipCache = true,
+                    source = source,
                 )
             }
 

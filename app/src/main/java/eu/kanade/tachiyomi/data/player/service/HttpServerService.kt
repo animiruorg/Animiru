@@ -17,6 +17,7 @@ import eu.kanade.tachiyomi.util.system.notificationBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.runBlocking
 import logcat.LogPriority
 import mihon.app.di.AppGraph
 import mihon.core.metro.metroGraph
@@ -50,7 +51,7 @@ class HttpServerService : Service() {
         }
 
         val sourceId = intent?.getLongExtra(EXTRA_SOURCE_ID, -1L) ?: -1L
-        val server = (sourceManager.get(sourceId) as? AnimeHttpSource)?.createHttpServer()
+        val server = runBlocking { (sourceManager.get(sourceId) as? AnimeHttpSource) }?.createHttpServer()
 
         if (server == null) {
             stopSelf()

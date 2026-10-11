@@ -43,7 +43,7 @@ class EpisodeThumbnailFetcher(
     private val options: Options,
     private val thumbnailFileLazy: Lazy<File?>,
     private val diskCacheKeyLazy: Lazy<String>,
-    private val sourceLazy: Lazy<AnimeHttpSource?>,
+    private val getSource: suspend () -> AnimeHttpSource?,
     private val callFactoryLazy: Lazy<Call.Factory>,
     private val imageLoader: ImageLoader,
 ) : Fetcher {
@@ -151,8 +151,9 @@ class EpisodeThumbnailFetcher(
     }
 
     private suspend fun executeNetworkRequest(): Response {
-        val client = sourceLazy.value?.client ?: callFactoryLazy.value
-        val response = client.newCall(newRequest()).await()
+        val source = getSource()
+        val client = source?.client ?: callFactoryLazy.value
+        val response = client.newCall(newRequest(source)).await()
         if (!response.isSuccessful && response.code != HTTP_NOT_MODIFIED) {
             response.close()
             throw IOException(response.message)
@@ -160,11 +161,11 @@ class EpisodeThumbnailFetcher(
         return response
     }
 
-    private fun newRequest(): Request {
+    private fun newRequest(source: AnimeHttpSource?): Request {
         val request = Request.Builder().apply {
             url(url!!)
 
-            val sourceHeaders = sourceLazy.value?.headers
+            val sourceHeaders = source?.headers
             if (sourceHeaders != null) {
                 headers(sourceHeaders)
             }
@@ -291,7 +292,7 @@ class EpisodeThumbnailFetcher(
                 options = options,
                 thumbnailFileLazy = lazy { thumbnailCache.getThumbnailFile(data.url) },
                 diskCacheKeyLazy = lazy { imageLoader.components.key(data, options)!! },
-                sourceLazy = lazy { sourceManager.get(data.sourceId) as? AnimeHttpSource },
+                getSource = { sourceManager.get(data.sourceId) as? AnimeHttpSource },
                 callFactoryLazy = callFactoryLazy,
                 imageLoader = imageLoader,
             )

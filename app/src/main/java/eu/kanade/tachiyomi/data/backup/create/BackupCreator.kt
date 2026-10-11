@@ -150,7 +150,7 @@ class BackupCreator(
         return animeBackupCreator(animes, options)
     }
 
-    internal fun backupSources(animes: List<BackupAnime>): List<BackupSource> {
+    internal suspend fun backupSources(animes: List<BackupAnime>): List<BackupSource> {
         return sourcesBackupCreator(animes)
     }
 
@@ -166,7 +166,7 @@ class BackupCreator(
         return extensionStoresBackupCreator()
     }
 
-    internal fun backupSourcePreferences(options: BackupOptions): List<BackupSourcePreferences> {
+    internal suspend fun backupSourcePreferences(options: BackupOptions): List<BackupSourcePreferences> {
         if (!options.sourceSettings) return emptyList()
 
         return preferenceBackupCreator.createSource(includePrivatePreferences = options.privateSettings)

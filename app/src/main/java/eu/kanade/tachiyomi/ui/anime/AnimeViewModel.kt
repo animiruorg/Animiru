@@ -553,8 +553,8 @@ class AnimeViewModel(
                 ogStatus = status ?: 0,
                 lastUpdate = anime.lastUpdate + 1,
             )
-            (sourceManager.get(LocalSource.ID) as LocalSource).updateAnimeInfo(anime.toSAnime())
             viewModelScope.launchNonCancellable {
+                (sourceManager.get(LocalSource.ID) as LocalSource).updateAnimeInfo(anime.toSAnime())
                 updateAnime.await(
                     AnimeUpdate(
                         anime.id,
@@ -880,7 +880,7 @@ class AnimeViewModel(
     }
 
     // AY -->
-    private fun List<SeasonAnime>.toAnimeSeasonItems(): List<AnimeSeasonItem> {
+    private suspend fun List<SeasonAnime>.toAnimeSeasonItems(): List<AnimeSeasonItem> {
         return map { seasonAnime ->
             AnimeSeasonItem(
                 seasonAnime = seasonAnime,
@@ -1207,7 +1207,7 @@ class AnimeViewModel(
      * Downloads the given list of episodes with the manager.
      * @param episodes the list of episodes to download.
      */
-    private fun downloadEpisodes(
+    private suspend fun downloadEpisodes(
         episodes: List<Episode>,
         // AY -->
         alt: Boolean = false,

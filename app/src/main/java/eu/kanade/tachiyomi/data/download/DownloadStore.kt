@@ -7,7 +7,6 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.download.model.Download
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import tachiyomi.domain.anime.interactor.GetAnime
@@ -92,7 +91,7 @@ class DownloadStore(
     /**
      * Returns the list of downloads to restore. It should be called in a background thread.
      */
-    fun restore(): List<Download> {
+    suspend fun restore(): List<Download> {
         val objs = preferences.all
             .mapNotNull { it.value as? String }
             .mapNotNull { deserialize(it) }
@@ -103,10 +102,10 @@ class DownloadStore(
             val cachedAnime = mutableMapOf<Long, Anime?>()
             for ((animeId, episodeId) in objs) {
                 val anime = cachedAnime.getOrPut(animeId) {
-                    runBlocking { getAnime.await(animeId) }
+                    getAnime.await(animeId)
                 } ?: continue
                 val source = sourceManager.get(anime.source) as? AnimeHttpSource ?: continue
-                val episode = runBlocking { getEpisode.await(episodeId) } ?: continue
+                val episode = getEpisode.await(episodeId) ?: continue
                 downloads.add(Download(source, anime, episode))
             }
         }

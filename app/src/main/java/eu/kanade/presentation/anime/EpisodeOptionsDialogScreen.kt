@@ -34,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +60,7 @@ import eu.kanade.presentation.components.TabbedDialogPaddings
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.Hoster
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.player.components.HosterState
 import eu.kanade.tachiyomi.ui.player.components.QualitySheetHosterContent
@@ -76,7 +76,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import logcat.LogPriority
-import mihon.app.di.appGraph
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.core.common.util.lang.withIOContext
@@ -130,6 +129,7 @@ class EpisodeOptionsDialogScreen(
             onClickHoster = vm::onClickHoster,
             onClickVideo = vm::onClickVideo,
             getHosterList = vm::getHosterList,
+            downloadEpisode = vm::downloadEpisode,
         )
     }
 
@@ -148,6 +148,7 @@ class EpisodeOptionsDialogViewModel(
     private val sourceManager: SourceManager,
     private val getEpisode: GetEpisode,
     private val getAnime: GetAnime,
+    private val downloadManager: DownloadManager,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -403,6 +404,21 @@ class EpisodeOptionsDialogViewModel(
             }
         }
     }
+
+    fun downloadEpisode(useExternalDownloader: Boolean) {
+        val anime = anime.value ?: return
+        val episode = episode.value ?: return
+        val currentVideo = currentVideo.value ?: return
+        viewModelScope.launchIO {
+            downloadManager.downloadEpisodes(
+                anime,
+                listOf(episode),
+                true,
+                useExternalDownloader,
+                currentVideo,
+            )
+        }
+    }
 }
 
 @Composable
@@ -420,6 +436,7 @@ fun EpisodeOptionsDialog(
     onClickHoster: (Int) -> Unit,
     onClickVideo: (Int, Int) -> Unit,
     getHosterList: () -> List<Hoster>?,
+    downloadEpisode: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -475,6 +492,7 @@ fun EpisodeOptionsDialog(
                     onClickHoster = onClickHoster,
                     onClickVideo = onClickVideo,
                     getHosterList = getHosterList,
+                    downloadEpisode = downloadEpisode,
                 )
             } else {
                 onError()
@@ -497,9 +515,9 @@ private fun VideoList(
     onClickHoster: (Int) -> Unit,
     onClickVideo: (Int, Int) -> Unit,
     getHosterList: () -> List<Hoster>?,
+    downloadEpisode: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
-    val downloadManager = remember { context.appGraph.downloadManager }
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val copiedString = stringResource(AYMR.strings.copied_video_link_to_clipboard)
@@ -517,16 +535,6 @@ private fun VideoList(
                     onClick = { onShowAllQualities(true) },
                     showDropdownArrow = true,
                 )
-
-                val downloadEpisode: (Boolean) -> Unit = {
-                    downloadManager.downloadEpisodes(
-                        anime,
-                        listOf(episode),
-                        true,
-                        it,
-                        currentVideo,
-                    )
-                }
 
                 QualityOptions(
                     onDownloadClicked = { downloadEpisode(useExternalDownloader) },

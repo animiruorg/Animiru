@@ -300,7 +300,7 @@ class Downloader(
      * @param episodes the list of episodes to download.
      * @param autoStart whether to start the downloader after enqueing the episodes.
      */
-    fun queueEpisodes(
+    suspend fun queueEpisodes(
         anime: Anime,
         episodes: List<Episode>,
         autoStart: Boolean,

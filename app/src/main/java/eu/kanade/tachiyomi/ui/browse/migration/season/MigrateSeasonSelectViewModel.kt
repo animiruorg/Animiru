@@ -26,6 +26,7 @@ import dev.zacsweers.metrox.viewmodel.ManualViewModelAssistedFactoryKey
 import eu.kanade.core.preference.asState
 import eu.kanade.domain.anime.model.toSAnime
 import eu.kanade.domain.source.service.SourcePreferences
+import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import mihon.domain.anime.model.toDomainAnime
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
+import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
@@ -67,7 +69,16 @@ class MigrateSeasonSelectViewModel(
     }
 
     var displayMode by sourcePreferences.sourceDisplayMode.asState(viewModelScope)
-    val source = sourceManager.getOrStub(sourceId)
+    private val source: AnimeSource? get() = state.value.source
+
+    init {
+        viewModelScope.launchIO {
+            val source = sourceManager.getOrStub(sourceId)
+            state.update {
+                it.copy(source = source)
+            }
+        }
+    }
 
     fun getColumnsPreference(orientation: Int): GridCells {
         val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -144,6 +155,7 @@ class MigrateSeasonSelectViewModel(
     @Immutable
     data class State(
         val dialog: Dialog? = null,
+        val source: AnimeSource? = null,
     )
 }
 // <-- AY

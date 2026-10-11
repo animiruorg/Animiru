@@ -70,7 +70,7 @@ class SourcesViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State())
 
-    private fun toSourceUiModels(sources: List<Source>): List<SourceUiModel> {
+    private suspend fun toSourceUiModels(sources: List<Source>): List<SourceUiModel> {
         val map = TreeMap<String, MutableList<Source>> { d1, d2 ->
             // Sources without a lang defined will be placed at the end
             when {
@@ -115,13 +115,16 @@ class SourcesViewModel(
     }
 
     fun showSourceDialog(source: Source) {
-        dialog.update {
-            Dialog(
-                source,
-                // AM (BROWSE) -->
-                extensionManager.getInstalledExtension(source.id),
-                // <-- AM (BROWSE)
-            )
+        viewModelScope.launchIO {
+            val extension = extensionManager.getInstalledExtension(source.id)
+            dialog.update {
+                Dialog(
+                    source,
+                    // AM (BROWSE) -->
+                    extension,
+                    // <-- AM (BROWSE)
+                )
+            }
         }
     }
 

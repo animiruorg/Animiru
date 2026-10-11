@@ -70,15 +70,20 @@ class SourceRepositoryImpl(
         query: String,
         filterList: AnimeFilterList,
     ): SourcePagingSource {
-        return SourceSearchPagingSource(sourceManager.getOrStub(sourceId), query, filterList, networkToLocalAnime)
+        return SourceSearchPagingSource(
+            { sourceManager.getOrStub(sourceId) },
+            query,
+            filterList,
+            networkToLocalAnime,
+        )
     }
 
     override fun getPopular(sourceId: Long): SourcePagingSource {
-        return SourcePopularPagingSource(sourceManager.getOrStub(sourceId), networkToLocalAnime)
+        return SourcePopularPagingSource({ sourceManager.getOrStub(sourceId) }, networkToLocalAnime)
     }
 
     override fun getLatest(sourceId: Long): SourcePagingSource {
-        return SourceLatestPagingSource(sourceManager.getOrStub(sourceId), networkToLocalAnime)
+        return SourceLatestPagingSource({ sourceManager.getOrStub(sourceId) }, networkToLocalAnime)
     }
 }
 

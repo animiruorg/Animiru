@@ -426,7 +426,7 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
         }
     }
 
-    private fun downloadEpisodes(anime: Anime, episodes: List<Episode>) {
+    private suspend fun downloadEpisodes(anime: Anime, episodes: List<Episode>) {
         // We don't want to start downloading while the library is updating, because websites
         // may don't like it and they could ban the user.
         downloadManager.downloadEpisodes(anime, episodes, false)
@@ -484,7 +484,7 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
     /**
      * Writes basic file of update errors to cache dir.
      */
-    private fun writeErrorFile(errors: List<Pair<Anime, String?>>): File {
+    private suspend fun writeErrorFile(errors: List<Pair<Anime, String?>>): File {
         try {
             if (errors.isNotEmpty()) {
                 val file = context.createFileInCacheDir("animiru_update_errors.txt")
@@ -499,8 +499,8 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
                         animes.groupBy { it.source }.forEach { (srcId, animes) ->
                             val source = sourceManager.getOrStub(srcId)
                             out.write("  # $source\n")
-                            animes.forEach {
-                                out.write("    - ${it.title}\n")
+                            animes.forEach { anime ->
+                                out.write("    - ${anime.title}\n")
                             }
                         }
                     }

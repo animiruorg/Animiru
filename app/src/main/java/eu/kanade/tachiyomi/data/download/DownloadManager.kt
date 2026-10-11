@@ -146,7 +146,7 @@ class DownloadManager(
      * @param alt whether to use the alternative downloader.
      * @param video the video to download, if available.
      */
-    fun downloadEpisodes(
+    suspend fun downloadEpisodes(
         anime: Anime,
         episodes: List<Episode>,
         autoStart: Boolean = true,
@@ -212,7 +212,6 @@ class DownloadManager(
      * @param episodeScanlator scanlator of the episode to query
      * @param animeTitle the title of the anime to query.
      * @param sourceId the id of the source of the episode.
-     * @param skipCache whether to skip the directory cache and check in the filesystem.
      */
     fun isEpisodeDownloaded(
         episodeName: String,
@@ -220,9 +219,18 @@ class DownloadManager(
         episodeUrl: String,
         animeTitle: String,
         sourceId: Long,
-        skipCache: Boolean = false,
     ): Boolean {
-        return cache.isEpisodeDownloaded(episodeName, episodeScanlator, episodeUrl, animeTitle, sourceId, skipCache)
+        return cache.isEpisodeDownloaded(episodeName, episodeScanlator, episodeUrl, animeTitle, sourceId)
+    }
+
+    fun isEpisodeDownloadedOnDisk(
+        episodeName: String,
+        episodeScanlator: String?,
+        episodeUrl: String,
+        animeTitle: String,
+        source: AnimeSource,
+    ): Boolean {
+        return provider.findEpisodeDir(episodeName, episodeScanlator, episodeUrl, animeTitle, source) != null
     }
 
     /**
@@ -354,7 +362,7 @@ class DownloadManager(
     /**
      * Triggers the execution of the deletion of pending episodes.
      */
-    fun deletePendingEpisodes() {
+    suspend fun deletePendingEpisodes() {
         val pendingEpisodes = pendingDeleter.getPendingEpisodes()
         for ((anime, episodes) in pendingEpisodes) {
             val source = sourceManager.get(anime.source) ?: continue

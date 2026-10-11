@@ -115,10 +115,10 @@ class LibraryUpdateNotifier(
     /**
      * Warn when excessively checking any single source.
      */
-    fun showQueueSizeWarningNotificationIfNeeded(animeToUpdate: List<LibraryAnime>) {
+    suspend fun showQueueSizeWarningNotificationIfNeeded(animeToUpdate: List<LibraryAnime>) {
         val maxUpdatesFromSource = animeToUpdate
             .groupBy { it.anime.source }
-            .filterKeys { sourceManager.get(it) !is UnmeteredSource }
+            .filter { (sourceId, _) -> sourceManager.get(sourceId) !is UnmeteredSource }
             .maxOfOrNull { it.value.size } ?: 0
 
         if (maxUpdatesFromSource <= ANIME_PER_SOURCE_QUEUE_WARNING_THRESHOLD) {

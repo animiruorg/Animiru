@@ -64,7 +64,7 @@ class MigrateSearchViewModel(
         }
     }
 
-    override fun getEnabledSources(): List<AnimeSource> {
+    override suspend fun getEnabledSources(): List<AnimeSource> {
         return migrationSources.mapNotNull { sourceManager.get(it) }
     }
 }

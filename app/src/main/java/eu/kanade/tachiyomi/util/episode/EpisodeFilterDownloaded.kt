@@ -20,7 +20,6 @@ fun List<Episode>.filterDownloaded(anime: Anime, downloadCache: DownloadCache): 
             anime.ogTitle,
             // <-- AM (CUSTOM_INFORMATION)
             anime.source,
-            false,
         )
     }
 }

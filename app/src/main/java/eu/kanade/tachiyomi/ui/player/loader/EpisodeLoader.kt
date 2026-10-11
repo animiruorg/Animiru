@@ -40,7 +40,7 @@ class EpisodeLoader(
         anime: Anime,
         source: AnimeSource,
     ): List<Hoster> {
-        val isDownloaded = isDownload(episode, anime)
+        val isDownloaded = isDownload(episode, anime, source)
         return when {
             isDownloaded -> getHostersOnDownloaded(episode, anime, source)
             source is AnimeHttpSource -> getHostersOnHttp(episode, source)
@@ -55,16 +55,15 @@ class EpisodeLoader(
      * @param episode the episode being parsed.
      * @param anime the anime of the episode.
      */
-    fun isDownload(episode: Episode, anime: Anime): Boolean {
-        return downloadManager.isEpisodeDownloaded(
+    fun isDownload(episode: Episode, anime: Anime, source: AnimeSource): Boolean {
+        return downloadManager.isEpisodeDownloadedOnDisk(
             episode.name,
             episode.scanlator,
             episode.url,
             // AM (CUSTOM_INFORMATION) -->
             anime.ogTitle,
             // <-- AM (CUSTOM_INFORMATION)
-            anime.source,
-            skipCache = true,
+            source,
         )
     }
 

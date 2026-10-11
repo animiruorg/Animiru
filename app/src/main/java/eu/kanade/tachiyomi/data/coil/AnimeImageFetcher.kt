@@ -52,7 +52,7 @@ class AnimeImageFetcher(
     private val coverFileLazy: Lazy<File?>,
     private val customCoverFileLazy: Lazy<File>,
     private val diskCacheKeyLazy: Lazy<String>,
-    private val sourceLazy: Lazy<AnimeHttpSource?>,
+    private val getSource: suspend () -> AnimeHttpSource?,
     private val callFactoryLazy: Lazy<Call.Factory>,
     private val imageLoader: ImageLoader,
 ) : Fetcher {
@@ -170,8 +170,9 @@ class AnimeImageFetcher(
     }
 
     private suspend fun executeNetworkRequest(): Response {
-        val client = sourceLazy.value?.client ?: callFactoryLazy.value
-        val response = client.newCall(newRequest()).await()
+        val source = getSource()
+        val client = source?.client ?: callFactoryLazy.value
+        val response = client.newCall(newRequest(source)).await()
         if (!response.isSuccessful && response.code != HTTP_NOT_MODIFIED) {
             response.close()
             throw IOException(response.message)
@@ -179,11 +180,11 @@ class AnimeImageFetcher(
         return response
     }
 
-    private fun newRequest(): Request {
+    private fun newRequest(source: AnimeHttpSource?): Request {
         val request = Request.Builder().apply {
             url(url!!)
 
-            val sourceHeaders = sourceLazy.value?.headers
+            val sourceHeaders = source?.headers
             if (sourceHeaders != null) {
                 headers(sourceHeaders)
             }
@@ -331,7 +332,7 @@ class AnimeImageFetcher(
                 coverFileLazy = coverCacheLazy,
                 customCoverFileLazy = customCoverCacheLazy,
                 diskCacheKeyLazy = lazy { imageLoader.components.key(data, options)!! },
-                sourceLazy = lazy { sourceManager.get(data.source) as? AnimeHttpSource },
+                getSource = { sourceManager.get(data.source) as? AnimeHttpSource },
                 callFactoryLazy = callFactoryLazy,
                 imageLoader = imageLoader,
             )
@@ -352,7 +353,7 @@ class AnimeImageFetcher(
                 coverFileLazy = lazy { coverCache.getCoverFile(data.url) },
                 customCoverFileLazy = lazy { coverCache.getCustomCoverFile(data.animeId) },
                 diskCacheKeyLazy = lazy { imageLoader.components.key(data, options)!! },
-                sourceLazy = lazy { sourceManager.get(data.sourceId) as? AnimeHttpSource },
+                getSource = { sourceManager.get(data.sourceId) as? AnimeHttpSource },
                 callFactoryLazy = callFactoryLazy,
                 imageLoader = imageLoader,
             )

@@ -13,9 +13,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -35,16 +35,18 @@ class AndroidSourceManager(
     private val downloadManager: Lazy<DownloadManager>,
 ) : SourceManager {
 
-    private val _isInitialized = MutableStateFlow(false)
-    override val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
-
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
 
-    private val sourcesMapFlow = MutableStateFlow(ConcurrentHashMap<Long, AnimeSource>())
+    /**
+     * Null until the extensions have loaded, so that nothing observes the empty seed value.
+     */
+    private val sourcesMapFlow = MutableStateFlow<Map<Long, AnimeSource>?>(null)
 
     private val stubSourcesMap = ConcurrentHashMap<Long, StubSource>()
 
-    override val sources: Flow<List<AnimeSource>> = sourcesMapFlow.map { it.values.toList() }
+    override val sources: Flow<List<AnimeSource>> = sourcesMapFlow
+        .filterNotNull()
+        .map { it.values.toList() }
 
     init {
         scope.launch {
@@ -60,7 +62,6 @@ class AndroidSourceManager(
                         }
                     }
                     sourcesMapFlow.value = mutableMap
-                    _isInitialized.value = true
                 }
         }
 
@@ -75,24 +76,31 @@ class AndroidSourceManager(
         }
     }
 
-    override fun get(sourceKey: Long): AnimeSource? {
-        return sourcesMapFlow.value[sourceKey]
+    /**
+     * Awaits the extensions to have loaded before returning the sources.
+     */
+    private suspend fun sourcesMap(): Map<Long, AnimeSource> = sourcesMapFlow.filterNotNull().first()
+
+    override suspend fun get(sourceKey: Long): AnimeSource? {
+        return sourcesMap()[sourceKey]
     }
 
-    override fun getOrStub(sourceKey: Long): AnimeSource {
-        return sourcesMapFlow.value[sourceKey] ?: stubSourcesMap.getOrPut(sourceKey) {
+    override suspend fun getOrStub(sourceKey: Long): AnimeSource {
+        return sourcesMap()[sourceKey] ?: stubSourcesMap.getOrPut(sourceKey) {
             runBlocking { createStubSource(sourceKey) }
         }
     }
 
-    override fun getAll(): List<AnimeSource> = sourcesMapFlow.value.values.toList()
-
-    override fun getOnlineSources(): List<AnimeHttpSource> {
-        return sourcesMapFlow.value.values.filterIsInstance<AnimeHttpSource>()
+    override suspend fun getAll(): List<AnimeSource> {
+        return sourcesMap().values.toList()
     }
 
-    override fun getStubSources(): List<StubSource> {
-        val onlineSourceIds = getAll().map { it.id }
+    override suspend fun getOnlineSources(): List<AnimeHttpSource> {
+        return sourcesMap().values.filterIsInstance<AnimeHttpSource>()
+    }
+
+    override suspend fun getStubSources(): List<StubSource> {
+        val onlineSourceIds = getOnlineSources().map { it.id }
         return stubSourcesMap.values.filterNot { it.id in onlineSourceIds }
     }
 

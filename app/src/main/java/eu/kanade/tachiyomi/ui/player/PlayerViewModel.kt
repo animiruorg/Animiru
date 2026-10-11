@@ -789,7 +789,6 @@ class PlayerViewModel(
 
         return try {
             getAnime.await(animeId)?.let { anime ->
-                sourceManager.isInitialized.first { it }
                 val source = sourceManager.getOrStub(anime.source)
                 val incognito = getIncognitoState.await(anime.source)
 
@@ -888,31 +887,33 @@ class PlayerViewModel(
         val selectedEpisode = episodes.find { it.id == episodeId }
             ?: error("Requested episode of id $episodeId not found in episode list")
 
+        val source = stateData.value.currentSource ?: return
+
         val filtered = episodes.filterNot {
             (anime.unseenFilterRaw == Anime.EPISODE_SHOW_SEEN && !it.seen) ||
                 (anime.unseenFilterRaw == Anime.EPISODE_SHOW_UNSEEN && it.seen) ||
                 (
                     anime.downloadedFilterRaw == Anime.EPISODE_SHOW_DOWNLOADED &&
-                        !downloadManager.isEpisodeDownloaded(
+                        !downloadManager.isEpisodeDownloadedOnDisk(
                             it.name,
                             it.scanlator,
                             it.url,
                             // AM (CUSTOM_INFORMATION) -->
                             anime.ogTitle,
                             // <-- AM (CUSTOM_INFORMATION)
-                            anime.source,
+                            source,
                         )
                     ) ||
                 (
                     anime.downloadedFilterRaw == Anime.EPISODE_SHOW_NOT_DOWNLOADED &&
-                        downloadManager.isEpisodeDownloaded(
+                        downloadManager.isEpisodeDownloadedOnDisk(
                             it.name,
                             it.scanlator,
                             it.url,
                             // AM (CUSTOM_INFORMATION) -->
                             anime.ogTitle,
                             // <-- AM (CUSTOM_INFORMATION)
-                            anime.source,
+                            source,
                         )
                     ) ||
                 (
@@ -949,6 +950,7 @@ class PlayerViewModel(
             !episodeLoader.isDownload(
                 episode.toDomainEpisode()!!,
                 anime,
+                source,
             )
     }
 
@@ -3230,6 +3232,7 @@ class PlayerViewModel(
     private fun downloadNextEpisodes() {
         if (downloadAheadAmount == 0) return
         val anime = stateData.value.currentAnime ?: return
+        val source = stateData.value.currentSource ?: return
 
         val currentPlaylist = stateData.value.currentPlaylist
         val currentPlaylistIndex = stateData.value.currentPlaylistIndex
@@ -3240,8 +3243,8 @@ class PlayerViewModel(
 
         val nextEpisode = currentPlaylist[currentPlaylistIndex + 1]
         val episodesAreDownloaded =
-            episodeLoader.isDownload(currentEpisode.toDomainEpisode()!!, anime) &&
-                episodeLoader.isDownload(nextEpisode.toDomainEpisode()!!, anime)
+            episodeLoader.isDownload(currentEpisode.toDomainEpisode()!!, anime, source) &&
+                episodeLoader.isDownload(nextEpisode.toDomainEpisode()!!, anime, source)
 
         viewModelScope.launchIO {
             if (!episodesAreDownloaded) {
