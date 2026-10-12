@@ -217,9 +217,7 @@ class ExtensionsViewModel(
     }
 
     fun trustExtension(extension: Extension.NotLoaded) {
-        viewModelScope.launch {
-            extensionManager.trust(extension)
-        }
+        extensionManager.trust(extension)
     }
 
     @Immutable
