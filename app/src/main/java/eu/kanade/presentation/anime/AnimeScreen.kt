@@ -71,7 +71,6 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.data.download.model.Download
-import eu.kanade.tachiyomi.source.getNameForAnimeInfo
 import eu.kanade.tachiyomi.ui.anime.AnimeSeasonItem
 import eu.kanade.tachiyomi.ui.anime.AnimeViewModel
 import eu.kanade.tachiyomi.ui.anime.EpisodeList
@@ -563,7 +562,7 @@ private fun AnimeScreenSmallImpl(
                             isTabletUi = false,
                             appBarPadding = topPadding,
                             anime = state.anime,
-                            sourceName = remember { state.source.getNameForAnimeInfo() },
+                            source = remember { state.source },
                             isStubSource = remember { state.source is StubSource },
                             onCoverClick = onCoverClicked,
                             doSearch = onSearch,
@@ -958,7 +957,7 @@ fun AnimeScreenLargeImpl(
                                 isTabletUi = true,
                                 appBarPadding = contentPadding.calculateTopPadding(),
                                 anime = state.anime,
-                                sourceName = remember { state.source.getNameForAnimeInfo() },
+                                source = remember { state.source },
                                 isStubSource = remember { state.source is StubSource },
                                 onCoverClick = onCoverClicked,
                                 doSearch = onSearch,
