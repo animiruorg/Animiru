@@ -236,7 +236,7 @@ class AnimeRepositoryImpl(
                     artist = value.artist,
                     author = value.author,
                     description = value.description,
-                    genre = value.genre?.let(StringListColumnAdapter::encode),
+                    genre = value.genre,
                     title = value.title,
                     status = value.status,
                     thumbnailUrl = value.thumbnailUrl,
@@ -256,18 +256,18 @@ class AnimeRepositoryImpl(
                     // <-- AY
                     dateAdded = value.dateAdded,
                     animeId = value.id,
-                    updateStrategy = value.updateStrategy?.let(UpdateStrategyColumnAdapter::encode),
+                    updateStrategy = value.updateStrategy,
                     version = value.version,
                     isSyncing = 0,
                     notes = value.notes,
                     // AY -->
-                    fetchType = value.fetchType?.let(FetchTypeColumnAdapter::encode),
+                    fetchType = value.fetchType,
                     parentId = value.parentId,
                     seasonFlags = value.seasonFlags,
                     seasonNumber = value.seasonNumber,
                     seasonSourceOrder = value.seasonSourceOrder,
                     // <-- AY
-                    memo = value.memo?.let(MemoColumnAdapter::encode),
+                    memo = value.memo,
                 )
             }
         }

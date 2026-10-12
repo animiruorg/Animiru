@@ -189,7 +189,7 @@ class AnimeRestorer(
             artist = anime.artist,
             author = anime.author,
             description = anime.description,
-            genre = anime.genre?.joinToString(separator = ", "),
+            genre = anime.genre,
             title = anime.title,
             status = anime.status,
             thumbnailUrl = anime.thumbnailUrl,
@@ -203,19 +203,19 @@ class AnimeRestorer(
             coverLastModified = anime.coverLastModified,
             dateAdded = anime.dateAdded,
             animeId = anime.id,
-            updateStrategy = anime.updateStrategy.let(UpdateStrategyColumnAdapter::encode),
+            updateStrategy = anime.updateStrategy,
             version = anime.version,
             isSyncing = 1,
             notes = anime.notes,
             // AY -->
-            fetchType = anime.fetchType.let(FetchTypeColumnAdapter::encode),
+            fetchType = anime.fetchType,
             parentId = anime.parentId,
             seasonFlags = anime.seasonFlags,
             seasonNumber = anime.seasonNumber,
             seasonSourceOrder = anime.seasonSourceOrder,
             backgroundUrl = anime.backgroundUrl,
             backgroundLastModified = anime.backgroundLastModified,
-            memo = anime.memo.let(MemoColumnAdapter::encode),
+            memo = anime.memo,
             // <-- AY
         )
         return anime
@@ -337,7 +337,7 @@ class AnimeRestorer(
                     episodeId = episode.id,
                     version = episode.version,
                     isSyncing = 0,
-                    memo = episode.memo.let(MemoColumnAdapter::encode),
+                    memo = episode.memo,
                     // AM -->
                     thumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
                     // <-- AM

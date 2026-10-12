@@ -101,7 +101,7 @@ class EpisodeRepositoryImpl(
                     summary = episodeUpdate.summary,
                     previewUrl = episodeUpdate.previewUrl,
                     // <-- AY
-                    memo = episodeUpdate.memo?.let(MemoColumnAdapter::encode),
+                    memo = episodeUpdate.memo,
                     // AM -->
                     thumbnailLastModifiedAt = episodeUpdate.thumbnailLastModifiedAt,
                     // <-- AM
