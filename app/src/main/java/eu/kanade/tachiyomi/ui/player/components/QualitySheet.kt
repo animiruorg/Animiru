@@ -22,10 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +39,10 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.player.components.PlayerSheet
 import eu.kanade.tachiyomi.animesource.model.Hoster
 import eu.kanade.tachiyomi.animesource.model.Video
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Error
+import mihon.icons.materialsymbols.rounded.KeyboardArrowDown
+import mihon.icons.materialsymbols.rounded.KeyboardArrowUp
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
 import tachiyomi.presentation.core.components.material.padding
@@ -315,7 +315,7 @@ fun HosterTrack(
                     modifier = Modifier.alpha(DISABLED_ALPHA),
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
+                Icon(MaterialSymbols.Rounded.Error, null, tint = MaterialTheme.colorScheme.error)
             }
             is HosterState.Loading -> {
                 Spacer(modifier = Modifier.weight(1f))
@@ -335,9 +335,9 @@ fun HosterTrack(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 if (isExpanded) {
-                    Icon(Icons.Default.KeyboardArrowUp, null)
+                    Icon(MaterialSymbols.Rounded.KeyboardArrowUp, null)
                 } else {
-                    Icon(Icons.Default.KeyboardArrowDown, null)
+                    Icon(MaterialSymbols.Rounded.KeyboardArrowDown, null)
                 }
             }
         }
@@ -405,7 +405,7 @@ private fun VideoIcon(
             }
             Video.State.ERROR -> {
                 Icon(
-                    Icons.Default.ErrorOutline,
+                    MaterialSymbols.Rounded.Error,
                     null,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.fillMaxWidth(),

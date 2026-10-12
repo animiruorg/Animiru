@@ -49,6 +49,8 @@ include(":i18n-aniyomi")
 // AM -->
 include(":i18n-animiru")
 // <-- AM
+include(":icons:material-symbols")
+include(":icons:simple-icons")
 include(":presentation-core")
 include(":presentation-widget")
 include(":source-api")

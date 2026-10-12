@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +40,8 @@ import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.more.settings.screen.player.editor.components.UnsavedChangesDialog
 import eu.kanade.presentation.util.Screen
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Save
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
 import tachiyomi.presentation.core.components.material.Scaffold
@@ -94,7 +94,7 @@ class CodeEditScreen(private val filePath: String) : Screen() {
                             actions = listOf(
                                 AppBar.Action(
                                     title = stringResource(MR.strings.action_save),
-                                    icon = Icons.Outlined.Save,
+                                    icon = MaterialSymbols.Rounded.Save,
                                     onClick = viewModel::save,
                                     enabled = hasModified,
                                 ),

@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -62,6 +60,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import mihon.app.di.appGraph
 import mihon.feature.upcoming.UpcomingScreen
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.History
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.episode.model.Episode
@@ -224,7 +224,7 @@ fun RecentsScaffold(
                         onClick = { shouldShowHistoryScreen(true) },
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Outlined.History,
+                                imageVector = MaterialSymbols.Rounded.History,
                                 contentDescription = null,
                                 modifier = Modifier.size(FilterChipDefaults.IconSize),
                             )

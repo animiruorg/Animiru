@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.GenericTracksSheet
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.TrackSheetTitle
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Error
 import tachiyomi.cast.domain.TrackInformation
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.SECONDARY_ALPHA
@@ -107,7 +107,7 @@ private fun TrackRow(
         if (track.loading) {
             CircularProgressIndicator(modifier = Modifier.then(Modifier.size(24.dp)))
         } else if (track.error) {
-            Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
+            Icon(MaterialSymbols.Rounded.Error, null, tint = MaterialTheme.colorScheme.error)
         }
     }
 }

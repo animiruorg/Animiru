@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Gradient
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.NotInterested
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +29,10 @@ import eu.kanade.presentation.player.components.SliderItem
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
 import eu.kanade.tachiyomi.ui.player.controls.panelCardsColors
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Block
+import mihon.icons.materialsymbols.rounded.Gradient
+import mihon.icons.materialsymbols.rounded.Memory
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.padding
@@ -53,7 +53,7 @@ fun VideoSettingsDebandCard(
         isExpanded,
         title = {
             Row(horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium)) {
-                Icon(Icons.Default.Gradient, null)
+                Icon(MaterialSymbols.Rounded.Gradient, null)
                 Text(stringResource(AMMR.strings.player_sheets_deband_title))
             }
         },
@@ -75,8 +75,8 @@ fun VideoSettingsDebandCard(
                         onCheckedChange = { _ -> onDebandingChange(it) },
                     ) {
                         when (it) {
-                            Debanding.None -> Icon(Icons.Default.NotInterested, null)
-                            Debanding.CPU -> Icon(Icons.Default.Memory, null)
+                            Debanding.None -> Icon(MaterialSymbols.Rounded.Block, null)
+                            Debanding.CPU -> Icon(MaterialSymbols.Rounded.Memory, null)
                             Debanding.GPU -> Icon(painterResource(R.drawable.expansion_card), null)
                         }
                     }

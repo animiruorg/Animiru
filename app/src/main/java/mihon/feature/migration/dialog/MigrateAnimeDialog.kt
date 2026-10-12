@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +46,8 @@ import kotlinx.coroutines.flow.update
 import mihon.domain.migration.models.MigrationFlag
 import mihon.domain.migration.usecases.MigrateAnimeUseCase
 import mihon.feature.common.utils.getLabel
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Error
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.domain.anime.model.Anime
@@ -120,7 +120,7 @@ internal fun Screen.MigrateAnimeDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.ErrorOutline,
+                            imageVector = MaterialSymbols.Rounded.Error,
                             contentDescription = null,
                             modifier = Modifier.size(IndicatorSize),
                             tint = MaterialTheme.colorScheme.error,

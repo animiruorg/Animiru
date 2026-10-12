@@ -18,14 +18,14 @@
 package eu.kanade.tachiyomi.ui.player.controls
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
 import eu.kanade.tachiyomi.util.system.castIncluded
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.AspectRatio
+import mihon.icons.materialsymbols.rounded.PictureInPictureAlt
 import tachiyomi.cast.CastButton
 import tachiyomi.presentation.core.components.material.padding
 
@@ -50,14 +50,14 @@ fun BottomRightPlayerControls(
 
         if (isPipAvailable) {
             ControlsButton(
-                Icons.Default.PictureInPictureAlt,
+                MaterialSymbols.Rounded.PictureInPictureAlt,
                 onClick = onPipClick,
                 verticalSpacing = MaterialTheme.padding.small,
             )
         }
 
         ControlsButton(
-            Icons.Default.AspectRatio,
+            MaterialSymbols.Rounded.AspectRatio,
             onClick = onAspectClick,
             verticalSpacing = MaterialTheme.padding.small,
         )

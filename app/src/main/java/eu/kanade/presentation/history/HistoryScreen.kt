@@ -3,8 +3,6 @@ package eu.kanade.presentation.history
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,6 +17,8 @@ import eu.kanade.presentation.history.components.HistoryItem
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.ui.history.HistoryViewModel
 import kotlinx.datetime.LocalDate
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.DeleteSweep
 import tachiyomi.domain.history.model.HistoryWithRelations
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -81,7 +81,7 @@ fun HistoryTopBar(
                 listOf(
                     AppBar.Action(
                         title = stringResource(MR.strings.pref_clear_history),
-                        icon = Icons.Outlined.DeleteSweep,
+                        icon = MaterialSymbols.Rounded.DeleteSweep,
                         onClick = {
                             onDialogChange(HistoryViewModel.Dialog.DeleteAll)
                         },

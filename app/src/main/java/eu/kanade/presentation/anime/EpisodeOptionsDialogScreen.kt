@@ -21,13 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.Input
-import androidx.compose.material.icons.outlined.NavigateNext
-import androidx.compose.material.icons.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.SystemUpdateAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -76,6 +69,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.OpenInNew
+import mihon.icons.materialsymbols.rounded.ChevronRight
+import mihon.icons.materialsymbols.rounded.ContentCopy
+import mihon.icons.materialsymbols.rounded.Download
+import mihon.icons.materialsymbols.rounded.Input
+import mihon.icons.materialsymbols.rounded.SystemUpdateAlt
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.core.common.util.lang.withIOContext
@@ -631,13 +631,13 @@ private fun QualityOptions(
     Column {
         ClickableRow(
             text = stringResource(MR.strings.copy),
-            icon = Icons.Outlined.ContentCopy,
+            icon = MaterialSymbols.Rounded.ContentCopy,
             onClick = { onCopyClicked() },
         )
 
         ClickableRow(
             text = stringResource(AYMR.strings.action_start_download_internally),
-            icon = Icons.Outlined.Download,
+            icon = MaterialSymbols.Rounded.Download,
             onClick = {
                 onDownloadClicked()
                 closeMenu()
@@ -646,7 +646,7 @@ private fun QualityOptions(
 
         ClickableRow(
             text = stringResource(AYMR.strings.action_start_download_externally),
-            icon = Icons.Outlined.SystemUpdateAlt,
+            icon = MaterialSymbols.Rounded.SystemUpdateAlt,
             onClick = {
                 onExtDownloadClicked()
                 closeMenu()
@@ -655,7 +655,7 @@ private fun QualityOptions(
 
         ClickableRow(
             text = stringResource(AYMR.strings.action_play_externally),
-            icon = Icons.Outlined.OpenInNew,
+            icon = MaterialSymbols.AutoMirroredRounded.OpenInNew,
             onClick = {
                 onExtPlayerClicked()
                 closeMenu()
@@ -664,7 +664,7 @@ private fun QualityOptions(
 
         ClickableRow(
             text = stringResource(AYMR.strings.action_play_internally),
-            icon = Icons.Outlined.Input,
+            icon = MaterialSymbols.Rounded.Input,
             onClick = {
                 onIntPlayerClicked()
                 closeMenu()
@@ -709,7 +709,7 @@ private fun ClickableRow(
 
         if (showDropdownArrow) {
             Icon(
-                imageVector = Icons.Outlined.NavigateNext,
+                imageVector = MaterialSymbols.Rounded.ChevronRight,
                 contentDescription = null,
                 modifier = Modifier,
                 tint = MaterialTheme.colorScheme.onSurface,

@@ -5,10 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CastConnected
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,6 +15,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.sp
 import eu.kanade.tachiyomi.ui.player.cast.components.CastControlButton
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.ArrowBack
+import mihon.icons.materialsymbols.rounded.CastConnected
+import mihon.icons.materialsymbols.rounded.Close
 import tachiyomi.presentation.core.components.material.padding
 
 @Composable
@@ -33,7 +33,7 @@ fun CastTopControls(
         modifier = modifier.fillMaxWidth(),
     ) {
         CastControlButton(
-            icon = Icons.AutoMirrored.Default.ArrowBack,
+            icon = MaterialSymbols.AutoMirroredRounded.ArrowBack,
             onClick = onBack,
         )
 
@@ -43,7 +43,7 @@ fun CastTopControls(
             modifier = Modifier.weight(1f),
         ) {
             Icon(
-                Icons.Default.CastConnected,
+                MaterialSymbols.Rounded.CastConnected,
                 null,
                 tint = MaterialTheme.colorScheme.onBackground,
             )
@@ -61,7 +61,7 @@ fun CastTopControls(
         }
 
         CastControlButton(
-            icon = Icons.Default.Close,
+            icon = MaterialSymbols.Rounded.Close,
             onClick = onStopCasting,
         )
     }

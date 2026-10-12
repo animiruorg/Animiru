@@ -7,15 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.SwapCalls
-import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +33,15 @@ import eu.kanade.tachiyomi.ui.browse.source.SourcesViewModel
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceViewModel.Listing
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen
 import eu.kanade.tachiyomi.util.system.LocaleHelper
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Download
+import mihon.icons.materialsymbols.rounded.FilterList
+import mihon.icons.materialsymbols.rounded.PushPin
+import mihon.icons.materialsymbols.rounded.Settings
+import mihon.icons.materialsymbols.rounded.SwapCalls
+import mihon.icons.materialsymbols.rounded.TravelExplore
+import mihon.icons.materialsymbols.rounded.Upload
+import mihon.icons.materialsymbols.roundedfilled.PushPin
 import tachiyomi.domain.source.model.Pin
 import tachiyomi.domain.source.model.Source
 import tachiyomi.i18n.MR
@@ -80,19 +80,19 @@ fun SourcesScreen(
                 actions = {
                     IconButton(onClick = { navigator.push(GlobalSearchScreen()) }) {
                         Icon(
-                            Icons.Outlined.TravelExplore,
+                            MaterialSymbols.Rounded.TravelExplore,
                             contentDescription = stringResource(MR.strings.action_global_search),
                         )
                     }
                     IconButton(onClick = { navigator.push(SourcesFilterScreen()) }) {
                         Icon(
-                            Icons.Outlined.FilterList,
+                            MaterialSymbols.Rounded.FilterList,
                             contentDescription = stringResource(MR.strings.action_filter),
                         )
                     }
                     IconButton(onClick = { navigator.push(MigrateSourceScreen()) }) {
                         Icon(
-                            Icons.Outlined.SwapCalls,
+                            MaterialSymbols.Rounded.SwapCalls,
                             contentDescription = stringResource(MR.strings.action_migrate),
                         )
                     }
@@ -114,7 +114,13 @@ fun SourcesScreen(
                 Scaffold(
                     floatingActionButton = {
                         val buttonText = if (updateCount != 0) MR.strings.ext_update else MR.strings.ext_install
-                        val buttonIcon = if (updateCount != 0) Icons.Filled.Upload else Icons.Filled.Download
+                        val buttonIcon = if (updateCount !=
+                            0
+                        ) {
+                            MaterialSymbols.Rounded.Upload
+                        } else {
+                            MaterialSymbols.Rounded.Download
+                        }
                         SmallExtendedFloatingActionButton(
                             text = { Text(text = stringResource(buttonText)) },
                             icon = { Icon(imageVector = buttonIcon, contentDescription = stringResource(buttonText)) },
@@ -237,7 +243,7 @@ private fun SourcePinButton(
     isPinned: Boolean,
     onClick: () -> Unit,
 ) {
-    val icon = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin
+    val icon = if (isPinned) MaterialSymbols.RoundedFilled.PushPin else MaterialSymbols.Rounded.PushPin
     val tint = if (isPinned) {
         MaterialTheme.colorScheme.primary
     } else {
@@ -267,7 +273,7 @@ private fun SourceSettingsButton(
 ) {
     IconButton(onClick = onClickSettings) {
         Icon(
-            imageVector = Icons.Outlined.Settings,
+            imageVector = MaterialSymbols.Rounded.Settings,
             tint = MaterialTheme.colorScheme.primary,
             contentDescription = stringResource(MR.strings.label_settings),
         )

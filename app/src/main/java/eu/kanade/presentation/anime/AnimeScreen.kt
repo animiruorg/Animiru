@@ -23,8 +23,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.SnackbarHost
@@ -80,6 +78,8 @@ import eu.kanade.tachiyomi.ui.anime.EpisodeList
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import kotlinx.coroutines.delay
 import mihon.app.di.appGraph
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.PlayArrow
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
@@ -520,7 +520,7 @@ private fun AnimeScreenSmallImpl(
                             ),
                         )
                     },
-                    icon = { Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null) },
+                    icon = { Icon(imageVector = MaterialSymbols.RoundedFilled.PlayArrow, contentDescription = null) },
                     onClick = onContinueWatching,
                     expanded = itemListState.shouldExpandFAB(),
                     modifier = Modifier.animateFloatingActionButton(
@@ -923,7 +923,7 @@ fun AnimeScreenLargeImpl(
                             ),
                         )
                     },
-                    icon = { Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null) },
+                    icon = { Icon(imageVector = MaterialSymbols.RoundedFilled.PlayArrow, contentDescription = null) },
                     onClick = onContinueWatching,
                     expanded = itemListState.shouldExpandFAB(),
                     modifier = Modifier.animateFloatingActionButton(

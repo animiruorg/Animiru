@@ -32,8 +32,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import dev.vivvvek.seeker.Segment
 import eu.kanade.tachiyomi.ui.player.utils.ChapterUtils
 import `is`.xyz.mpv.Utils
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.Bookmarks
 import tachiyomi.presentation.core.components.material.padding
 
 @Composable
@@ -86,7 +86,7 @@ fun CurrentChapter(
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Bookmarks,
+                    imageVector = MaterialSymbols.RoundedFilled.Bookmarks,
                     contentDescription = null,
                     modifier = Modifier
                         .padding(end = MaterialTheme.padding.extraSmall)

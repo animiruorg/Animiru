@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
 import `is`.xyz.mpv.Utils
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.SkipNext
+import mihon.icons.materialsymbols.roundedfilled.SkipPrevious
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -78,7 +78,7 @@ fun MiddlePlayerControls(
         ) {
             if (gestureSeekAmount == null) {
                 ControlsButton(
-                    Icons.Filled.SkipPrevious,
+                    MaterialSymbols.RoundedFilled.SkipPrevious,
                     onClick = onSkipPrevious,
                     iconSize = 48.dp,
                     enabled = hasPrevious,
@@ -139,7 +139,7 @@ fun MiddlePlayerControls(
         ) {
             if (gestureSeekAmount == null) {
                 ControlsButton(
-                    Icons.Filled.SkipNext,
+                    MaterialSymbols.RoundedFilled.SkipNext,
                     onClick = onSkipNext,
                     iconSize = 48.dp,
                     enabled = hasNext,

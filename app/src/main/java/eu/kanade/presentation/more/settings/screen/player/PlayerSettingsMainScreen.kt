@@ -7,16 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Audiotrack
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Gesture
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.PlayCircleOutline
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Subtitles
-import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,6 +34,16 @@ import eu.kanade.presentation.more.settings.screen.player.editor.PlayerSettingsE
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.util.LocalBackPress
 import eu.kanade.presentation.util.Screen
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Code
+import mihon.icons.materialsymbols.rounded.EditNote
+import mihon.icons.materialsymbols.rounded.Gesture
+import mihon.icons.materialsymbols.rounded.Memory
+import mihon.icons.materialsymbols.rounded.MusicNote
+import mihon.icons.materialsymbols.rounded.PlayCircle
+import mihon.icons.materialsymbols.rounded.Search
+import mihon.icons.materialsymbols.rounded.Subtitles
+import mihon.icons.materialsymbols.rounded.Terminal
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.Scaffold
@@ -98,7 +98,7 @@ class PlayerSettingsMainScreen(private val mainSettings: Boolean) : Screen() {
                             listOf(
                                 AppBar.Action(
                                     title = stringResource(MR.strings.action_search),
-                                    icon = Icons.Outlined.Search,
+                                    icon = MaterialSymbols.Rounded.Search,
                                     onClick = { navigator.navigate(SettingsSearchScreen(true), twoPane) },
                                 ),
                             ),
@@ -185,43 +185,43 @@ private val items = listOf(
     Item(
         titleRes = AYMR.strings.pref_player_internal,
         subtitleRes = AYMR.strings.pref_player_internal_summary,
-        icon = Icons.Outlined.PlayCircleOutline,
+        icon = MaterialSymbols.Rounded.PlayCircle,
         screen = PlayerSettingsPlayerScreen,
     ),
     Item(
         titleRes = AYMR.strings.pref_player_gestures,
         subtitleRes = AYMR.strings.pref_player_gestures_summary,
-        icon = Icons.Outlined.Gesture,
+        icon = MaterialSymbols.Rounded.Gesture,
         screen = PlayerSettingsGesturesScreen,
     ),
     Item(
         titleRes = AYMR.strings.pref_player_decoder,
         subtitleRes = AYMR.strings.pref_player_decoder_summary,
-        icon = Icons.Outlined.Memory,
+        icon = MaterialSymbols.Rounded.Memory,
         screen = PlayerSettingsDecoderScreen,
     ),
     Item(
         titleRes = AYMR.strings.pref_player_subtitle,
         subtitleRes = AYMR.strings.pref_player_subtitle_summary,
-        icon = Icons.Outlined.Subtitles,
+        icon = MaterialSymbols.Rounded.Subtitles,
         screen = PlayerSettingsSubtitleScreen,
     ),
     Item(
         titleRes = AYMR.strings.pref_player_audio,
         subtitleRes = AYMR.strings.pref_player_audio_summary,
-        icon = Icons.Outlined.Audiotrack,
+        icon = MaterialSymbols.Rounded.MusicNote,
         screen = PlayerSettingsAudioScreen,
     ),
     Item(
         titleRes = AYMR.strings.pref_player_custom_button,
         subtitleRes = AYMR.strings.pref_player_custom_button_summary,
-        icon = Icons.Outlined.Terminal,
+        icon = MaterialSymbols.Rounded.Terminal,
         screen = PlayerSettingsCustomButtonScreen,
     ),
     Item(
         titleRes = AYMR.strings.pref_player_editor,
         subtitleRes = AYMR.strings.pref_player_editor_summary,
-        icon = Icons.Outlined.EditNote,
+        icon = MaterialSymbols.Rounded.EditNote,
         screen = PlayerSettingsEditorScreen,
     ),
     Item(
@@ -233,7 +233,7 @@ private val items = listOf(
     Item(
         titleRes = AYMR.strings.pref_player_advanced,
         subtitleRes = AYMR.strings.pref_player_advanced_summary,
-        icon = Icons.Outlined.Code,
+        icon = MaterialSymbols.Rounded.Code,
         screen = PlayerSettingsAdvancedScreen,
     ),
 )

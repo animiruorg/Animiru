@@ -11,18 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Label
-import androidx.compose.material.icons.automirrored.outlined.LabelOff
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkAdd
-import androidx.compose.material.icons.outlined.BookmarkRemove
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Done
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.FileDownloadOff
-import androidx.compose.material.icons.outlined.NewLabel
-import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +41,18 @@ import coil3.request.crossfade
 import eu.kanade.tachiyomi.data.download.model.Download
 import me.saket.swipe.SwipeAction
 import me.saket.swipe.SwipeableActionsBox
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.Label
+import mihon.icons.materialsymbols.rounded.BookmarkAdd
+import mihon.icons.materialsymbols.rounded.BookmarkRemove
+import mihon.icons.materialsymbols.rounded.Delete
+import mihon.icons.materialsymbols.rounded.Done
+import mihon.icons.materialsymbols.rounded.Download
+import mihon.icons.materialsymbols.rounded.FileDownloadOff
+import mihon.icons.materialsymbols.rounded.LabelOff
+import mihon.icons.materialsymbols.rounded.NewLabel
+import mihon.icons.materialsymbols.rounded.RemoveDone
+import mihon.icons.materialsymbols.roundedfilled.Bookmark
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -319,20 +319,20 @@ private fun getSwipeAction(
 ): SwipeAction? {
     return when (action) {
         LibraryPreferences.EpisodeSwipeAction.ToggleSeen -> swipeAction(
-            icon = if (!seen) Icons.Outlined.Done else Icons.Outlined.RemoveDone,
+            icon = if (!seen) MaterialSymbols.Rounded.Done else MaterialSymbols.Rounded.RemoveDone,
             background = background,
             isUndo = seen,
             onSwipe = onSwipe,
         )
         LibraryPreferences.EpisodeSwipeAction.ToggleBookmark -> swipeAction(
-            icon = if (!bookmark) Icons.Outlined.BookmarkAdd else Icons.Outlined.BookmarkRemove,
+            icon = if (!bookmark) MaterialSymbols.Rounded.BookmarkAdd else MaterialSymbols.Rounded.BookmarkRemove,
             background = background,
             isUndo = bookmark,
             onSwipe = onSwipe,
         )
         // AY -->
         LibraryPreferences.EpisodeSwipeAction.ToggleFillermark -> swipeAction(
-            icon = if (!fillermark) Icons.Outlined.NewLabel else Icons.AutoMirrored.Outlined.LabelOff,
+            icon = if (!fillermark) MaterialSymbols.Rounded.NewLabel else MaterialSymbols.Rounded.LabelOff,
             background = background,
             isUndo = fillermark,
             onSwipe = onSwipe,
@@ -340,9 +340,9 @@ private fun getSwipeAction(
         // <-- AY
         LibraryPreferences.EpisodeSwipeAction.Download -> swipeAction(
             icon = when (downloadState) {
-                Download.State.NOT_DOWNLOADED, Download.State.ERROR -> Icons.Outlined.Download
-                Download.State.QUEUE, Download.State.DOWNLOADING -> Icons.Outlined.FileDownloadOff
-                Download.State.DOWNLOADED -> Icons.Outlined.Delete
+                Download.State.NOT_DOWNLOADED, Download.State.ERROR -> MaterialSymbols.Rounded.Download
+                Download.State.QUEUE, Download.State.DOWNLOADING -> MaterialSymbols.Rounded.FileDownloadOff
+                Download.State.DOWNLOADED -> MaterialSymbols.Rounded.Delete
             },
             background = background,
             onSwipe = onSwipe,
@@ -479,7 +479,7 @@ private fun EpisodeInformation(
         ProvideTextStyle(value = subtitleStyle) {
             if (fillermark) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Label,
+                    imageVector = MaterialSymbols.AutoMirroredRounded.Label,
                     contentDescription = stringResource(AYMR.strings.filler),
                     tint = MaterialTheme.colorScheme.tertiary.copy(alpha = subtitleStyle.alpha),
                     modifier = Modifier.padding(end = 4.dp),
@@ -533,7 +533,7 @@ private fun BookmarkDownloadIcons(
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (bookmark) {
             Icon(
-                imageVector = Icons.Filled.Bookmark,
+                imageVector = MaterialSymbols.RoundedFilled.Bookmark,
                 contentDescription = stringResource(MR.strings.action_filter_bookmarked),
                 modifier = Modifier
                     .secondaryItemAlpha()

@@ -17,9 +17,6 @@ import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +35,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.ArrowBack
+import mihon.icons.materialsymbols.rounded.Close
 import tachiyomi.presentation.core.components.material.padding
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -74,7 +74,7 @@ fun MultiCardPanel(
                     },
                     navigationIcon = {
                         IconButton(onClick = onDismissRequest) {
-                            Icon(imageVector = Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
+                            Icon(imageVector = MaterialSymbols.AutoMirroredRounded.ArrowBack, contentDescription = null)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors().copy(containerColor = Color.Transparent),
@@ -114,7 +114,7 @@ fun MultiCardPanel(
                         ),
                     )
                     IconButton(onDismissRequest) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = null)
+                        Icon(imageVector = MaterialSymbols.Rounded.Close, contentDescription = null)
                     }
                 }
                 repeat(cardCount) { cards(it, Modifier) }

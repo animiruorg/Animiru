@@ -31,10 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -60,6 +56,10 @@ import eu.kanade.presentation.player.components.OutlinedNumericChooser
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
 import eu.kanade.tachiyomi.ui.player.controls.panelCardsColors
 import kotlinx.coroutines.delay
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.ArrowDropDown
+import mihon.icons.materialsymbols.rounded.Close
+import mihon.icons.materialsymbols.rounded.Refresh
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -280,7 +280,7 @@ fun DelayCard(
                     onClick = onReset,
                     enabled = isDirectionPositive == null,
                 ) {
-                    Icon(Icons.Default.Refresh, null)
+                    Icon(MaterialSymbols.Rounded.Refresh, null)
                 }
             }
         }
@@ -310,7 +310,7 @@ fun SubtitleDelayTitle(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Icon(Icons.Default.ArrowDropDown, null)
+            Icon(MaterialSymbols.Rounded.ArrowDropDown, null)
             DropdownMenu(
                 expanded = showDropDownMenu,
                 onDismissRequest = { showDropDownMenu = false },
@@ -329,7 +329,7 @@ fun SubtitleDelayTitle(
         Spacer(Modifier.weight(1f))
         IconButton(onClose) {
             Icon(
-                Icons.Default.Close,
+                MaterialSymbols.Rounded.Close,
                 null,
                 modifier = Modifier.size(32.dp),
             )

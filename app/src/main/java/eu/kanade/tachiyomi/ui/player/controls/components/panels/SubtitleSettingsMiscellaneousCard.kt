@@ -25,13 +25,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AlignVerticalCenter
-import androidx.compose.material.icons.filled.BorderStyle
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.EditOff
-import androidx.compose.material.icons.filled.FormatSize
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +44,13 @@ import eu.kanade.presentation.player.components.SliderItem
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.toFixed
 import eu.kanade.tachiyomi.ui.player.controls.panelCardsColors
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.AlignVerticalCenter
+import mihon.icons.materialsymbols.rounded.BorderStyle
+import mihon.icons.materialsymbols.rounded.Check
+import mihon.icons.materialsymbols.rounded.EditOff
+import mihon.icons.materialsymbols.rounded.FormatSize
+import mihon.icons.materialsymbols.rounded.Tune
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
@@ -72,7 +72,7 @@ fun SubtitlesMiscellaneousCard(
         isExpanded,
         title = {
             Row(horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium)) {
-                Icon(Icons.Default.Tune, null)
+                Icon(MaterialSymbols.Rounded.Tune, null)
                 Text(stringResource(AYMR.strings.player_sheets_sub_misc_title))
             }
         },
@@ -98,7 +98,7 @@ fun SubtitlesMiscellaneousCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.large),
                 ) {
-                    Icon(Icons.Default.BorderStyle, null)
+                    Icon(MaterialSymbols.Rounded.BorderStyle, null)
                     Column {
                         Text(
                             text = stringResource(AYMR.strings.player_sheets_sub_override_ass),
@@ -118,7 +118,7 @@ fun SubtitlesMiscellaneousCard(
                             trailingIcon = {
                                 if (overrideAssSubs == it) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        imageVector = MaterialSymbols.Rounded.Check,
                                         contentDescription = null,
                                     )
                                 }
@@ -135,7 +135,7 @@ fun SubtitlesMiscellaneousCard(
                 max = 5f,
                 icon = {
                     Icon(
-                        Icons.Default.FormatSize,
+                        MaterialSymbols.Rounded.FormatSize,
                         null,
                     )
                 },
@@ -148,7 +148,7 @@ fun SubtitlesMiscellaneousCard(
                 max = 150,
                 icon = {
                     Icon(
-                        Icons.Default.AlignVerticalCenter,
+                        MaterialSymbols.Rounded.AlignVerticalCenter,
                         null,
                     )
                 },
@@ -161,7 +161,7 @@ fun SubtitlesMiscellaneousCard(
             ) {
                 TextButton(onClick = onReset) {
                     Row {
-                        Icon(Icons.Default.EditOff, null)
+                        Icon(MaterialSymbols.Rounded.EditOff, null)
                         Text(stringResource(MR.strings.action_reset))
                     }
                 }

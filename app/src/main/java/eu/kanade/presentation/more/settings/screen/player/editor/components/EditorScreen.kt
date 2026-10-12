@@ -7,11 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.IntegrationInstructions
-import androidx.compose.material.icons.outlined.SettingsApplications
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +24,11 @@ import eu.kanade.presentation.components.FloatingActionAddButton
 import eu.kanade.presentation.more.settings.screen.player.editor.EditorListItem
 import eu.kanade.presentation.more.settings.screen.player.editor.EditorListType
 import eu.kanade.presentation.more.settings.screen.player.editor.EditorScreenState
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Description
+import mihon.icons.materialsymbols.rounded.IntegrationInstructions
+import mihon.icons.materialsymbols.rounded.MoreHoriz
+import mihon.icons.materialsymbols.rounded.SettingsApplications
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
@@ -144,9 +144,9 @@ private fun FileListItem(
         leadingContent = {
             Icon(
                 imageVector = when (item.name.substringAfterLast(".")) {
-                    "lua" -> Icons.Outlined.IntegrationInstructions
-                    "conf" -> Icons.Outlined.SettingsApplications
-                    else -> Icons.Outlined.Description
+                    "lua" -> MaterialSymbols.Rounded.IntegrationInstructions
+                    "conf" -> MaterialSymbols.Rounded.SettingsApplications
+                    else -> MaterialSymbols.Rounded.Description
                 },
                 null,
             )
@@ -174,7 +174,7 @@ private fun FileListItem(
             }
 
             IconButton(onClick = { onExpand(true) }) {
-                Icon(Icons.Filled.MoreHoriz, null)
+                Icon(MaterialSymbols.Rounded.MoreHoriz, null)
             }
         },
         headlineContent = {

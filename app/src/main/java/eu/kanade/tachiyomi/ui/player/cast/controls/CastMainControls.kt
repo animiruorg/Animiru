@@ -12,21 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.automirrored.filled.VolumeMute
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.material.icons.filled.HighQuality
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Subtitles
-import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -52,6 +37,21 @@ import eu.kanade.tachiyomi.ui.player.cast.components.CastControlButton
 import eu.kanade.tachiyomi.ui.player.cast.components.SmallSlider
 import eu.kanade.tachiyomi.ui.player.components.CurrentChapter
 import eu.kanade.tachiyomi.ui.player.controls.components.VideoTimer
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.MusicNote
+import mihon.icons.materialsymbols.rounded.Speed
+import mihon.icons.materialsymbols.rounded.Subtitles
+import mihon.icons.materialsymbols.rounded.VideoLibrary
+import mihon.icons.materialsymbols.roundedfilled.FastForward
+import mihon.icons.materialsymbols.roundedfilled.FastRewind
+import mihon.icons.materialsymbols.roundedfilled.HighQuality
+import mihon.icons.materialsymbols.roundedfilled.Pause
+import mihon.icons.materialsymbols.roundedfilled.PlayArrow
+import mihon.icons.materialsymbols.roundedfilled.SkipNext
+import mihon.icons.materialsymbols.roundedfilled.SkipPrevious
+import mihon.icons.materialsymbols.roundedfilled.VolumeDown
+import mihon.icons.materialsymbols.roundedfilled.VolumeMute
+import mihon.icons.materialsymbols.roundedfilled.VolumeUp
 import tachiyomi.cast.CastState
 import tachiyomi.presentation.core.components.material.padding
 
@@ -104,14 +104,14 @@ fun CastMainControls(
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
             CastControlButton(
-                Icons.Filled.SkipPrevious,
+                MaterialSymbols.RoundedFilled.SkipPrevious,
                 onClick = onPrevious,
                 iconSize = 36.dp,
                 enabled = hasPrevious,
             )
 
             CastControlButton(
-                Icons.Filled.FastRewind,
+                MaterialSymbols.RoundedFilled.FastRewind,
                 onClick = onBackSeek,
                 iconSize = 36.dp,
                 enabled = true,
@@ -125,7 +125,11 @@ fun CastMainControls(
                 }
             } else {
                 CastControlButton(
-                    if (castState.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    if (castState.playing) {
+                        MaterialSymbols.RoundedFilled.Pause
+                    } else {
+                        MaterialSymbols.RoundedFilled.PlayArrow
+                    },
                     onClick = onPlayPause,
                     iconSize = 36.dp,
                     enabled = true,
@@ -133,14 +137,14 @@ fun CastMainControls(
             }
 
             CastControlButton(
-                Icons.Filled.FastForward,
+                MaterialSymbols.RoundedFilled.FastForward,
                 onClick = onForwardSeek,
                 iconSize = 36.dp,
                 enabled = true,
             )
 
             CastControlButton(
-                Icons.Filled.SkipNext,
+                MaterialSymbols.RoundedFilled.SkipNext,
                 onClick = onNext,
                 iconSize = 36.dp,
                 enabled = hasNext,
@@ -207,35 +211,35 @@ fun CastMainControls(
             modifier = Modifier.fillMaxWidth(),
         ) {
             CastControlButton(
-                icon = Icons.Default.VideoLibrary,
+                icon = MaterialSymbols.Rounded.VideoLibrary,
                 onClick = onClickPlaylist,
                 onLongClick = { },
                 horizontalSpacing = MaterialTheme.padding.mediumSmall,
             )
 
             CastControlButton(
-                icon = Icons.Default.Speed,
+                icon = MaterialSymbols.Rounded.Speed,
                 onClick = onClickSpeed,
                 onLongClick = { },
                 horizontalSpacing = MaterialTheme.padding.mediumSmall,
             )
 
             CastControlButton(
-                icon = Icons.Default.Subtitles,
+                icon = MaterialSymbols.Rounded.Subtitles,
                 onClick = onClickSubs,
                 onLongClick = { },
                 horizontalSpacing = MaterialTheme.padding.mediumSmall,
             )
 
             CastControlButton(
-                icon = Icons.Default.Audiotrack,
+                icon = MaterialSymbols.Rounded.MusicNote,
                 onClick = onClickAudio,
                 onLongClick = { },
                 horizontalSpacing = MaterialTheme.padding.mediumSmall,
             )
 
             CastControlButton(
-                icon = Icons.Default.HighQuality,
+                icon = MaterialSymbols.RoundedFilled.HighQuality,
                 onClick = onClickQuality,
                 onLongClick = { },
                 horizontalSpacing = MaterialTheme.padding.mediumSmall,
@@ -303,11 +307,11 @@ private fun VolumeSlider(
         modifier = modifier.fillMaxWidth(0.75f),
     ) {
         val icon = if (volume == 0f) {
-            Icons.AutoMirrored.Filled.VolumeMute
+            MaterialSymbols.RoundedFilled.VolumeMute
         } else if (volume < 35f) {
-            Icons.AutoMirrored.Filled.VolumeDown
+            MaterialSymbols.RoundedFilled.VolumeDown
         } else {
-            Icons.AutoMirrored.Filled.VolumeUp
+            MaterialSymbols.RoundedFilled.VolumeUp
         }
 
         Icon(

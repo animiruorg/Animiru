@@ -22,9 +22,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +31,9 @@ import dev.vivvvek.seeker.Segment
 import eu.kanade.tachiyomi.ui.player.Sheets
 import eu.kanade.tachiyomi.ui.player.components.CurrentChapter
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.ScreenRotation
+import mihon.icons.materialsymbols.roundedfilled.LockOpen
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -54,12 +54,12 @@ fun BottomLeftPlayerControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ControlsButton(
-            Icons.Default.LockOpen,
+            MaterialSymbols.RoundedFilled.LockOpen,
             onClick = onLockControls,
             verticalSpacing = MaterialTheme.padding.small,
         )
         ControlsButton(
-            icon = Icons.Default.ScreenRotation,
+            icon = MaterialSymbols.Rounded.ScreenRotation,
             onClick = onCycleRotation,
             verticalSpacing = MaterialTheme.padding.small,
         )

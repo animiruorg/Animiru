@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -40,6 +38,8 @@ import eu.kanade.tachiyomi.data.connection.syncmiru.service.GoogleDriveSyncServi
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Close
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -277,7 +277,7 @@ private fun SyncYomiLoginDialog(
                 )
                 IconButton(onClick = onDismissRequest) {
                     Icon(
-                        imageVector = Icons.Outlined.Close,
+                        imageVector = MaterialSymbols.Rounded.Close,
                         contentDescription = stringResource(MR.strings.action_close),
                     )
                 }

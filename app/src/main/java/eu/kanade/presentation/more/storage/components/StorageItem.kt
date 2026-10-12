@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.anime.components.AnimeCover
 import eu.kanade.presentation.more.storage.data.StorageData
 import eu.kanade.tachiyomi.util.storage.toSize
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Delete
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.asAnimeCover
 import tachiyomi.i18n.MR
@@ -113,7 +113,7 @@ fun StorageItem(
                 },
                 content = {
                     Icon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = MaterialSymbols.Rounded.Delete,
                         contentDescription = stringResource(MR.strings.action_delete),
                     )
                 },

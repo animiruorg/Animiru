@@ -28,15 +28,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.automirrored.filled.VolumeMute
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.BrightnessHigh
-import androidx.compose.material.icons.filled.BrightnessLow
-import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.material.icons.filled.ModeNight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,6 +42,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.Brightness3
+import mihon.icons.materialsymbols.roundedfilled.Brightness7
+import mihon.icons.materialsymbols.roundedfilled.BrightnessMedium
+import mihon.icons.materialsymbols.roundedfilled.ModeNight
+import mihon.icons.materialsymbols.roundedfilled.VolumeDown
+import mihon.icons.materialsymbols.roundedfilled.VolumeMute
+import mihon.icons.materialsymbols.roundedfilled.VolumeOff
+import mihon.icons.materialsymbols.roundedfilled.VolumeUp
 import tachiyomi.presentation.core.components.material.padding
 import java.text.NumberFormat
 import kotlin.math.roundToInt
@@ -161,11 +161,11 @@ fun BrightnessSlider(
         )
         Icon(
             imageVector = when (percentage(brightness, positiveRange)) {
-                in -1f..0f -> Icons.Default.ModeNight
-                in 0f..0.3f -> Icons.Default.BrightnessLow
-                in 0.3f..0.6f -> Icons.Default.BrightnessMedium
-                in 0.6f..1f -> Icons.Default.BrightnessHigh
-                else -> Icons.Default.BrightnessMedium
+                in -1f..0f -> MaterialSymbols.RoundedFilled.ModeNight
+                in 0f..0.3f -> MaterialSymbols.RoundedFilled.Brightness3
+                in 0.3f..0.6f -> MaterialSymbols.RoundedFilled.BrightnessMedium
+                in 0.6f..1f -> MaterialSymbols.RoundedFilled.Brightness7
+                else -> MaterialSymbols.RoundedFilled.BrightnessMedium
             },
             contentDescription = null,
         )
@@ -223,11 +223,11 @@ fun VolumeSlider(
         }
         Icon(
             imageVector = when (percentage) {
-                0 -> Icons.AutoMirrored.Default.VolumeOff
-                in 0..30 -> Icons.AutoMirrored.Default.VolumeMute
-                in 30..60 -> Icons.AutoMirrored.Default.VolumeDown
-                in 60..100 -> Icons.AutoMirrored.Default.VolumeUp
-                else -> Icons.AutoMirrored.Default.VolumeOff
+                0 -> MaterialSymbols.RoundedFilled.VolumeOff
+                in 0..30 -> MaterialSymbols.RoundedFilled.VolumeMute
+                in 30..60 -> MaterialSymbols.RoundedFilled.VolumeDown
+                in 60..100 -> MaterialSymbols.RoundedFilled.VolumeUp
+                else -> MaterialSymbols.RoundedFilled.VolumeOff
             },
             contentDescription = null,
         )

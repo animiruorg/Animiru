@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +49,10 @@ import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.presentation.components.NestedMenuItem
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.databinding.DownloadListBinding
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.Sort
+import mihon.icons.materialsymbols.roundedfilled.Pause
+import mihon.icons.materialsymbols.roundedfilled.PlayArrow
 import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -186,7 +186,7 @@ object DownloadQueueScreen : Screen() {
                                 listOf(
                                     AppBar.Action(
                                         title = stringResource(MR.strings.action_sort),
-                                        icon = Icons.AutoMirrored.Outlined.Sort,
+                                        icon = MaterialSymbols.AutoMirroredRounded.Sort,
                                         onClick = { sortExpanded = true },
                                     ),
                                     AppBar.OverflowAction(
@@ -220,9 +220,9 @@ object DownloadQueueScreen : Screen() {
                         },
                         icon = {
                             val icon = if (isRunning) {
-                                Icons.Outlined.Pause
+                                MaterialSymbols.RoundedFilled.Pause
                             } else {
-                                Icons.Filled.PlayArrow
+                                MaterialSymbols.RoundedFilled.PlayArrow
                             }
                             Icon(imageVector = icon, contentDescription = null)
                         },

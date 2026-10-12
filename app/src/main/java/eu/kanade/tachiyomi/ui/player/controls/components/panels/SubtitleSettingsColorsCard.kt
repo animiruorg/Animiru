@@ -26,12 +26,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BorderColor
-import androidx.compose.material.icons.filled.FormatColorFill
-import androidx.compose.material.icons.filled.FormatColorReset
-import androidx.compose.material.icons.filled.FormatColorText
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +49,12 @@ import eu.kanade.presentation.player.components.ExpandableCard
 import eu.kanade.presentation.player.components.TintedSliderItem
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
 import eu.kanade.tachiyomi.ui.player.controls.panelCardsColors
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.BorderColor
+import mihon.icons.materialsymbols.rounded.FormatColorFill
+import mihon.icons.materialsymbols.rounded.FormatColorText
+import mihon.icons.materialsymbols.rounded.Palette
+import mihon.icons.materialsymbols.roundedfilled.FormatColorReset
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.deleteAndGet
 import tachiyomi.i18n.MR
@@ -79,7 +79,7 @@ fun SubtitleSettingsColorsCard(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
             ) {
-                Icon(Icons.Default.Palette, null)
+                Icon(MaterialSymbols.Rounded.Palette, null)
                 Text(stringResource(AYMR.strings.player_sheets_sub_colors_title))
             }
         },
@@ -102,9 +102,9 @@ fun SubtitleSettingsColorsCard(
                     ) {
                         Icon(
                             when (type) {
-                                SubColorType.Text -> Icons.Default.FormatColorText
-                                SubColorType.Border -> Icons.Default.BorderColor
-                                SubColorType.Background -> Icons.Default.FormatColorFill
+                                SubColorType.Text -> MaterialSymbols.Rounded.FormatColorText
+                                SubColorType.Border -> MaterialSymbols.Rounded.BorderColor
+                                SubColorType.Background -> MaterialSymbols.Rounded.FormatColorFill
                             },
                             null,
                         )
@@ -119,7 +119,7 @@ fun SubtitleSettingsColorsCard(
                         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Default.FormatColorReset, null)
+                        Icon(MaterialSymbols.RoundedFilled.FormatColorReset, null)
                         Text(stringResource(MR.strings.action_reset))
                     }
                 }

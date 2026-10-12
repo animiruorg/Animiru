@@ -16,8 +16,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -44,6 +42,8 @@ import eu.kanade.tachiyomi.ui.player.controls.components.TextPlayerUpdate
 import eu.kanade.tachiyomi.ui.player.controls.components.ThumbnailPreview
 import eu.kanade.tachiyomi.ui.player.controls.components.VolumeSlider
 import kotlinx.coroutines.delay
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.Lock
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 import kotlin.math.roundToInt
@@ -226,7 +226,7 @@ fun PlayerControls(
                 },
             ) {
                 ControlsButton(
-                    Icons.Filled.Lock,
+                    MaterialSymbols.RoundedFilled.Lock,
                     onClick = { onPlayerEvent(PlayerEvent.LockControls(false)) },
                 )
             }

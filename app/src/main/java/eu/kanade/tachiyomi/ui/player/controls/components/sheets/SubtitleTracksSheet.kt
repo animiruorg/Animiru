@@ -25,11 +25,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.MoreTime
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -44,6 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.ui.player.mpv.MpvVideoTrack
 import eu.kanade.tachiyomi.ui.player.mpv.TrackState
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Error
+import mihon.icons.materialsymbols.rounded.Info
+import mihon.icons.materialsymbols.rounded.MoreTime
+import mihon.icons.materialsymbols.roundedfilled.Palette
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -70,7 +70,7 @@ fun SubtitlesSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         ) {
-                            Icon(imageVector = Icons.Default.Palette, contentDescription = null)
+                            Icon(imageVector = MaterialSymbols.RoundedFilled.Palette, contentDescription = null)
                             Text(text = stringResource(AYMR.strings.player_sheets_track_palette))
                         }
                     }
@@ -79,7 +79,7 @@ fun SubtitlesSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         ) {
-                            Icon(imageVector = Icons.Default.MoreTime, contentDescription = null)
+                            Icon(imageVector = MaterialSymbols.Rounded.MoreTime, contentDescription = null)
                             Text(text = stringResource(AYMR.strings.player_sheets_track_delay))
                         }
                     }
@@ -105,7 +105,7 @@ fun SubtitlesSheet(
                 verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
                 horizontalAlignment = Alignment.Start,
             ) {
-                Icon(Icons.Outlined.Info, null)
+                Icon(MaterialSymbols.Rounded.Info, null)
                 Text(stringResource(AYMR.strings.player_sheets_subtitles_footer_secondary_sid_no_styles))
             }
         },
@@ -140,7 +140,7 @@ fun SubtitleTrackRow(
         if (track is MpvVideoTrack.External && track.state == TrackState.Loading) {
             CircularProgressIndicator(modifier = Modifier.then(Modifier.size(24.dp)))
         } else if (track is MpvVideoTrack.External && track.state == TrackState.Error) {
-            Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
+            Icon(MaterialSymbols.Rounded.Error, null, tint = MaterialTheme.colorScheme.error)
         } else if (selected != -1) {
             Text(
                 text = "#${selected + 1}",

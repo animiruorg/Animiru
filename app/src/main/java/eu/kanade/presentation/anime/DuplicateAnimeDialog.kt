@@ -19,18 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.PersonOutline
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.AttachMoney
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Done
-import androidx.compose.material.icons.outlined.DoneAll
-import androidx.compose.material.icons.outlined.Pause
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +54,19 @@ import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import mihon.app.di.appGraph
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Add
+import mihon.icons.materialsymbols.rounded.AttachMoney
+import mihon.icons.materialsymbols.rounded.Block
+import mihon.icons.materialsymbols.rounded.Brush
+import mihon.icons.materialsymbols.rounded.CalendarClock
+import mihon.icons.materialsymbols.rounded.Close
+import mihon.icons.materialsymbols.rounded.Done
+import mihon.icons.materialsymbols.rounded.DoneAll
+import mihon.icons.materialsymbols.rounded.Person
+import mihon.icons.materialsymbols.rounded.Schedule
+import mihon.icons.materialsymbols.rounded.Warning
+import mihon.icons.materialsymbols.roundedfilled.Pause
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.source.model.StubSource
@@ -142,7 +143,7 @@ fun DuplicateAnimeDialog(
 
                 TextPreferenceWidget(
                     title = stringResource(MR.strings.action_add_anyway),
-                    icon = Icons.Outlined.Add,
+                    icon = MaterialSymbols.Rounded.Add,
                     onPreferenceClick = {
                         onDismissRequest()
                         onConfirm()
@@ -231,7 +232,7 @@ private fun DuplicateAnimeListItem(
         if (!anime.author.isNullOrBlank()) {
             AnimeDetailRow(
                 text = anime.author!!,
-                iconImageVector = Icons.Filled.PersonOutline,
+                iconImageVector = MaterialSymbols.Rounded.Person,
                 maxLines = 2,
             )
         }
@@ -239,7 +240,7 @@ private fun DuplicateAnimeListItem(
         if (!anime.artist.isNullOrBlank() && anime.author != anime.artist) {
             AnimeDetailRow(
                 text = anime.artist!!,
-                iconImageVector = Icons.Filled.Brush,
+                iconImageVector = MaterialSymbols.Rounded.Brush,
                 maxLines = 2,
             )
         }
@@ -252,16 +253,18 @@ private fun DuplicateAnimeListItem(
                 SAnime.PUBLISHING_FINISHED.toLong() -> stringResource(MR.strings.publishing_finished)
                 SAnime.CANCELLED.toLong() -> stringResource(MR.strings.cancelled)
                 SAnime.ON_HIATUS.toLong() -> stringResource(MR.strings.on_hiatus)
+                SAnime.UPCOMING.toLong() -> stringResource(AYMR.strings.upcoming)
                 else -> stringResource(MR.strings.unknown)
             },
             iconImageVector = when (anime.status) {
-                SAnime.ONGOING.toLong() -> Icons.Outlined.Schedule
-                SAnime.COMPLETED.toLong() -> Icons.Outlined.DoneAll
-                SAnime.LICENSED.toLong() -> Icons.Outlined.AttachMoney
-                SAnime.PUBLISHING_FINISHED.toLong() -> Icons.Outlined.Done
-                SAnime.CANCELLED.toLong() -> Icons.Outlined.Close
-                SAnime.ON_HIATUS.toLong() -> Icons.Outlined.Pause
-                else -> Icons.Outlined.Block
+                SAnime.ONGOING.toLong() -> MaterialSymbols.Rounded.Schedule
+                SAnime.COMPLETED.toLong() -> MaterialSymbols.Rounded.DoneAll
+                SAnime.LICENSED.toLong() -> MaterialSymbols.Rounded.AttachMoney
+                SAnime.PUBLISHING_FINISHED.toLong() -> MaterialSymbols.Rounded.Done
+                SAnime.CANCELLED.toLong() -> MaterialSymbols.Rounded.Close
+                SAnime.ON_HIATUS.toLong() -> MaterialSymbols.RoundedFilled.Pause
+                SAnime.UPCOMING.toLong() -> MaterialSymbols.Rounded.CalendarClock
+                else -> MaterialSymbols.Rounded.Block
             },
         )
 
@@ -273,7 +276,7 @@ private fun DuplicateAnimeListItem(
         ) {
             if (source is StubSource) {
                 Icon(
-                    imageVector = Icons.Filled.Warning,
+                    imageVector = MaterialSymbols.Rounded.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.error,

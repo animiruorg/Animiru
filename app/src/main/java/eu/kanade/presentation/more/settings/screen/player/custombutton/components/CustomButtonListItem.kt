@@ -4,12 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.DragHandle
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,6 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Delete
+import mihon.icons.materialsymbols.rounded.DragHandle
+import mihon.icons.materialsymbols.rounded.Edit
+import mihon.icons.materialsymbols.rounded.Star
+import mihon.icons.materialsymbols.roundedfilled.Star
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import tachiyomi.domain.custombutton.model.CustomButton
 import tachiyomi.i18n.MR
@@ -49,7 +49,7 @@ fun ReorderableCollectionItemScope.CustomButtonListItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Outlined.DragHandle,
+                imageVector = MaterialSymbols.Rounded.DragHandle,
                 contentDescription = null,
                 modifier = Modifier
                     .padding(MaterialTheme.padding.medium)
@@ -62,7 +62,7 @@ fun ReorderableCollectionItemScope.CustomButtonListItem(
             )
 
             val starColor = Color(0xFFFDD835)
-            val starImage = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarOutline
+            val starImage = if (isFavorite) MaterialSymbols.RoundedFilled.Star else MaterialSymbols.Rounded.Star
             IconButton(onClick = onTogglePrimary) {
                 Icon(
                     imageVector = starImage,
@@ -72,13 +72,13 @@ fun ReorderableCollectionItemScope.CustomButtonListItem(
             }
             IconButton(onClick = onEdit) {
                 Icon(
-                    imageVector = Icons.Outlined.Edit,
+                    imageVector = MaterialSymbols.Rounded.Edit,
                     contentDescription = stringResource(MR.strings.action_edit),
                 )
             }
             IconButton(onClick = onDelete) {
                 Icon(
-                    imageVector = Icons.Outlined.Delete,
+                    imageVector = MaterialSymbols.Rounded.Delete,
                     contentDescription = stringResource(MR.strings.action_delete),
                 )
             }

@@ -12,13 +12,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Save
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +47,13 @@ import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.tachiyomi.data.coil.useBackground
 import eu.kanade.tachiyomi.util.ReaderPageImageView
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Close
+import mihon.icons.materialsymbols.rounded.Edit
+import mihon.icons.materialsymbols.rounded.KeyboardArrowLeft
+import mihon.icons.materialsymbols.rounded.KeyboardArrowRight
+import mihon.icons.materialsymbols.rounded.Save
+import mihon.icons.materialsymbols.rounded.Share
 import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
@@ -83,9 +83,9 @@ fun AnimeImagesDialog(
     val isCover = pagerState.currentPage != 1
 
     val arrowIcon = if (isCover) {
-        Icons.AutoMirrored.Outlined.KeyboardArrowRight
+        MaterialSymbols.Rounded.KeyboardArrowRight
     } else {
-        Icons.AutoMirrored.Outlined.KeyboardArrowLeft
+        MaterialSymbols.Rounded.KeyboardArrowLeft
     }
 
     val (editImageStringResource, alternateImageStringResource) = if (isCover) {
@@ -121,7 +121,7 @@ fun AnimeImagesDialog(
                     ActionsPill {
                         IconButton(onClick = onDismissRequest) {
                             Icon(
-                                imageVector = Icons.Outlined.Close,
+                                imageVector = MaterialSymbols.Rounded.Close,
                                 contentDescription = stringResource(MR.strings.action_close),
                             )
                         }
@@ -140,12 +140,12 @@ fun AnimeImagesDialog(
                             actions = listOf(
                                 AppBar.Action(
                                     title = stringResource(MR.strings.action_share),
-                                    icon = Icons.Outlined.Share,
+                                    icon = MaterialSymbols.Rounded.Share,
                                     onClick = onShareClick,
                                 ),
                                 AppBar.Action(
                                     title = stringResource(MR.strings.action_save),
-                                    icon = Icons.Outlined.Save,
+                                    icon = MaterialSymbols.Rounded.Save,
                                     onClick = onSaveClick,
                                 ),
                             ),
@@ -165,7 +165,7 @@ fun AnimeImagesDialog(
                                     },
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.Edit,
+                                        imageVector = MaterialSymbols.Rounded.Edit,
                                         contentDescription = stringResource(editImageStringResource),
                                     )
                                 }

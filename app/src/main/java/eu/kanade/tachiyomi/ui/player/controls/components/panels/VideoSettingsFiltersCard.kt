@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +22,9 @@ import eu.kanade.presentation.player.components.ExpandableCard
 import eu.kanade.presentation.player.components.SliderItem
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
 import eu.kanade.tachiyomi.ui.player.controls.panelCardsColors
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Info
+import mihon.icons.materialsymbols.rounded.Tune
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
@@ -47,7 +47,7 @@ fun VideoSettingsFiltersCard(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
             ) {
-                Icon(Icons.Default.Tune, null)
+                Icon(MaterialSymbols.Rounded.Tune, null)
                 Text(stringResource(AYMR.strings.player_sheets_filters_title))
             }
         },
@@ -79,7 +79,7 @@ fun VideoSettingsFiltersCard(
                     verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
                     horizontalAlignment = Alignment.Start,
                 ) {
-                    Icon(Icons.Outlined.Info, null)
+                    Icon(MaterialSymbols.Rounded.Info, null)
                     Text(stringResource(AYMR.strings.player_sheets_filters_warning))
                 }
             }

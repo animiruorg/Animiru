@@ -5,10 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Photo
-import androidx.compose.material.icons.outlined.Save
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +17,10 @@ import animiru.domain.player.model.ArtType
 import eu.kanade.presentation.player.components.PlayerSheet
 import eu.kanade.presentation.player.components.SwitchPreference
 import eu.kanade.tachiyomi.ui.player.controls.components.dialogs.PlayerDialog
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Photo
+import mihon.icons.materialsymbols.rounded.Save
+import mihon.icons.materialsymbols.rounded.Share
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.ActionButton
@@ -57,27 +57,27 @@ fun ScreenshotSheet(
                 ActionButton(
                     modifier = Modifier.weight(1f),
                     title = stringResource(MR.strings.set_as_cover),
-                    icon = Icons.Outlined.Photo,
+                    icon = MaterialSymbols.Rounded.Photo,
                     onClick = { setArtTypeAs = ArtType.Cover },
                 )
                 ActionButton(
                     modifier = Modifier.weight(1f),
                     title = stringResource(AYMR.strings.set_as_background),
-                    icon = Icons.Outlined.Photo,
+                    icon = MaterialSymbols.Rounded.Photo,
                     onClick = { setArtTypeAs = ArtType.Background },
                 )
                 if (isLocalSource) {
                     ActionButton(
                         modifier = Modifier.weight(1f),
                         title = stringResource(AYMR.strings.set_as_thumbnail),
-                        icon = Icons.Outlined.Photo,
+                        icon = MaterialSymbols.Rounded.Photo,
                         onClick = { setArtTypeAs = ArtType.Thumbnail },
                     )
                 }
                 ActionButton(
                     modifier = Modifier.weight(1f),
                     title = stringResource(MR.strings.action_share),
-                    icon = Icons.Outlined.Share,
+                    icon = MaterialSymbols.Rounded.Share,
                     onClick = {
                         onShare { takeScreenshot(showSubtitles)!! }
                     },
@@ -85,7 +85,7 @@ fun ScreenshotSheet(
                 ActionButton(
                     modifier = Modifier.weight(1f),
                     title = stringResource(MR.strings.action_save),
-                    icon = Icons.Outlined.Save,
+                    icon = MaterialSymbols.Rounded.Save,
                     onClick = {
                         onSave { takeScreenshot(showSubtitles)!! }
                     },

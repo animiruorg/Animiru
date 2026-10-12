@@ -6,13 +6,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Label
-import androidx.compose.material.icons.filled.AvTimer
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +22,13 @@ import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
 import eu.kanade.tachiyomi.ui.library.LibrarySettingsViewModel
 import eu.kanade.tachiyomi.util.system.isReleaseBuildType
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.Label
+import mihon.icons.materialsymbols.rounded.AvTimer
+import mihon.icons.materialsymbols.rounded.Refresh
+import mihon.icons.materialsymbols.rounded.Sync
+import mihon.icons.materialsymbols.roundedfilled.Explore
+import mihon.icons.materialsymbols.roundedfilled.Layers
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.library.model.LibraryDisplayMode
@@ -224,7 +224,7 @@ private fun ColumnScope.SortPage(
         if (mode == LibrarySort.Type.Random) {
             BaseSortItem(
                 label = stringResource(titleRes),
-                icon = Icons.Default.Refresh
+                icon = MaterialSymbols.Rounded.Refresh
                     .takeIf { sortingMode == LibrarySort.Type.Random },
                 onClick = {
                     viewModel.setSort(category, mode, LibrarySort.Direction.Ascending)
@@ -359,11 +359,11 @@ data class GroupMode(
 
 private fun groupTypeDrawableRes(type: Int): ImageVector {
     return when (type) {
-        LibraryGroup.BY_STATUS -> Icons.Default.AvTimer
-        LibraryGroup.BY_TRACK_STATUS -> Icons.Default.Sync
-        LibraryGroup.BY_SOURCE -> Icons.Default.Explore
-        LibraryGroup.UNGROUPED -> Icons.Default.Layers
-        else -> Icons.AutoMirrored.Filled.Label
+        LibraryGroup.BY_STATUS -> MaterialSymbols.Rounded.AvTimer
+        LibraryGroup.BY_TRACK_STATUS -> MaterialSymbols.Rounded.Sync
+        LibraryGroup.BY_SOURCE -> MaterialSymbols.RoundedFilled.Explore
+        LibraryGroup.UNGROUPED -> MaterialSymbols.RoundedFilled.Layers
+        else -> MaterialSymbols.AutoMirroredRounded.Label
     }
 }
 

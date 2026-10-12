@@ -4,9 +4,6 @@ package eu.kanade.presentation.more.settings.screen
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +30,9 @@ import eu.kanade.presentation.more.settings.widget.TriStateListDialog
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.runBlocking
 import mihon.app.di.appGraph
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.Help
+import mihon.icons.materialsymbols.rounded.Cancel
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.TextButton
@@ -50,7 +50,7 @@ object SettingsDiscordScreen : SearchableSettings {
         val uriHandler = LocalUriHandler.current
         IconButton(onClick = { uriHandler.openUri("https://aniyomi.org/docs/guides/tracking") }) {
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                imageVector = MaterialSymbols.AutoMirroredRounded.Help,
                 contentDescription = stringResource(MR.strings.tracking_guide),
             )
         }
@@ -219,7 +219,7 @@ object SettingsDiscordScreen : SearchableSettings {
                             modifier = Modifier.fillMaxWidth(),
                             trailingIcon = {
                                 IconButton(onClick = { tempCustomMessage = "" }) {
-                                    Icon(imageVector = Icons.Filled.Cancel, contentDescription = null)
+                                    Icon(imageVector = MaterialSymbols.Rounded.Cancel, contentDescription = null)
                                 }
                             },
                             singleLine = true,

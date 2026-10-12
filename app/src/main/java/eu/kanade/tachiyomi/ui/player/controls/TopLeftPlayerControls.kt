@@ -21,8 +21,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +32,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.ArrowBack
 import tachiyomi.presentation.core.components.material.padding
 
 @Composable
@@ -50,7 +50,7 @@ fun TopLeftPlayerControls(
         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.mediumSmall),
     ) {
         ControlsButton(
-            icon = Icons.AutoMirrored.Default.ArrowBack,
+            icon = MaterialSymbols.AutoMirroredRounded.ArrowBack,
             onClick = onBackClick,
         )
         Column(

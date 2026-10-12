@@ -35,11 +35,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardAlt
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -66,6 +61,11 @@ import androidx.compose.ui.window.DialogProperties
 import animiru.domain.player.model.AudioChannels
 import animiru.domain.player.model.Decoder
 import eu.kanade.presentation.player.components.PlayerSheet
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Schedule
+import mihon.icons.materialsymbols.rounded.Timer
+import mihon.icons.materialsymbols.rounded.Tune
+import mihon.icons.materialsymbols.roundedfilled.KeyboardAlt
 import tachiyomi.domain.custombutton.model.CustomButton
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -119,7 +119,7 @@ fun MoreSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         ) {
-                            Icon(imageVector = Icons.Outlined.Timer, contentDescription = null)
+                            Icon(imageVector = MaterialSymbols.Rounded.Timer, contentDescription = null)
                             Text(
                                 text =
                                 if (remainingTime == 0) {
@@ -145,7 +145,7 @@ fun MoreSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         ) {
-                            Icon(imageVector = Icons.Default.Tune, contentDescription = null)
+                            Icon(imageVector = MaterialSymbols.Rounded.Tune, contentDescription = null)
                             Text(text = stringResource(AYMR.strings.player_sheets_filters_title))
                         }
                     }
@@ -297,9 +297,9 @@ fun TimePickerDialog(
                             imageVector = if (currentLayoutType ==
                                 0
                             ) {
-                                Icons.Outlined.Schedule
+                                MaterialSymbols.Rounded.Schedule
                             } else {
-                                Icons.Default.KeyboardAlt
+                                MaterialSymbols.RoundedFilled.KeyboardAlt
                             },
                             contentDescription = null,
                         )

@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PauseCircle
-import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ShapeDefaults
@@ -28,6 +25,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.ui.player.controls.LocalPlayerButtonsClickEvent
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.PauseCircle
+import mihon.icons.materialsymbols.roundedfilled.PlayCircle
 
 @Composable
 fun AutoPlaySwitch(
@@ -50,14 +50,14 @@ fun AutoPlaySwitch(
 
     val (thumbIcon, thumbColor, trackColor) = if (isChecked) {
         Triple(
-            Icons.Filled.PlayCircle,
+            MaterialSymbols.RoundedFilled.PlayCircle,
             MaterialTheme.colorScheme.primary,
             MaterialTheme.colorScheme.secondaryContainer,
 
         )
     } else {
         Triple(
-            Icons.Filled.PauseCircle,
+            MaterialSymbols.RoundedFilled.PauseCircle,
             Color.White,
             Color.LightGray,
         )

@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Label
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +30,9 @@ import eu.kanade.presentation.anime.components.DotSeparatorText
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.data.database.models.Episode
 import eu.kanade.tachiyomi.data.database.models.EpisodeImpl
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.Bookmark
+import mihon.icons.materialsymbols.roundedfilled.Label
 import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
 import tachiyomi.presentation.core.components.material.padding
 
@@ -86,7 +86,7 @@ fun EpisodeListItem(
     ) {
         IconButton(onClick = { clickBookmark(!isBookmarked) }) {
             Icon(
-                imageVector = Icons.Filled.Bookmark,
+                imageVector = MaterialSymbols.RoundedFilled.Bookmark,
                 contentDescription = null,
                 tint = bookmarkColor,
                 modifier = Modifier
@@ -97,7 +97,7 @@ fun EpisodeListItem(
 
         IconButton(onClick = { clickFillermark(!isFillermarked) }) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.Label,
+                imageVector = MaterialSymbols.RoundedFilled.Label,
                 contentDescription = null,
                 tint = fillermarkColor,
                 modifier = Modifier

@@ -29,19 +29,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
-import androidx.compose.material.icons.automirrored.filled.FormatAlignRight
-import androidx.compose.material.icons.filled.BorderColor
-import androidx.compose.material.icons.filled.BorderStyle
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FormatAlignCenter
-import androidx.compose.material.icons.filled.FormatAlignJustify
-import androidx.compose.material.icons.filled.FormatBold
-import androidx.compose.material.icons.filled.FormatClear
-import androidx.compose.material.icons.filled.FormatColorText
-import androidx.compose.material.icons.filled.FormatItalic
-import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -68,6 +55,19 @@ import eu.kanade.presentation.player.components.SliderItem
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
 import eu.kanade.tachiyomi.ui.player.controls.panelCardsColors
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.BorderColor
+import mihon.icons.materialsymbols.rounded.BorderStyle
+import mihon.icons.materialsymbols.rounded.Check
+import mihon.icons.materialsymbols.rounded.FormatAlignCenter
+import mihon.icons.materialsymbols.rounded.FormatAlignJustify
+import mihon.icons.materialsymbols.rounded.FormatAlignLeft
+import mihon.icons.materialsymbols.rounded.FormatAlignRight
+import mihon.icons.materialsymbols.rounded.FormatBold
+import mihon.icons.materialsymbols.rounded.FormatClear
+import mihon.icons.materialsymbols.rounded.FormatColorText
+import mihon.icons.materialsymbols.rounded.FormatItalic
+import mihon.icons.materialsymbols.rounded.FormatSize
 import tachiyomi.core.common.preference.deleteAndGet
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -112,7 +112,7 @@ fun SubtitleSettingsTypographyCard(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
             ) {
-                Icon(Icons.Default.FormatColorText, null)
+                Icon(MaterialSymbols.Rounded.FormatColorText, null)
                 Text(stringResource(AYMR.strings.player_sheets_sub_typography_title))
             }
         },
@@ -132,7 +132,7 @@ fun SubtitleSettingsTypographyCard(
                     onCheckedChange = onIsBoldChange,
                 ) {
                     Icon(
-                        Icons.Default.FormatBold,
+                        MaterialSymbols.Rounded.FormatBold,
                         null,
                         modifier = Modifier.size(32.dp),
                     )
@@ -142,7 +142,7 @@ fun SubtitleSettingsTypographyCard(
                     onCheckedChange = onIsItalicChange,
                 ) {
                     Icon(
-                        Icons.Default.FormatItalic,
+                        MaterialSymbols.Rounded.FormatItalic,
                         null,
                         modifier = Modifier.size(32.dp),
                     )
@@ -153,10 +153,10 @@ fun SubtitleSettingsTypographyCard(
                         onCheckedChange = { onJustificationChange(justification) },
                     ) {
                         val imageVector = when (justification) {
-                            SubtitleJustification.Left -> Icons.AutoMirrored.Default.FormatAlignLeft
-                            SubtitleJustification.Center -> Icons.Default.FormatAlignCenter
-                            SubtitleJustification.Right -> Icons.AutoMirrored.Default.FormatAlignRight
-                            SubtitleJustification.Auto -> Icons.Default.FormatAlignJustify
+                            SubtitleJustification.Left -> MaterialSymbols.Rounded.FormatAlignLeft
+                            SubtitleJustification.Center -> MaterialSymbols.Rounded.FormatAlignCenter
+                            SubtitleJustification.Right -> MaterialSymbols.Rounded.FormatAlignRight
+                            SubtitleJustification.Auto -> MaterialSymbols.Rounded.FormatAlignJustify
                         }
 
                         Icon(imageVector, null)
@@ -168,7 +168,7 @@ fun SubtitleSettingsTypographyCard(
                         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Default.FormatClear, null)
+                        Icon(MaterialSymbols.Rounded.FormatClear, null)
                         Text(stringResource(MR.strings.action_reset))
                     }
                 }
@@ -199,7 +199,7 @@ fun SubtitleSettingsTypographyCard(
                 valueText = fontSize.toString(),
                 onChange = onFontSizeChange,
             ) {
-                Icon(Icons.Default.FormatSize, null)
+                Icon(MaterialSymbols.Rounded.FormatSize, null)
             }
 
             var selectingBorderStyle by remember { mutableStateOf(false) }
@@ -219,7 +219,7 @@ fun SubtitleSettingsTypographyCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.large),
                 ) {
-                    Icon(Icons.Default.BorderStyle, null)
+                    Icon(MaterialSymbols.Rounded.BorderStyle, null)
                     Column {
                         Text(
                             text = stringResource(AYMR.strings.player_sheets_sub_typography_border_style),
@@ -239,7 +239,7 @@ fun SubtitleSettingsTypographyCard(
                             trailingIcon = {
                                 if (borderStyle == it) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        imageVector = MaterialSymbols.Rounded.Check,
                                         contentDescription = null,
                                     )
                                 }
@@ -254,7 +254,7 @@ fun SubtitleSettingsTypographyCard(
                 valueText = borderSize.toString(),
                 onChange = onBorderSizeChange,
                 max = 100,
-                icon = { Icon(Icons.Default.BorderColor, null) },
+                icon = { Icon(MaterialSymbols.Rounded.BorderColor, null) },
             )
             SliderItem(
                 stringResource(AYMR.strings.player_sheets_subtitles_shadow_offset),

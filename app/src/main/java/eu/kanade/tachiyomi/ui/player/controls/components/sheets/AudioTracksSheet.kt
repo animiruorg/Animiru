@@ -24,9 +24,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.MoreTime
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.ui.player.mpv.MpvVideoTrack
 import eu.kanade.tachiyomi.ui.player.mpv.TrackState
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Error
+import mihon.icons.materialsymbols.rounded.MoreTime
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -66,7 +66,7 @@ fun AudioTracksSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         ) {
-                            Icon(imageVector = Icons.Default.MoreTime, contentDescription = null)
+                            Icon(imageVector = MaterialSymbols.Rounded.MoreTime, contentDescription = null)
                             Text(text = stringResource(AYMR.strings.player_sheets_track_delay))
                         }
                     }
@@ -117,7 +117,7 @@ fun AudioTrackRow(
         if (track is MpvVideoTrack.External && track.state == TrackState.Loading) {
             CircularProgressIndicator(modifier = Modifier.then(Modifier.size(24.dp)))
         } else if (track is MpvVideoTrack.External && track.state == TrackState.Error) {
-            Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
+            Icon(MaterialSymbols.Rounded.Error, null, tint = MaterialTheme.colorScheme.error)
         }
     }
 }

@@ -18,15 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.CopyAll
-import androidx.compose.material.icons.outlined.Done
-import androidx.compose.material.icons.outlined.DoneAll
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -58,6 +49,15 @@ import eu.kanade.presentation.util.rememberResourceBitmapPainter
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.animesource.model.FetchType
 import mihon.feature.migration.list.models.MigratingAnime
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.ArrowForward
+import mihon.icons.materialsymbols.rounded.Close
+import mihon.icons.materialsymbols.rounded.ContentCopy
+import mihon.icons.materialsymbols.rounded.CopyAll
+import mihon.icons.materialsymbols.rounded.Done
+import mihon.icons.materialsymbols.rounded.DoneAll
+import mihon.icons.materialsymbols.rounded.MoreVert
+import mihon.icons.materialsymbols.rounded.Warning
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
@@ -99,13 +99,25 @@ fun MigrationListScreenContent(
                         listOf(
                             AppBar.Action(
                                 title = stringResource(MR.strings.migrationListScreen_copyActionLabel),
-                                icon = if (items.size == 1) Icons.Outlined.ContentCopy else Icons.Outlined.CopyAll,
+                                icon = if (items.size ==
+                                    1
+                                ) {
+                                    MaterialSymbols.Rounded.ContentCopy
+                                } else {
+                                    MaterialSymbols.Rounded.CopyAll
+                                },
                                 onClick = { openMigrationDialog(true) },
                                 enabled = migrationComplete,
                             ),
                             AppBar.Action(
                                 title = stringResource(MR.strings.migrationListScreen_migrateActionLabel),
-                                icon = if (items.size == 1) Icons.Outlined.Done else Icons.Outlined.DoneAll,
+                                icon = if (items.size ==
+                                    1
+                                ) {
+                                    MaterialSymbols.Rounded.Done
+                                } else {
+                                    MaterialSymbols.Rounded.DoneAll
+                                },
                                 onClick = { openMigrationDialog(false) },
                                 enabled = migrationComplete,
                             ),
@@ -143,7 +155,7 @@ fun MigrationListScreenContent(
                     )
 
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                        imageVector = MaterialSymbols.AutoMirroredRounded.ArrowForward,
                         contentDescription = null,
                         modifier = Modifier.weight(0.2f),
                     )
@@ -244,7 +256,7 @@ fun MigrationMismatchListItem(
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Warning,
+                    imageVector = MaterialSymbols.Rounded.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.error,
@@ -426,7 +438,7 @@ private fun MigrationListItemAction(
             MigratingAnime.SearchResult.Searching -> {
                 IconButton(onClick = onSkip) {
                     Icon(
-                        imageVector = Icons.Outlined.Close,
+                        imageVector = MaterialSymbols.Rounded.Close,
                         contentDescription = null,
                     )
                 }
@@ -439,7 +451,7 @@ private fun MigrationListItemAction(
             -> {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(
-                        imageVector = Icons.Outlined.MoreVert,
+                        imageVector = MaterialSymbols.Rounded.MoreVert,
                         contentDescription = null,
                     )
                 }

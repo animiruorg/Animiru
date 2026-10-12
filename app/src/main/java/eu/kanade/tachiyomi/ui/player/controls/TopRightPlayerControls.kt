@@ -21,11 +21,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.HighQuality
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,6 +28,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.ui.player.controls.components.AutoPlaySwitch
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.MoreVert
+import mihon.icons.materialsymbols.rounded.MusicNote
+import mihon.icons.materialsymbols.roundedfilled.HighQuality
+import mihon.icons.materialsymbols.roundedfilled.Subtitles
 import tachiyomi.presentation.core.components.material.padding
 
 @Composable
@@ -72,27 +72,27 @@ fun TopRightPlayerControls(
                 .size(width = 48.dp, height = 24.dp),
         )
         ControlsButton(
-            icon = Icons.Default.Subtitles,
+            icon = MaterialSymbols.RoundedFilled.Subtitles,
             onClick = onSubtitlesClick,
             onLongClick = onSubtitlesLongClick,
             horizontalSpacing = MaterialTheme.padding.mediumSmall,
         )
         ControlsButton(
-            icon = Icons.Default.Audiotrack,
+            icon = MaterialSymbols.Rounded.MusicNote,
             onClick = onAudioClick,
             onLongClick = onAudioLongClick,
             horizontalSpacing = MaterialTheme.padding.mediumSmall,
         )
         if (isEpisodeOnline == true) {
             ControlsButton(
-                icon = Icons.Default.HighQuality,
+                icon = MaterialSymbols.RoundedFilled.HighQuality,
                 onClick = onQualityClick,
                 onLongClick = onQualityClick,
                 horizontalSpacing = MaterialTheme.padding.mediumSmall,
             )
         }
         ControlsButton(
-            icon = Icons.Default.MoreVert,
+            icon = MaterialSymbols.Rounded.MoreVert,
             onClick = onMoreClick,
             onLongClick = onMoreLongClick,
             horizontalSpacing = MaterialTheme.padding.mediumSmall,

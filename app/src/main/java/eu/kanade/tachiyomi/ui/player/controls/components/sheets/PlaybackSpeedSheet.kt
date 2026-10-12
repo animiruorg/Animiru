@@ -27,10 +27,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -44,6 +40,10 @@ import androidx.compose.ui.Modifier
 import eu.kanade.presentation.player.components.PlayerSheet
 import eu.kanade.presentation.player.components.SliderItem
 import eu.kanade.presentation.player.components.SwitchPreference
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Add
+import mihon.icons.materialsymbols.rounded.Close
+import mihon.icons.materialsymbols.rounded.RestartAlt
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -87,7 +87,7 @@ fun PlaybackSpeedSheet(
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
             ) {
                 FilledTonalIconButton(onClick = onResetPresets) {
-                    Icon(Icons.Default.RestartAlt, null)
+                    Icon(MaterialSymbols.Rounded.RestartAlt, null)
                 }
                 LazyRow(
                     modifier = Modifier
@@ -103,7 +103,7 @@ fun PlaybackSpeedSheet(
                                 .animateItem(),
                             trailingIcon = {
                                 Icon(
-                                    Icons.Default.Close,
+                                    MaterialSymbols.Rounded.Close,
                                     null,
                                     modifier = Modifier.clickable { onRemoveSpeedPreset(it.toFixed(2)) },
                                 )
@@ -112,7 +112,7 @@ fun PlaybackSpeedSheet(
                     }
                 }
                 FilledTonalIconButton(onClick = { onAddSpeedPreset(speed.toFixed(2)) }) {
-                    Icon(Icons.Default.Add, null)
+                    Icon(MaterialSymbols.Rounded.Add, null)
                 }
             }
             SwitchPreference(
@@ -142,7 +142,7 @@ fun PlaybackSpeedSheet(
                     Text(text = stringResource(AYMR.strings.player_sheets_speed_make_default))
                 }
                 FilledIconButton(onClick = onResetDefault) {
-                    Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null)
+                    Icon(imageVector = MaterialSymbols.Rounded.RestartAlt, contentDescription = null)
                 }
             }
         }
