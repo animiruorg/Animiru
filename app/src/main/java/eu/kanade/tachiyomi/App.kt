@@ -19,7 +19,6 @@ import animiru.core.coil.EpisodeThumbnailFetcher
 import animiru.core.coil.EpisodeThumbnailKeyer
 import animiru.domain.player.service.PlayerPreferences
 import animiru.domain.torrent.service.TorrentUtilsHolder
-import animiru.domain.torrent.service.TorrentUtilsImpl
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.memory.MemoryCache

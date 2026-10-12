@@ -14,7 +14,6 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
-import kotlin.time.toJavaDuration
 
 @Execution(ExecutionMode.CONCURRENT)
 class FetchIntervalTest {

@@ -19,7 +19,6 @@ import mihon.domain.source.interactor.models.RemoteAnimeSeasonUpdate
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.data.episode.EpisodeSanitizer
-import tachiyomi.data.episode.EpisodeSanitizer.sanitize
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.repository.AnimeRepository
