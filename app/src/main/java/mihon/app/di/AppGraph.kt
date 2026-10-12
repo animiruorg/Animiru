@@ -146,8 +146,10 @@ interface AppGraph : ViewModelGraph {
     val trackerManager: TrackerManager
     val extensionManager: ExtensionManager
     val coverCache: CoverCache
+
     // AM -->
     val backgroundCache: BackgroundCache
+
     // <-- AM
     val downloadCache: DownloadCache
 
