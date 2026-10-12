@@ -45,10 +45,6 @@ class EpisodeImpl : Episode {
 
     override var source_order: Int = 0
 
-    override var last_modified: Long = 0
-
-    override var version: Long = 0
-
     override var memo: JsonObject = JsonObject.EMPTY
 
     override fun equals(other: Any?): Boolean {

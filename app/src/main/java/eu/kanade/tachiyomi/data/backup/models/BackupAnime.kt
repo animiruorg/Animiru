@@ -39,10 +39,10 @@ data class BackupAnime(
     @ProtoNumber(103) var viewer_flags: Int = 0,
     @ProtoNumber(104) var history: List<BackupHistory> = emptyList(),
     @ProtoNumber(105) var updateStrategy: AnimeUpdateStrategy = AnimeUpdateStrategy.ALWAYS_UPDATE,
-    @ProtoNumber(106) var lastModifiedAt: Long = 0,
+    // @ProtoNumber(106) var lastModifiedAt: Long, artifact of the abandoned sync attempt
     @ProtoNumber(107) var favoriteModifiedAt: Long? = null,
     // Mihon values start here
-    @ProtoNumber(109) var version: Long = 0,
+    // @ProtoNumber(109) var version: Long, artifact of the abandoned sync attempt
     @ProtoNumber(110) var notes: String = "",
     @ProtoNumber(111) var initialized: Boolean = false,
     @ProtoNumber(112) var memo: ByteArray = JsonObjectEmptyBytes,
@@ -94,9 +94,7 @@ data class BackupAnime(
             viewerFlags = this@BackupAnime.viewer_flags.toLong(),
             episodeFlags = this@BackupAnime.episodeFlags.toLong(),
             updateStrategy = this@BackupAnime.updateStrategy,
-            lastModifiedAt = this@BackupAnime.lastModifiedAt,
             favoriteModifiedAt = this@BackupAnime.favoriteModifiedAt,
-            version = this@BackupAnime.version,
             notes = this@BackupAnime.notes,
             initialized = this@BackupAnime.initialized,
             // AY -->

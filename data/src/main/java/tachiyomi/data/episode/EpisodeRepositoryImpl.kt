@@ -48,7 +48,6 @@ class EpisodeRepositoryImpl(
                         episode.sourceOrder,
                         episode.dateFetch,
                         episode.dateUpload,
-                        episode.version,
                         // AY -->
                         episode.summary,
                         episode.previewUrl,
@@ -95,8 +94,6 @@ class EpisodeRepositoryImpl(
                     dateFetch = episodeUpdate.dateFetch,
                     dateUpload = episodeUpdate.dateUpload,
                     episodeId = episodeUpdate.id,
-                    version = episodeUpdate.version,
-                    isSyncing = 0,
                     // AY -->
                     summary = episodeUpdate.summary,
                     previewUrl = episodeUpdate.previewUrl,
@@ -181,9 +178,6 @@ class EpisodeRepositoryImpl(
         sourceOrder: Long,
         dateFetch: Long,
         dateUpload: Long,
-        lastModifiedAt: Long,
-        version: Long,
-        isSyncing: Long,
         // AY -->
         summary: String?,
         previewUrl: String?,
@@ -215,8 +209,6 @@ class EpisodeRepositoryImpl(
         summary = summary,
         previewUrl = previewUrl,
         // <-- AY
-        lastModifiedAt = lastModifiedAt,
-        version = version,
         memo = memo,
         // AM -->
         thumbnailLastModifiedAt = thumbnailLastModifiedAt,

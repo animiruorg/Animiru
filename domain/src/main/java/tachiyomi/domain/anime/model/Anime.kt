@@ -49,9 +49,7 @@ data class Anime(
     // <-- AY
     val updateStrategy: AnimeUpdateStrategy,
     val initialized: Boolean,
-    val lastModifiedAt: Long,
     val favoriteModifiedAt: Long?,
-    val version: Long,
     val notes: String,
     // AY -->
     val fetchType: FetchType,
@@ -407,9 +405,7 @@ data class Anime(
             // <-- AY
             updateStrategy = AnimeUpdateStrategy.ALWAYS_UPDATE,
             initialized = false,
-            lastModifiedAt = 0L,
             favoriteModifiedAt = null,
-            version = 0L,
             notes = "",
             // AY -->
             fetchType = FetchType.Episodes,

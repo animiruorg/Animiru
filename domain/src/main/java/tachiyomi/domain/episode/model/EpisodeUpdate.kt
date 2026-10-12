@@ -25,7 +25,6 @@ data class EpisodeUpdate(
     val summary: String? = null,
     val previewUrl: String? = null,
     // <-- AY
-    val version: Long? = null,
     val memo: JsonObject? = null,
     // AM -->
     val thumbnailLastModifiedAt: Long? = null,
@@ -56,7 +55,6 @@ fun Episode.toEpisodeUpdate(): EpisodeUpdate {
         summary,
         previewUrl,
         // <-- AY
-        version,
         memo,
         // AM -->
         thumbnailLastModifiedAt,

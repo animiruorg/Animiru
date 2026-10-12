@@ -26,8 +26,6 @@ data class Episode(
     val summary: String?,
     val previewUrl: String?,
     // <-- AY
-    val lastModifiedAt: Long,
-    val version: Long,
     val memo: JsonObject,
     // AM -->
     val thumbnailLastModifiedAt: Long,
@@ -77,8 +75,6 @@ data class Episode(
             summary = null,
             previewUrl = null,
             // <-- AY
-            lastModifiedAt = 0,
-            version = 1,
             memo = JsonObject.EMPTY,
             // AM -->
             thumbnailLastModifiedAt = 0L,

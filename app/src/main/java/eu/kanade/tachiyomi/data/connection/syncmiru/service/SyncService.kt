@@ -126,26 +126,10 @@ abstract class SyncService(
                 local != null && remote == null -> updateCategories(local, localCategoriesMapByOrder)
                 local == null && remote != null -> updateCategories(remote, remoteCategoriesMapByOrder)
                 local != null && remote != null -> {
-                    // Compare versions to decide which anime to keep
-                    if (local.version >= remote.version) {
-                        logcat(
-                            LogPriority.DEBUG,
-                            logTag,
-                        ) { "Keeping local version of ${local.title} with merged episodes." }
-                        updateCategories(
-                            local.copy(episodes = mergeEpisodes(local.episodes, remote.episodes)),
-                            localCategoriesMapByOrder,
-                        )
-                    } else {
-                        logcat(
-                            LogPriority.DEBUG,
-                            logTag,
-                        ) { "Keeping remote version of ${remote.title} with merged episodes." }
-                        updateCategories(
-                            remote.copy(episodes = mergeEpisodes(local.episodes, remote.episodes)),
-                            remoteCategoriesMapByOrder,
-                        )
-                    }
+                    updateCategories(
+                        remote.copy(episodes = mergeEpisodes(local.episodes, remote.episodes)),
+                        remoteCategoriesMapByOrder,
+                    )
                 }
                 else -> null // No anime found for key
             }
@@ -199,15 +183,7 @@ abstract class SyncService(
                     remoteEpisode
                 }
                 localEpisode != null && remoteEpisode != null -> {
-                    // Use version number to decide which episode to keep
-                    val chosenEpisode =
-                        if (localEpisode.version >= remoteEpisode.version) localEpisode else remoteEpisode
-                    logcat(LogPriority.DEBUG, logTag) {
-                        "Merging episode: ${chosenEpisode.name}. Chosen version from: ${
-                            if (localEpisode.version >= remoteEpisode.version) "Local" else "Remote"
-                        }, Local version: ${localEpisode.version}, Remote version: ${remoteEpisode.version}."
-                    }
-                    chosenEpisode
+                    remoteEpisode
                 }
                 else -> {
                     logcat(LogPriority.DEBUG, logTag) {

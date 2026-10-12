@@ -12,6 +12,7 @@ import eu.kanade.tachiyomi.data.backup.models.BackupHistory
 import eu.kanade.tachiyomi.data.backup.models.BackupTracking
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.JsonObject
 import tachiyomi.data.Database
 import tachiyomi.data.FetchTypeColumnAdapter
 import tachiyomi.data.MemoColumnAdapter
@@ -56,7 +57,6 @@ class AnimeRestorer(
             .groupBy({ it.source }, { it.url })
 
         val sortByNewComparator = compareBy<BackupAnime> { it.url in urlsBySource[it.source].orEmpty() }
-            .then(compareByDescending { it.lastModifiedAt })
 
         // AM -->
         val parents = backupAnimes.groupBy { it.parentId }
@@ -151,34 +151,28 @@ class AnimeRestorer(
     }
 
     private suspend fun restoreExistingAnime(anime: Anime, dbAnime: Anime): Anime {
-        return if (anime.version > dbAnime.version) {
-            updateAnime(
-                dbAnime.copyFrom(anime).copy(id = dbAnime.id, /* AY --> */ parentId = dbAnime.parentId /* <-- AY */),
+        val details = if (dbAnime.initialized || !anime.initialized) dbAnime else anime
+        return updateAnime(
+            dbAnime.copy(
+                favorite = dbAnime.favorite || anime.favorite,
+                dateAdded = listOfNotNull(
+                    dbAnime.dateAdded.takeIf { it > 0 },
+                    anime.dateAdded.takeIf { it > 0 },
+                ).minOrNull() ?: 0L,
+                // AM (CUSTOM_INFORMATION) -->
+                ogTitle = details.title,
+                ogArtist = details.artist,
+                ogAuthor = details.author,
+                ogDescription = details.description,
+                ogGenre = details.genre,
+                ogStatus = details.status,
+                // <-- AM (CUSTOM_INFORMATION)
+                thumbnailUrl = details.thumbnailUrl,
+                updateStrategy = details.updateStrategy,
+                initialized = anime.initialized || anime.initialized,
+                // Merge both backup and local data with local winning
+                memo = JsonObject(anime.memo + anime.memo),
             )
-        } else {
-            updateAnime(
-                anime.copyFrom(dbAnime).copy(id = dbAnime.id, /* AY --> */ parentId = dbAnime.parentId /* <-- AY */),
-            )
-        }
-    }
-
-    private fun Anime.copyFrom(newer: Anime): Anime {
-        return this.copy(
-            favorite = this.favorite || newer.favorite,
-            // AM (CUSTOM_INFORMATION) -->
-            ogAuthor = newer.ogAuthor,
-            ogArtist = newer.ogArtist,
-            ogDescription = newer.ogDescription,
-            ogGenre = newer.ogGenre,
-            thumbnailUrl = newer.thumbnailUrl,
-            ogStatus = newer.ogStatus,
-            // <-- AM (CUSTOM_INFORMATION)
-            initialized = this.initialized || newer.initialized,
-            version = newer.version,
-            // AY -->
-            fetchType = newer.fetchType,
-            parentId = newer.parentId,
-            // <-- AY
         )
     }
 
@@ -204,8 +198,6 @@ class AnimeRestorer(
             dateAdded = anime.dateAdded,
             animeId = anime.id,
             updateStrategy = anime.updateStrategy,
-            version = anime.version,
-            isSyncing = 1,
             notes = anime.notes,
             // AY -->
             fetchType = anime.fetchType,
@@ -246,27 +238,21 @@ class AnimeRestorer(
                     return@mapNotNull null
                 }
 
-                // Update to an existing episode
-                var updatedEpisode = episode
+                episode
                     .copyFrom(dbEpisode)
                     .copy(
                         id = dbEpisode.id,
+                        seen = episode.seen || dbEpisode.seen,
                         bookmark = episode.bookmark || dbEpisode.bookmark,
+                        lastSecondSeen = max(episode.lastSecondSeen, dbEpisode.lastSecondSeen),
+                        dateFetch = dbEpisode.dateFetch,
+                        sourceOrder = dbEpisode.sourceOrder,
                         // AY -->
                         fillermark = episode.fillermark || dbEpisode.fillermark,
                         // <-- AY
+                        // Merge both backup and local data with local winning
+                        memo = JsonObject(episode.memo + dbEpisode.memo),
                     )
-                if (dbEpisode.seen && !updatedEpisode.seen) {
-                    updatedEpisode = updatedEpisode.copy(
-                        seen = true,
-                        lastSecondSeen = dbEpisode.lastSecondSeen,
-                    )
-                } else if (updatedEpisode.lastSecondSeen == 0L && dbEpisode.lastSecondSeen != 0L) {
-                    updatedEpisode = updatedEpisode.copy(
-                        lastSecondSeen = dbEpisode.lastSecondSeen,
-                    )
-                }
-                updatedEpisode
             }
             .partition { it.id > 0 }
 
@@ -275,7 +261,7 @@ class AnimeRestorer(
     }
 
     private fun Episode.forComparison() =
-        this.copy(id = 0L, animeId = 0L, dateFetch = 0L, dateUpload = 0L, lastModifiedAt = 0L, version = 0L)
+        this.copy(id = 0L, animeId = 0L, dateFetch = 0L, dateUpload = 0L)
 
     private suspend fun insertNewEpisodes(episodes: List<Episode>) {
         database.transaction {
@@ -298,7 +284,6 @@ class AnimeRestorer(
                     episode.sourceOrder,
                     episode.dateFetch,
                     episode.dateUpload,
-                    episode.version,
                     // AY -->
                     episode.summary,
                     episode.previewUrl,
@@ -335,8 +320,6 @@ class AnimeRestorer(
                     dateFetch = null,
                     dateUpload = null,
                     episodeId = episode.id,
-                    version = episode.version,
-                    isSyncing = 0,
                     memo = episode.memo,
                     // AM -->
                     thumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
@@ -372,7 +355,6 @@ class AnimeRestorer(
             coverLastModified = anime.coverLastModified,
             dateAdded = anime.dateAdded,
             updateStrategy = anime.updateStrategy,
-            version = anime.version,
             notes = anime.notes,
             // AY -->
             fetchType = anime.fetchType,

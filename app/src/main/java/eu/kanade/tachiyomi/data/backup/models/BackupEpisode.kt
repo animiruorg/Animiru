@@ -26,8 +26,8 @@ class BackupEpisode(
     // episodeNumber is called number is 1.x
     @ProtoNumber(9) var episodeNumber: Float = 0F,
     @ProtoNumber(10) var sourceOrder: Long = 0,
-    @ProtoNumber(11) var lastModifiedAt: Long = 0,
-    @ProtoNumber(12) var version: Long = 0,
+    // @ProtoNumber(11) var lastModifiedAt: Long, artifact of the abandoned sync attempt
+    // @ProtoNumber(12) var version: Long, artifact of the abandoned sync attempt
     @ProtoNumber(13) var memo: ByteArray = JsonObjectEmptyBytes,
 
     // AY -->
@@ -59,8 +59,6 @@ class BackupEpisode(
             dateFetch = this@BackupEpisode.dateFetch,
             dateUpload = this@BackupEpisode.dateUpload,
             sourceOrder = this@BackupEpisode.sourceOrder,
-            lastModifiedAt = this@BackupEpisode.lastModifiedAt,
-            version = this@BackupEpisode.version,
             memo = MemoColumnAdapter.decode(this@BackupEpisode.memo),
         )
     }
@@ -85,9 +83,6 @@ val backupEpisodeMapper = {
         sourceOrder: Long,
         dateFetch: Long,
         dateUpload: Long,
-        lastModifiedAt: Long,
-        version: Long,
-        _: Long,
         // AY -->
         summary: String?,
         previewUrl: String?,
@@ -118,8 +113,6 @@ val backupEpisodeMapper = {
         dateFetch = dateFetch,
         dateUpload = dateUpload,
         sourceOrder = sourceOrder,
-        lastModifiedAt = lastModifiedAt,
-        version = version,
         memo = MemoColumnAdapter.encode(memo),
     )
 }

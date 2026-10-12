@@ -110,9 +110,7 @@ private fun Anime.toBackupAnime(
         viewer_flags = this.viewerFlags.toInt(),
         episodeFlags = this.episodeFlags.toInt(),
         updateStrategy = this.updateStrategy,
-        lastModifiedAt = this.lastModifiedAt,
         favoriteModifiedAt = this.favoriteModifiedAt,
-        version = this.version,
         notes = this.notes,
         initialized = this.initialized,
         // AY -->

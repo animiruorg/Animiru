@@ -62,9 +62,5 @@ fun Episode.toDbEpisode(): DbEpisode = EpisodeImpl().also {
     it.date_upload = dateUpload
     it.episode_number = episodeNumber.toFloat()
     it.source_order = sourceOrder.toInt()
-    // AM (SYNC) -->
-    it.last_modified = lastModifiedAt
-    it.version = version
-    // <-- AM (SYNC)
     it.memo = memo
 }

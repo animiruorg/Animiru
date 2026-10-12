@@ -178,7 +178,6 @@ class AnimeRepositoryImpl(
                     // <-- AY
                     dateAdded = it.dateAdded,
                     updateStrategy = it.updateStrategy,
-                    version = it.version,
                     // AY -->
                     fetchType = it.fetchType,
                     parentId = it.parentId,
@@ -257,8 +256,6 @@ class AnimeRepositoryImpl(
                     dateAdded = value.dateAdded,
                     animeId = value.id,
                     updateStrategy = value.updateStrategy,
-                    version = value.version,
-                    isSyncing = 0,
                     notes = value.notes,
                     // AY -->
                     fetchType = value.fetchType,

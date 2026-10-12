@@ -25,10 +25,6 @@ interface Episode : SEpisode, Serializable {
     var date_fetch: Long
 
     var source_order: Int
-
-    var last_modified: Long
-
-    var version: Long
 }
 
 val Episode.isRecognizedNumber: Boolean
@@ -59,8 +55,6 @@ fun Episode.toDomainEpisode(): DomainEpisode? {
         summary = summary,
         previewUrl = preview_url,
         // <-- AY
-        lastModifiedAt = last_modified,
-        version = version,
         memo = memo,
         // AM -->
         thumbnailLastModifiedAt = 0,

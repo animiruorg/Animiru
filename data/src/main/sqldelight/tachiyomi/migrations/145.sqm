@@ -1,0 +1,15 @@
+-- Remove the sync scaffolding: version, is_syncing and last_modified_at.
+
+DROP TRIGGER update_anime_version;
+DROP TRIGGER update_last_modified_at_animes;
+DROP TRIGGER update_episode_and_anime_version;
+DROP TRIGGER update_last_modified_at_episodes;
+DROP TRIGGER insert_anime_category_update_version;
+
+ALTER TABLE animes DROP COLUMN version;
+ALTER TABLE animes DROP COLUMN is_syncing;
+ALTER TABLE animes DROP COLUMN last_modified_at;
+
+ALTER TABLE episodes DROP COLUMN version;
+ALTER TABLE episodes DROP COLUMN is_syncing;
+ALTER TABLE episodes DROP COLUMN last_modified_at;

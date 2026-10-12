@@ -31,7 +31,6 @@ data class AnimeUpdate(
     // <-- AY
     val updateStrategy: AnimeUpdateStrategy? = null,
     val initialized: Boolean? = null,
-    val version: Long? = null,
     val notes: String? = null,
     // AY -->
     val fetchType: FetchType? = null,
@@ -71,7 +70,6 @@ fun Anime.toAnimeUpdate(): AnimeUpdate {
         // <-- AY
         updateStrategy = updateStrategy,
         initialized = initialized,
-        version = version,
         notes = notes,
         // AY -->
         fetchType = fetchType,

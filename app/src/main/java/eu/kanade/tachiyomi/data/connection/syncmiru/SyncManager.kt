@@ -61,13 +61,6 @@ class SyncManager(
      * from the database using the BackupManager, then synchronizes the data with a sync service.
      */
     suspend fun syncData() {
-        // Reset isSyncing in case it was left over or failed syncing during restore.
-
-        database.transaction {
-            database.animesQueries.resetIsSyncing()
-            database.episodesQueries.resetIsSyncing()
-        }
-
         val syncOptions = syncPreferences.getSyncSettings()
         val databaseAnime = getAllAnimeThatNeedsSync()
 
@@ -226,10 +219,6 @@ class SyncManager(
             return true
         }
 
-        if (localAnime.version != remoteAnime.version) {
-            return true
-        }
-
         if (localCategories.toSet() != remoteAnime.categories.toSet()) {
             return true
         }
@@ -248,8 +237,8 @@ class SyncManager(
         for ((url, localEpisode) in localEpisodeMap) {
             val remoteEpisode = remoteEpisodeMap[url]
 
-            // If a matching remote Episode doesn't exist, or the version numbers are different, consider them different
-            if (remoteEpisode == null || localEpisode.version != remoteEpisode.version) {
+            // If a matching remote Episode doesn't exist, consider them different
+            if (remoteEpisode == null) {
                 return true
             }
         }

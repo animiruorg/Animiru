@@ -10,7 +10,6 @@ import tachiyomi.domain.library.model.LibraryAnime
 import tachiyomi.domain.source.model.DeletableAnime
 
 object AnimeMapper {
-    @Suppress("UNUSED_PARAMETER")
     fun mapAnime(
         id: Long,
         source: Long,
@@ -32,10 +31,7 @@ object AnimeMapper {
         dateAdded: Long,
         updateStrategy: AnimeUpdateStrategy,
         calculateInterval: Long,
-        lastModifiedAt: Long,
         favoriteModifiedAt: Long?,
-        version: Long,
-        isSyncing: Long,
         notes: String,
         // AY -->
         fetchType: FetchType,
@@ -76,9 +72,7 @@ object AnimeMapper {
         // <-- AY
         updateStrategy = updateStrategy,
         initialized = initialized,
-        lastModifiedAt = lastModifiedAt,
         favoriteModifiedAt = favoriteModifiedAt,
-        version = version,
         notes = notes,
         // AY -->
         fetchType = fetchType,
@@ -111,10 +105,7 @@ object AnimeMapper {
         dateAdded: Long,
         updateStrategy: AnimeUpdateStrategy,
         calculateInterval: Long,
-        lastModifiedAt: Long,
         favoriteModifiedAt: Long?,
-        version: Long,
-        isSyncing: Long,
         notes: String,
         // AY -->
         fetchType: FetchType,
@@ -158,10 +149,7 @@ object AnimeMapper {
             dateAdded,
             updateStrategy,
             calculateInterval,
-            lastModifiedAt,
             favoriteModifiedAt,
-            version,
-            isSyncing,
             notes,
             // AY -->
             fetchType,
@@ -207,10 +195,7 @@ object AnimeMapper {
         dateAdded: Long,
         updateStrategy: AnimeUpdateStrategy,
         calculateInterval: Long,
-        lastModifiedAt: Long,
         favoriteModifiedAt: Long?,
-        version: Long,
-        isSyncing: Long,
         notes: String,
         // AY -->
         fetchType: FetchType,
@@ -245,10 +230,7 @@ object AnimeMapper {
             dateAdded,
             updateStrategy,
             calculateInterval,
-            lastModifiedAt,
             favoriteModifiedAt,
-            version,
-            isSyncing,
             notes,
             // AY -->
             fetchType,
@@ -286,10 +268,7 @@ object AnimeMapper {
         dateAdded: Long,
         updateStrategy: AnimeUpdateStrategy,
         calculateInterval: Long,
-        lastModifiedAt: Long,
         favoriteModifiedAt: Long?,
-        version: Long,
-        isSyncing: Long,
         notes: String,
         fetchType: FetchType,
         parentId: Long?,
@@ -328,10 +307,7 @@ object AnimeMapper {
             dateAdded,
             updateStrategy,
             calculateInterval,
-            lastModifiedAt,
             favoriteModifiedAt,
-            version,
-            isSyncing,
             notes,
             fetchType,
             parentId,
@@ -372,10 +348,7 @@ object AnimeMapper {
         dateAdded: Long,
         updateStrategy: AnimeUpdateStrategy,
         calculateInterval: Long,
-        lastModifiedAt: Long,
         favoriteModifiedAt: Long?,
-        version: Long,
-        isSyncing: Long,
         notes: String,
         fetchType: FetchType,
         parentId: Long?,
@@ -407,10 +380,7 @@ object AnimeMapper {
         dateAdded,
         updateStrategy,
         calculateInterval,
-        lastModifiedAt,
         favoriteModifiedAt,
-        version,
-        isSyncing,
         notes,
         fetchType,
         parentId,

@@ -26,10 +26,7 @@ CREATE TABLE animes(
     date_added INTEGER NOT NULL,
     update_strategy INTEGER AS AnimeUpdateStrategy NOT NULL DEFAULT 0,
     calculate_interval INTEGER DEFAULT 0 NOT NULL,
-    last_modified_at INTEGER NOT NULL DEFAULT 0,
     favorite_modified_at INTEGER,
-    version INTEGER NOT NULL DEFAULT 0,
-    is_syncing INTEGER NOT NULL DEFAULT 0,
     notes TEXT NOT NULL DEFAULT "",
     -- AY -->
     fetch_type INTEGER AS FetchType NOT NULL DEFAULT 1,
@@ -57,25 +54,6 @@ BEGIN
   UPDATE animes
   SET favorite_modified_at = strftime('%s', 'now')
   WHERE _id = new._id;
-END;
-
-CREATE TRIGGER update_last_modified_at_animes
-AFTER UPDATE ON animes
-FOR EACH ROW
-BEGIN
-  UPDATE animes
-  SET last_modified_at = strftime('%s', 'now')
-  WHERE _id = new._id;
-END;
-
-CREATE TRIGGER update_anime_version AFTER UPDATE ON animes
-BEGIN
-    UPDATE animes SET version = version + 1
-    WHERE _id = new._id AND new.is_syncing = 0 AND (
-        new.url != old.url OR
-        new.description != old.description OR
-        new.favorite != old.favorite
-    );
 END;
 
 getAnimeById:
@@ -212,11 +190,6 @@ resetViewerFlags:
 UPDATE animes
 SET viewer = 0;
 
-resetIsSyncing:
-UPDATE animes
-SET is_syncing = 0
-WHERE is_syncing = 1;
-
 -- AY -->
 removeParentIdByIds:
 UPDATE animes
@@ -244,8 +217,8 @@ AND (
 );
 
 insertReturningId:
-INSERT INTO animes(source, url, artist, author, description, genre, title, status, thumbnail_url, favorite, last_update, next_update, initialized, viewer, episode_flags, cover_last_modified, date_added, update_strategy, calculate_interval, last_modified_at, version, notes, fetch_type, parent_id, season_flags, season_number, season_source_order, background_url, background_last_modified, memo)
-VALUES (:source, :url, :artist, :author, :description, :genre, :title, :status, :thumbnailUrl, :favorite, :lastUpdate, :nextUpdate, :initialized, :viewerFlags, :episodeFlags, :coverLastModified, :dateAdded, :updateStrategy, :calculateInterval, 0, :version, :notes, :fetchType, :parentId, :seasonFlags, :seasonNumber, :seasonSourceOrder, :backgroundUrl, :backgroundLastModified, :memo)
+INSERT INTO animes(source, url, artist, author, description, genre, title, status, thumbnail_url, favorite, last_update, next_update, initialized, viewer, episode_flags, cover_last_modified, date_added, update_strategy, calculate_interval, notes, fetch_type, parent_id, season_flags, season_number, season_source_order, background_url, background_last_modified, memo)
+VALUES (:source, :url, :artist, :author, :description, :genre, :title, :status, :thumbnailUrl, :favorite, :lastUpdate, :nextUpdate, :initialized, :viewerFlags, :episodeFlags, :coverLastModified, :dateAdded, :updateStrategy, :calculateInterval, :notes, :fetchType, :parentId, :seasonFlags, :seasonNumber, :seasonSourceOrder, :backgroundUrl, :backgroundLastModified, :memo)
 RETURNING _id;
 
 update:
@@ -269,8 +242,6 @@ UPDATE animes SET
     date_added = coalesce(:dateAdded, date_added),
     update_strategy = coalesce(:updateStrategy, update_strategy),
     calculate_interval = coalesce(:calculateInterval, calculate_interval),
-    version = coalesce(:version, version),
-    is_syncing = coalesce(:isSyncing, is_syncing),
     notes = coalesce(:notes, notes),
     -- AY -->
     fetch_type = coalesce(:fetchType, fetch_type),
@@ -289,13 +260,13 @@ insertNetworkAnime {
     INSERT INTO animes(
         source, url, artist, author, description, genre, title, status, thumbnail_url, favorite,
         last_update, next_update, initialized, viewer, episode_flags, cover_last_modified, date_added,
-        update_strategy, calculate_interval, last_modified_at, version, fetch_type, parent_id, season_flags,
+        update_strategy, calculate_interval, fetch_type, parent_id, season_flags,
         season_number, season_source_order, background_url, background_last_modified, memo
     )
     SELECT
         :source, :url, :artist, :author, :description, :genre, :title, :status, :thumbnailUrl, :favorite,
         :lastUpdate, :nextUpdate, :initialized, :viewerFlags, :episodeFlags, :coverLastModified, :dateAdded,
-        :updateStrategy, :calculateInterval, 0, :version, :fetchType, :parentId, :seasonFlags, :seasonNumber,
+        :updateStrategy, :calculateInterval, :fetchType, :parentId, :seasonFlags, :seasonNumber,
         :seasonSourceOrder, :backgroundUrl, :backgroundLastModified, :memo
     WHERE NOT EXISTS(SELECT 0 FROM animes WHERE source = :source AND url = :url);
 
