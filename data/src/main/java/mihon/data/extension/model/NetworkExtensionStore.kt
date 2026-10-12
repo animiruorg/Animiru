@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.protobuf.ProtoNumber
+import mihon.data.extension.model.NetworkExtensionStore.ContentWarning
 import mihon.domain.extension.model.ExtensionStore
 import eu.kanade.tachiyomi.extension.model.Extension as AniyomiExtension
+import mihon.domain.extension.model.ContentWarning as DomainContentWarning
 
 @SuppressLint("UnsafeOptInUsageError")
 @Serializable
@@ -102,7 +104,12 @@ fun NetworkExtensionStore.ExtensionList.toAvailableExtensions(store: ExtensionSt
             versionCode = extension.versionCode,
             versionName = extension.versionName,
             lang = if (lang.size == 1) lang.first() else "all",
-            isNsfw = extension.contentWarning >= NetworkExtensionStore.ContentWarning.MIXED,
+            contentWarning = when (extension.contentWarning) {
+                ContentWarning.SAFE -> DomainContentWarning.SAFE
+                ContentWarning.MIXED -> DomainContentWarning.MIXED
+                ContentWarning.NSFW -> DomainContentWarning.NSFW
+                else -> DomainContentWarning.SAFE
+            },
             isTorrent = extension.isTorrent,
             sources = extension.sources.map { source ->
                 AniyomiExtension.Available.Source(

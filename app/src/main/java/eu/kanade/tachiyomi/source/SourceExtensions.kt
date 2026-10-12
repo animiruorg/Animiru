@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.source
 import android.content.Context
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import mihon.app.di.appGraph
+import mihon.domain.extension.model.ContentWarning
 import tachiyomi.domain.source.model.StubSource
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
@@ -30,7 +31,7 @@ suspend fun AnimeSource?.isNsfw(): Boolean {
     if (this == null || this.isLocalOrStub()) return false
     val sourceUsed = Injekt.get<Context>().appGraph.extensionManager.getInstalledExtensions()
         .find { ext -> ext.sources.any { it.id == this.id } }!!
-    return sourceUsed.isNsfw
+    return sourceUsed.contentWarning != ContentWarning.SAFE
 }
 // <-- AM (DISCORD_RPC)
 

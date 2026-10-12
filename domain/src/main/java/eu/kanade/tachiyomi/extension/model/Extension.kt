@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.extension.model
 
 import android.graphics.drawable.Drawable
 import eu.kanade.tachiyomi.animesource.AnimeSource
+import mihon.domain.extension.model.ContentWarning
 import mihon.domain.extension.model.ExtensionStore
 import tachiyomi.domain.source.model.StubSource
 
@@ -13,7 +14,7 @@ sealed class Extension {
     abstract val versionCode: Long
     abstract val libVersion: Double
     abstract val lang: String?
-    abstract val isNsfw: Boolean
+    abstract val contentWarning: ContentWarning
 
     // AY -->
     abstract val isTorrent: Boolean
@@ -26,7 +27,7 @@ sealed class Extension {
         override val versionCode: Long,
         override val libVersion: Double,
         override val lang: String,
-        override val isNsfw: Boolean,
+        override val contentWarning: ContentWarning,
         // AY -->
         override val isTorrent: Boolean,
         // <-- AY
@@ -46,7 +47,7 @@ sealed class Extension {
         override val versionCode: Long,
         override val libVersion: Double,
         override val lang: String,
-        override val isNsfw: Boolean,
+        override val contentWarning: ContentWarning,
         // AY -->
         override val isTorrent: Boolean,
         // <-- AY
@@ -80,7 +81,7 @@ sealed class Extension {
         override val libVersion: Double,
         val signatureHash: String,
         override val lang: String? = null,
-        override val isNsfw: Boolean = false,
+        override val contentWarning: ContentWarning = ContentWarning.SAFE,
         // AY -->
         override val isTorrent: Boolean = false,
         // <-- AY
