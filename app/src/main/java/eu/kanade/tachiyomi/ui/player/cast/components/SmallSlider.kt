@@ -8,7 +8,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -20,10 +22,17 @@ fun SmallSlider(
     modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
 ) {
+    val state = key(valueRange) {
+        rememberSliderState(
+            value = value,
+            steps = 100,
+            trackRange = valueRange,
+        )
+    }
+
     Slider(
-        value = value,
+        state = state,
         onValueChange = onValueChange,
-        valueRange = valueRange,
         modifier = modifier,
         thumb = {
             Box(

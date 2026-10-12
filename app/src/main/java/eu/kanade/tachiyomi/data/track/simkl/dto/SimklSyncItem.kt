@@ -34,10 +34,10 @@ data class SimklSyncItem(
     @SerialName("user_rating")
     val userRating: Int?,
 ) {
-    fun toTrack(typeName: String, type: String, statusString: String): Track {
+    fun toTrack(trackerId: Long, typeName: String, type: String, statusString: String): Track {
         val resultData = getFromType(typeName)
 
-        return Track.create(TrackerManager.SIMKL).apply {
+        return Track.create(trackerId).apply {
             title = resultData.title
             remote_id = resultData.ids.simkl
             if (typeName != "movie") {

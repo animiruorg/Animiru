@@ -190,7 +190,7 @@ class SimklApi(
                 client.newCall(GET(searchUrl.toString()))
                     .awaitSuccess()
                     .parseAs<List<SimklSearchResult>>()
-                    .map { it.toTrackSearch(type) }
+                    .map { it.toTrackSearch(trackerId, type) }
             }
         }
     }
@@ -237,7 +237,7 @@ class SimklApi(
                     } ?: return@withIOContext null
             }
 
-            listAnime.toTrack(typeName, type, status)
+            listAnime.toTrack(trackerId, typeName, type, status)
         }
     }
 
