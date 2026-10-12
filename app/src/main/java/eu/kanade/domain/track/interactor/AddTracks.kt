@@ -9,10 +9,8 @@ import eu.kanade.tachiyomi.data.database.models.Track
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.Tracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
-import eu.kanade.tachiyomi.util.lang.convertEpochMillisZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.TimeZone
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
@@ -73,10 +71,7 @@ class AddTracks(
                             .minOrNull()
 
                         firstSeenEpisodeDate?.let {
-                            val startDate = firstSeenEpisodeDate.toEpochMilliseconds().convertEpochMillisZone(
-                                TimeZone.currentSystemDefault(),
-                                TimeZone.UTC,
-                            )
+                            val startDate = firstSeenEpisodeDate.toEpochMilliseconds()
                             track = track.copy(
                                 startDate = Instant.fromEpochMilliseconds(startDate),
                             )
