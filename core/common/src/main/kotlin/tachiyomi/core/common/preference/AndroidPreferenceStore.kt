@@ -15,8 +15,8 @@ import tachiyomi.core.common.preference.AndroidPreference.IntPrimitive
 import tachiyomi.core.common.preference.AndroidPreference.LongPrimitive
 import tachiyomi.core.common.preference.AndroidPreference.ObjectAsInt
 import tachiyomi.core.common.preference.AndroidPreference.ObjectAsString
-import tachiyomi.core.common.preference.AndroidPreference.StringPrimitive
 import tachiyomi.core.common.preference.AndroidPreference.ObjectSetAsStringSet
+import tachiyomi.core.common.preference.AndroidPreference.StringPrimitive
 import tachiyomi.core.common.preference.AndroidPreference.StringSetPrimitive
 
 @SingleIn(AppScope::class)

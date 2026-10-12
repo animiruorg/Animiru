@@ -144,7 +144,6 @@ sealed class Preference {
                 subtitleProvider(value as Set<T>, entries as Map<T, String>)
         }
 
-
         /**
          * A [PreferenceItem] that shows a EditText in the dialog.
          */

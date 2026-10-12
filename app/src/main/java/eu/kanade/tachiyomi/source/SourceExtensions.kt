@@ -29,7 +29,7 @@ fun AnimeSource.isLocalOrStub(): Boolean = isLocal() || this is StubSource
 // AM (DISCORD_RPC) -->
 suspend fun AnimeSource?.isNsfw(): Boolean {
     if (this == null || this.isLocalOrStub()) return false
-    val sourceUsed = Injekt.get<Context>().appGraph.extensionManager.getInstalledExtensions()
+    val sourceUsed = Injekt.get<Context>().appGraph.extensionManager.getLoadedExtensions()
         .find { ext -> ext.sources.any { it.id == this.id } }!!
     return sourceUsed.contentWarning != ContentWarning.SAFE
 }
@@ -38,7 +38,7 @@ suspend fun AnimeSource?.isNsfw(): Boolean {
 // AY -->
 suspend fun AnimeSource?.isSourceForTorrents(): Boolean {
     if (this == null || this.isLocalOrStub()) return false
-    val sourceUsed = Injekt.get<Context>().appGraph.extensionManager.getInstalledExtensions()
+    val sourceUsed = Injekt.get<Context>().appGraph.extensionManager.getLoadedExtensions()
         .find { ext -> ext.sources.any { it.id == this.id } }!!
     return sourceUsed.isTorrent
 }

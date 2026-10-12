@@ -156,11 +156,10 @@ data object BrowseTab : Tab {
                 ExtensionScreen(
                     state = extensionsState,
                     searchQuery = extensionsState.searchQuery,
-
                     onLongClickItem = { extension ->
                         when (extension) {
                             is Extension.Available -> extensionViewModel.installExtension(extension)
-                            else -> extensionViewModel.uninstallExtension(extension)
+                            is Extension.Installed -> extensionViewModel.uninstallExtension(extension)
                         }
                     },
                     onClickItemCancel = extensionViewModel::cancelInstallUpdateExtension,

@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.data.backup.models.BackupExtension
 import eu.kanade.tachiyomi.extension.ExtensionManager
-import kotlinx.coroutines.flow.first
 import java.io.File
 
 @Inject
@@ -17,7 +16,7 @@ class ExtensionsBackupCreator(
 
     suspend operator fun invoke(): List<BackupExtension> {
         val installedExtensions = mutableListOf<BackupExtension>()
-        extensionManager.installedExtensionsFlow.first().forEach {
+        extensionManager.getLoadedExtensions().forEach {
             val packageName = it.pkgName
             val apk = File(
                 context.packageManager

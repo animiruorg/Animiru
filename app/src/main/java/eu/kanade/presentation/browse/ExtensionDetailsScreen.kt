@@ -146,7 +146,7 @@ fun ExtensionDetailsScreen(
 @Composable
 private fun ExtensionDetails(
     contentPadding: PaddingValues,
-    extension: Extension.Installed,
+    extension: Extension.Loaded,
     sources: List<ExtensionSourceItem>,
     incognitoMode: Boolean,
     onClickSourcePreferences: (sourceId: Long) -> Unit,
@@ -240,7 +240,7 @@ private fun DetailsHeader(
                             """.trimIndent(),
                         )
 
-                        if (extension is Extension.Installed) {
+                        if (extension is Extension.Loaded) {
                             append("\n\n")
                             appendLine(
                                 """

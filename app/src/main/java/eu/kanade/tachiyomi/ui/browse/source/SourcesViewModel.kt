@@ -98,7 +98,7 @@ class SourcesViewModel(
                     SourceUiModel.Item(
                         source,
                         // AM (BROWSE) -->
-                        extensionManager.getInstalledExtension(source.id),
+                        extensionManager.getLoadedExtension(source.id),
                         // <-- AM (BROWSE)
                     )
                 }.toTypedArray(),
@@ -116,7 +116,7 @@ class SourcesViewModel(
 
     fun showSourceDialog(source: Source) {
         viewModelScope.launchIO {
-            val extension = extensionManager.getInstalledExtension(source.id)
+            val extension = extensionManager.getLoadedExtension(source.id)
             dialog.update {
                 Dialog(
                     source,
