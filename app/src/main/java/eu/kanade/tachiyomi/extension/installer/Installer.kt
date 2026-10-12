@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.annotation.CallSuper
 import eu.kanade.tachiyomi.extension.ExtensionManager
 import eu.kanade.tachiyomi.extension.model.InstallStep
+import mihon.app.di.appGraph
 import uy.kohesive.injekt.injectLazy
 import java.util.Collections
 import java.util.concurrent.CopyOnWriteArraySet
@@ -17,7 +18,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @OptIn(ExperimentalAtomicApi::class)
 abstract class Installer(private val service: Service) {
 
-    private val extensionManager: ExtensionManager by injectLazy()
+    private val extensionManager: ExtensionManager by lazy { service.appGraph.extensionManager }
 
     private var waitingInstall = AtomicReference<Entry?>(null)
     private val queue = Collections.synchronizedList(mutableListOf<Entry>())

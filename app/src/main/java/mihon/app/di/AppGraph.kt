@@ -29,6 +29,8 @@ import eu.kanade.tachiyomi.App
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
 import eu.kanade.tachiyomi.data.backup.create.BackupCreateJob
 import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob
+import eu.kanade.tachiyomi.data.cache.BackgroundCache
+import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.connection.ConnectionManager
 import eu.kanade.tachiyomi.data.connection.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.connection.syncmiru.SyncDataJob
@@ -46,6 +48,7 @@ import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.updater.AppUpdateChecker
 import eu.kanade.tachiyomi.extension.ExtensionManager
 import eu.kanade.tachiyomi.extension.util.ExtensionInstallActivity
+import eu.kanade.tachiyomi.network.JavaScriptEngine
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.NetworkPreferences
 import eu.kanade.tachiyomi.ui.base.delegate.SecureActivityDelegateImpl
@@ -60,6 +63,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.protobuf.ProtoBuf
 import mihon.core.metro.IsDebugBuild
 import mihon.domain.extension.interactor.GetExtensionStoreCountAsFlow
+import nl.adaptivity.xmlutil.serialization.XML
 import tachiyomi.core.common.storage.AndroidStorageFolderProvider
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.GetCustomAnimeInfo
@@ -141,10 +145,17 @@ interface AppGraph : ViewModelGraph {
     val sourceManager: SourceManager
     val trackerManager: TrackerManager
     val extensionManager: ExtensionManager
+    val coverCache: CoverCache
+    // AM -->
+    val backgroundCache: BackgroundCache
+    // <-- AM
     val downloadCache: DownloadCache
 
     val json: Json
+    val protoBuf: ProtoBuf
+    val xml: XML
     val networkHelper: NetworkHelper
+    val javaScriptEngine: JavaScriptEngine
 
     val getFavorites: GetFavorites
     val getCategories: GetCategories
@@ -156,7 +167,6 @@ interface AppGraph : ViewModelGraph {
     val getExtensionStoreCountAsFlow: GetExtensionStoreCountAsFlow
 
     // AM -->
-    val protoBuf: ProtoBuf
     val androidStorageFolderProvider: AndroidStorageFolderProvider
     val connectionManager: ConnectionManager
     val storageManager: StorageManager

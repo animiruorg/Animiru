@@ -108,12 +108,14 @@ fun Anime.copyFrom(other: SAnime): Anime {
     )
 }
 
-fun Anime.hasCustomCover(coverCache: CoverCache = Injekt.get()): Boolean {
+fun Anime.hasCustomCover(coverCache: CoverCache = Injekt.get<Context>().appGraph.coverCache): Boolean {
     return coverCache.getCustomCoverFile(id).exists()
 }
 
 // AY -->
-fun Anime.hasCustomBackground(backgroundCache: BackgroundCache = Injekt.get()): Boolean {
+fun Anime.hasCustomBackground(
+    backgroundCache: BackgroundCache = Injekt.get<Context>().appGraph.backgroundCache,
+): Boolean {
     return backgroundCache.getCustomBackgroundFile(id).exists()
 }
 // <-- AY

@@ -261,7 +261,6 @@ fun AppThemePreviewItem(
 @Composable
 private fun AppThemesListPreview() {
     var appTheme by remember { mutableStateOf(AppTheme.DEFAULT) }
-    Injekt.addSingleton(fullType<UiPreferences>(), UiPreferences(InMemoryPreferenceStore()))
     TachiyomiTheme(appTheme = appTheme) {
         Surface {
             AppThemesList(
