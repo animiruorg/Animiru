@@ -132,6 +132,11 @@ class Simkl(id: Long) : BaseTracker(id, "Simkl"), Tracker {
         }
     }
 
+    override suspend fun updateUserConfig() {
+        val user = api.getCurrentUser()
+        saveDisplayUsername(user.user.name)
+    }
+
     fun saveToken(oauth: SimklOAuth?) {
         trackPreferences.trackToken(this).set(json.encodeToString(oauth))
     }

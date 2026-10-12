@@ -135,5 +135,7 @@ class Jellyfin(id: Long) : BaseTracker(id, "Jellyfin"), EnhancedTracker {
             null
         }
     }
+
+    override suspend fun updateUserConfig() = Unit
 }
 // <-- AY

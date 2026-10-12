@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -29,8 +30,12 @@ import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.TitleFontSize
 import eu.kanade.presentation.more.settings.widget.TrackingPreferenceWidget
+import eu.kanade.tachiyomi.data.track.RefreshResult
+import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
+import tachiyomi.core.common.i18n.stringResource
+import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.BaseSliderItem
 import tachiyomi.presentation.core.util.collectAsState
 
@@ -230,12 +235,28 @@ internal fun PreferenceItem(
             }
             // <-- AY
             is Preference.PreferenceItem.TrackerPreference -> {
+                val context = LocalContext.current
+                LaunchedEffect(item.tracker) {
+                    item.tracker.refreshResultFlow.collect {
+                        when (it) {
+                            RefreshResult.Success -> context.toast(
+                                context.stringResource(MR.strings.refresh_tracker_success, item.tracker.name),
+                            )
+
+                            is RefreshResult.Error -> context.toast(
+                                context.stringResource(MR.strings.refresh_tracker_error, item.tracker.name, it.msg),
+                            )
+                        }
+                    }
+                }
                 val isLoggedIn by item.tracker.let { tracker ->
                     tracker.isLoggedInFlow.collectAsState(tracker.isLoggedIn)
                 }
+                val isRefreshing by item.tracker.isRefreshingFlow.collectAsState()
                 TrackingPreferenceWidget(
                     tracker = item.tracker,
                     isLoggedIn = isLoggedIn,
+                    isRefreshing = isRefreshing,
                     onClick = { if (isLoggedIn) item.logout() else item.login() },
                 )
             }
