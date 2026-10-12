@@ -3,7 +3,7 @@ package eu.kanade.tachiyomi.data.track.simkl
 
 import eu.kanade.tachiyomi.data.database.models.Track
 
-fun Track.toSimklStatus() = when (status) {
+internal fun Track.toSimklStatus() = when (status) {
     Simkl.WATCHING -> "watching"
     Simkl.COMPLETED -> "completed"
     Simkl.ON_HOLD -> "hold"
@@ -12,7 +12,7 @@ fun Track.toSimklStatus() = when (status) {
     else -> throw NotImplementedError("Unknown status: $status")
 }
 
-fun toTrackStatus(status: String) = when (status) {
+internal fun toTrackStatus(status: String) = when (status) {
     "watching" -> Simkl.WATCHING
     "completed" -> Simkl.COMPLETED
     "hold" -> Simkl.ON_HOLD
