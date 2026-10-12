@@ -31,6 +31,7 @@ import kotlin.time.Instant
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 class AnilistApi(
+    val trackerId: Long,
     private val json: Json,
     val client: OkHttpClient,
     interceptor: AnilistInterceptor,
@@ -187,7 +188,7 @@ class AnilistApi(
                     .awaitSuccess()
                     .parseAs<ALSearchResult>()
                     .data.page.media
-                    .map { it.toALAnime().toTrack() }
+                    .map { it.toALAnime().toTrack(trackerId) }
             }
         }
     }
@@ -263,7 +264,7 @@ class AnilistApi(
                     .data.page.mediaList
                     .map { it.toALUserAnime() }
                     .firstOrNull()
-                    ?.toTrack()
+                    ?.toTrack(trackerId)
             }
         }
     }
@@ -359,7 +360,7 @@ class AnilistApi(
                     .data.page.media
                     .firstOrNull()
                     ?.toALAnime()
-                    ?.toTrack()
+                    ?.toTrack(trackerId)
             }
         }
     }

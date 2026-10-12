@@ -29,7 +29,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import tachiyomi.core.common.util.lang.withIOContext
 
 class BangumiApi(
-    private val trackId: Long,
+    private val trackerId: Long,
     private val client: OkHttpClient,
     private val json: Json,
     interceptor: BangumiInterceptor,
@@ -103,7 +103,7 @@ class BangumiApi(
                     .awaitSuccess()
                     .parseAs<BGMSearchResult>()
                     .data
-                    .map { it.toTrackSearch(trackId) }
+                    .map { it.toTrackSearch(trackerId) }
             }
         }
     }
@@ -117,7 +117,7 @@ class BangumiApi(
                     .awaitSuccess()
                     .parseAs<BGMSubject>()
                     .takeIf { it.platform == null }
-                    ?.toTrackSearch(trackId)
+                    ?.toTrackSearch(trackerId)
             }
         }
     }

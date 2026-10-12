@@ -22,8 +22,8 @@ data class SimklDetails(
     val year: Int?,
     val overview: String?,
 ) {
-    fun toTrackSearch(fallbackType: String): TrackSearch {
-        return TrackSearch.create(TrackerManager.SIMKL).apply {
+    fun toTrackSearch(trackerId: Long, fallbackType: String): TrackSearch {
+        return TrackSearch.create(trackerId).apply {
             remote_id = ids.simkl
             title = this@SimklDetails.title ?: titleEn!!
             total_episodes = totalEpisodes ?: 1

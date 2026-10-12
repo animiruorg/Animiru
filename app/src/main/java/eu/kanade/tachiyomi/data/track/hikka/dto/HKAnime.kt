@@ -37,8 +37,8 @@ data class HKAnime(
     val startDate: Long? = null,
     val watch: List<HKWatch>? = emptyList(),
 ) {
-    fun toTrack(trackId: Long): TrackSearch {
-        return TrackSearch.create(trackId).apply {
+    fun toTrack(trackerId: Long): TrackSearch {
+        return TrackSearch.create(trackerId).apply {
             remote_id = stringToNumber(this@HKAnime.slug)
             title = this@HKAnime.titleUa ?: this@HKAnime.titleEn ?: this@HKAnime.titleJa ?: ""
             total_episodes = this@HKAnime.episodesTotal?.toLong() ?: 0

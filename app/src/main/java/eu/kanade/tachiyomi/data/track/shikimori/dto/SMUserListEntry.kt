@@ -24,8 +24,8 @@ data class SMUserListAnime(
     val totalEpisodes: Long, // the title's total episodes
     val userRate: SMUserRate?,
 ) {
-    fun toTrack(trackId: Long): Track {
-        return Track.create(trackId).apply {
+    fun toTrack(trackerId: Long): Track {
+        return Track.create(trackerId).apply {
             title = name
             total_episodes = totalEpisodes
             tracking_url = url

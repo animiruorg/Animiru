@@ -17,25 +17,15 @@ import kotlinx.coroutines.flow.combine
 @SingleIn(AppScope::class)
 class TrackerManager {
 
-    companion object {
-        const val ANILIST = 2L
-        const val KITSU = 3L
-
-        // AY -->
-        const val SIMKL = 101L
-        const val JELLYFIN = 102L
-        // <-- AY
-    }
-
     val myAnimeList = MyAnimeList(1L)
-    val aniList = Anilist(ANILIST)
-    val kitsu = Kitsu(KITSU)
+    val aniList = Anilist(2L)
+    val kitsu = Kitsu(3L)
     val shikimori = Shikimori(4L)
     val bangumi = Bangumi(5L)
 
     // AY -->
-    val simkl = Simkl(SIMKL)
-    val jellyfin = Jellyfin(JELLYFIN)
+    val simkl = Simkl(101L)
+    val jellyfin = Jellyfin(102L)
     // <-- AY
 
     val hikka = Hikka(6L)

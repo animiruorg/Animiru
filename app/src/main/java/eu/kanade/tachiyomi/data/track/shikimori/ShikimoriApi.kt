@@ -27,7 +27,7 @@ import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 class ShikimoriApi(
-    private val trackId: Long,
+    private val trackerId: Long,
     private val client: OkHttpClient,
     private val json: Json,
     interceptor: ShikimoriInterceptor,
@@ -140,7 +140,7 @@ class ShikimoriApi(
                     .awaitSuccess()
                     .parseAs<SMSearchResult>()
                     .data.animes
-                    .map { it.toTrack(trackId) }
+                    .map { it.toTrack(trackerId) }
             }
         }
     }
@@ -188,7 +188,7 @@ class ShikimoriApi(
                     .parseAs<SMSearchResult>()
                     .data.animes
                     .firstOrNull()
-                    ?.toTrack(trackId)
+                    ?.toTrack(trackerId)
             }
         }
     }
@@ -238,7 +238,7 @@ class ShikimoriApi(
                 if (listResult?.userRate == null) {
                     null
                 } else {
-                    listResult.toTrack(trackId)
+                    listResult.toTrack(trackerId)
                 }
             }
         }

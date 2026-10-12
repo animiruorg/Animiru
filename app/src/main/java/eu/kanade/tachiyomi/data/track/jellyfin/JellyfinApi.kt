@@ -22,7 +22,7 @@ import java.util.Locale
 import kotlin.math.abs
 
 class JellyfinApi(
-    private val trackId: Long,
+    private val trackerId: Long,
     private val client: OkHttpClient,
     private val json: Json,
 ) {
@@ -65,7 +65,7 @@ class JellyfinApi(
         }
 
     private fun JFItem.toTrack(): TrackSearch = TrackSearch.create(
-        trackId,
+        trackerId,
     ).also {
         it.title = name
     }

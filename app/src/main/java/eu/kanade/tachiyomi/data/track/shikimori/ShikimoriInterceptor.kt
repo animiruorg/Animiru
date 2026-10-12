@@ -2,7 +2,7 @@ package eu.kanade.tachiyomi.data.track.shikimori
 
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.track.shikimori.dto.SMOAuth
-import eu.kanade.tachiyomi.data.track.shikimori.dto.isExpired
+import eu.kanade.tachiyomi.network.parseAs
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -17,15 +17,16 @@ class ShikimoriInterceptor(private val shikimori: Shikimori, private val json: J
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 
-        val currAuth = oauth ?: throw Exception("Not authenticated with Shikimori")
-
-        val refreshToken = currAuth.refreshToken!!
+        var currAuth = oauth ?: throw Exception("Not authenticated with Shikimori")
 
         // Refresh access token if expired.
         if (currAuth.isExpired()) {
-            val response = chain.proceed(ShikimoriApi.refreshTokenRequest(refreshToken))
+            val response = chain.proceed(ShikimoriApi.refreshTokenRequest(currAuth.refreshToken!!))
             if (response.isSuccessful) {
-                newAuth(json.decodeFromString<SMOAuth>(response.body.string()))
+                currAuth = with(json) {
+                    response.parseAs<SMOAuth>()
+                }
+                newAuth(currAuth)
             } else {
                 response.close()
             }

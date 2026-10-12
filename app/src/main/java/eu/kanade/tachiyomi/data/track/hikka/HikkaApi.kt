@@ -31,7 +31,7 @@ import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 class HikkaApi(
-    private val trackId: Long,
+    private val trackerId: Long,
     private val client: OkHttpClient,
     private val json: Json,
     interceptor: HikkaInterceptor,
@@ -91,7 +91,7 @@ class HikkaApi(
                     .awaitSuccess()
                     .parseAs<HKAnimePagination>()
                     .list
-                    .map { it.toTrack(trackId) }
+                    .map { it.toTrack(trackerId) }
             }
         }
     }
@@ -129,7 +129,7 @@ class HikkaApi(
                 } else {
                     response
                         .parseAs<HKAnime>()
-                        .toTrack(trackId)
+                        .toTrack(trackerId)
                 }
             }
         }
@@ -145,7 +145,7 @@ class HikkaApi(
                 authClient.newCall(GET(url.toString()))
                     .awaitSuccess()
                     .parseAs<HKAnime>()
-                    .toTrack(trackId)
+                    .toTrack(trackerId)
             }
         }
     }
@@ -188,7 +188,7 @@ class HikkaApi(
                 authClient.newCall(PUT(url.toString(), body = payload.toString().toRequestBody(jsonMime)))
                     .awaitSuccess()
                     .parseAs<HKWatch>()
-                    .toTrack(trackId)
+                    .toTrack(trackerId)
             }
         }
     }

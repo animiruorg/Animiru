@@ -23,8 +23,8 @@ data class HKWatch(
     val endDate: Long? = null,
     val anime: HKAnime? = null,
 ) {
-    fun toTrack(trackId: Long): TrackSearch {
-        return TrackSearch.create(trackId).apply {
+    fun toTrack(trackerId: Long): TrackSearch {
+        return TrackSearch.create(trackerId).apply {
             val animeContent = this@HKWatch.anime
             if (animeContent != null) {
                 title = animeContent.titleUa ?: animeContent.titleEn ?: animeContent.titleJa ?: ""

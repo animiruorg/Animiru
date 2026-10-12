@@ -27,8 +27,8 @@ data class SMAnime(
     val kind: String?,
     val studio: List<SMStudio>?,
 ) {
-    fun toTrack(trackId: Long): TrackSearch {
-        return TrackSearch.create(trackId).apply {
+    fun toTrack(trackerId: Long): TrackSearch {
+        return TrackSearch.create(trackerId).apply {
             remote_id = this@SMAnime.id
             title = name
             total_episodes = episodes
