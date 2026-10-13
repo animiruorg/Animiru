@@ -3,6 +3,7 @@ package tachiyomi.domain.anime.repository
 import aniyomi.domain.anime.model.SeasonAnime
 import kotlinx.coroutines.flow.Flow
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.library.model.LibraryAnime
@@ -42,7 +43,11 @@ interface AnimeRepository {
 
     suspend fun update(update: AnimeUpdate): Boolean
 
+    suspend fun updateRemote(update: AnimeRemoteUpdate): Boolean
+
     suspend fun updateAll(animeUpdates: List<AnimeUpdate>): Boolean
+
+    suspend fun updateAllRemote(animeUpdates: List<AnimeRemoteUpdate>): Boolean
 
     suspend fun insertNetworkAnime(anime: List<Anime>): List<Anime>
 

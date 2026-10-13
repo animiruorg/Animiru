@@ -15,14 +15,11 @@ import kotlinx.datetime.toLocalDateTime
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.data.Database
-import tachiyomi.data.FetchTypeColumnAdapter
-import tachiyomi.data.MemoColumnAdapter
-import tachiyomi.data.StringListColumnAdapter
-import tachiyomi.data.UpdateStrategyColumnAdapter
 import tachiyomi.data.subscribeToList
 import tachiyomi.data.subscribeToOne
 import tachiyomi.data.subscribeToOneOrNull
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.anime.repository.AnimeRepository
@@ -149,6 +146,20 @@ class AnimeRepositoryImpl(
         }
     }
 
+    override suspend fun updateAllRemote(animeUpdates: List<AnimeRemoteUpdate>): Boolean {
+        return try {
+            database.transaction {
+                animeUpdates.forEach { animeUpdate ->
+                    updateRemote(animeUpdate)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e)
+            false
+        }
+    }
+
     override suspend fun insertNetworkAnime(anime: List<Anime>): List<Anime> {
         return database.transactionWithResult {
             anime.map {
@@ -226,27 +237,44 @@ class AnimeRepositoryImpl(
     }
     // <-- AY
 
+    override suspend fun updateRemote(update: AnimeRemoteUpdate): Boolean {
+        return try {
+            database.animesQueries.updateRemote(
+                artist = update.artist,
+                author = update.author,
+                description = update.description,
+                genre = update.genre,
+                title = update.title,
+                status = update.status,
+                thumbnailUrl = update.thumbnailUrl,
+                initialized = update.initialized,
+                coverLastModified = update.coverLastModified,
+                updateStrategy = update.updateStrategy,
+                memo = update.memo,
+                animeId = update.id,
+                // AM -->
+                backgroundUrl = update.backgroundUrl,
+                backgroundLastModified = update.backgroundLastModified,
+                parentId = update.parentId,
+                seasonNumber = update.seasonNumber,
+                seasonSourceOrder = update.seasonSourceOrder,
+                // <-- AM
+            )
+            true
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e)
+            false
+        }
+    }
+
     private suspend fun partialUpdate(vararg animeUpdates: AnimeUpdate) {
         database.transaction {
             animeUpdates.forEach { value ->
                 database.animesQueries.update(
-                    source = value.source,
-                    url = value.url,
-                    artist = value.artist,
-                    author = value.author,
-                    description = value.description,
-                    genre = value.genre,
-                    title = value.title,
-                    status = value.status,
-                    thumbnailUrl = value.thumbnailUrl,
-                    // AY -->
-                    backgroundUrl = value.backgroundUrl,
-                    // <-- AY
                     favorite = value.favorite,
                     lastUpdate = value.lastUpdate,
                     nextUpdate = value.nextUpdate,
                     calculateInterval = value.fetchInterval?.toLong(),
-                    initialized = value.initialized,
                     viewer = value.viewerFlags,
                     episodeFlags = value.episodeFlags,
                     coverLastModified = value.coverLastModified,
@@ -255,16 +283,10 @@ class AnimeRepositoryImpl(
                     // <-- AY
                     dateAdded = value.dateAdded,
                     animeId = value.id,
-                    updateStrategy = value.updateStrategy,
                     notes = value.notes,
                     // AY -->
-                    fetchType = value.fetchType,
-                    parentId = value.parentId,
                     seasonFlags = value.seasonFlags,
-                    seasonNumber = value.seasonNumber,
-                    seasonSourceOrder = value.seasonSourceOrder,
                     // <-- AY
-                    memo = value.memo,
                 )
             }
         }

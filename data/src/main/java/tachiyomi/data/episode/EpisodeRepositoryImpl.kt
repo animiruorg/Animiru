@@ -13,9 +13,9 @@ import logcat.LogPriority
 import tachiyomi.core.common.util.lang.toLong
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.data.Database
-import tachiyomi.data.MemoColumnAdapter
 import tachiyomi.data.subscribeToList
 import tachiyomi.domain.episode.model.Episode
+import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.episode.repository.EpisodeRepository
 
@@ -72,14 +72,33 @@ class EpisodeRepositoryImpl(
         partialUpdate(*episodeUpdates.toTypedArray())
     }
 
+    override suspend fun updateAllRemote(episodeUpdates: List<EpisodeRemoteUpdate>) {
+        database.transaction {
+            episodeUpdates.forEach { episodeUpdate ->
+                database.episodesQueries.updateRemote(
+                    name = episodeUpdate.name,
+                    scanlator = episodeUpdate.scanlator,
+                    episodeNumber = episodeUpdate.episodeNumber,
+                    sourceOrder = episodeUpdate.sourceOrder,
+                    dateUpload = episodeUpdate.dateUpload,
+                    episodeId = episodeUpdate.id,
+                    memo = episodeUpdate.memo,
+                    // AM -->
+                    fillermark = episodeUpdate.fillerMark,
+                    summary = episodeUpdate.summary,
+                    previewUrl = episodeUpdate.previewUrl,
+                    thumbnailLastModifiedAt = episodeUpdate.thumbnailLastModified,
+                    // <-- AM
+                )
+            }
+        }
+    }
+
     private suspend fun partialUpdate(vararg episodeUpdates: EpisodeUpdate) {
         database.transaction {
             episodeUpdates.forEach { episodeUpdate ->
                 database.episodesQueries.update(
                     animeId = episodeUpdate.animeId,
-                    url = episodeUpdate.url,
-                    name = episodeUpdate.name,
-                    scanlator = episodeUpdate.scanlator,
                     seen = episodeUpdate.seen,
                     bookmark = episodeUpdate.bookmark,
                     // AY -->
@@ -89,16 +108,8 @@ class EpisodeRepositoryImpl(
                     // AY -->
                     totalSeconds = episodeUpdate.totalSeconds,
                     // <-- AY
-                    episodeNumber = episodeUpdate.episodeNumber,
-                    sourceOrder = episodeUpdate.sourceOrder,
                     dateFetch = episodeUpdate.dateFetch,
-                    dateUpload = episodeUpdate.dateUpload,
                     episodeId = episodeUpdate.id,
-                    // AY -->
-                    summary = episodeUpdate.summary,
-                    previewUrl = episodeUpdate.previewUrl,
-                    // <-- AY
-                    memo = episodeUpdate.memo,
                     // AM -->
                     thumbnailLastModifiedAt = episodeUpdate.thumbnailLastModifiedAt,
                     // <-- AM

@@ -2,6 +2,7 @@ package tachiyomi.domain.episode.repository
 
 import kotlinx.coroutines.flow.Flow
 import tachiyomi.domain.episode.model.Episode
+import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
 import tachiyomi.domain.episode.model.EpisodeUpdate
 
 interface EpisodeRepository {
@@ -11,6 +12,8 @@ interface EpisodeRepository {
     suspend fun update(episodeUpdate: EpisodeUpdate)
 
     suspend fun updateAll(episodeUpdates: List<EpisodeUpdate>)
+
+    suspend fun updateAllRemote(episodeUpdates: List<EpisodeRemoteUpdate>)
 
     suspend fun removeEpisodesWithIds(episodeIds: List<Long>)
 

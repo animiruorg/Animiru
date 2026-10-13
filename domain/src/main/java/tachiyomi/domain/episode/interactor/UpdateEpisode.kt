@@ -3,6 +3,7 @@ package tachiyomi.domain.episode.interactor
 import dev.zacsweers.metro.Inject
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.episode.repository.EpisodeRepository
 import kotlin.time.Clock
@@ -28,6 +29,15 @@ class UpdateEpisode(
         }
     }
 
+    suspend fun awaitAllRemote(chapterUpdates: List<EpisodeRemoteUpdate>) {
+        try {
+            episodeRepository.updateAllRemote(chapterUpdates)
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e)
+        }
+    }
+
+    // AM -->
     suspend fun awaitUpdateThumbnailLastModified(episodeId: Long) {
         episodeRepository.update(
             EpisodeUpdate(
@@ -36,4 +46,5 @@ class UpdateEpisode(
             ),
         )
     }
+    // <-- AM
 }

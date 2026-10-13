@@ -19,6 +19,7 @@ import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.episode.interactor.ShouldUpdateDbEpisode
 import tachiyomi.domain.episode.interactor.UpdateEpisode
 import tachiyomi.domain.episode.model.Episode
+import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
 import tachiyomi.domain.episode.model.NoEpisodesException
 import tachiyomi.domain.episode.model.toEpisodeUpdate
 import tachiyomi.domain.episode.repository.EpisodeRepository
@@ -71,7 +72,7 @@ class SyncEpisodesWithSource(
         val dbEpisodes = getEpisodesByAnimeId.await(anime.id)
 
         val newEpisodes = mutableListOf<Episode>()
-        val updatedEpisodes = mutableListOf<Episode>()
+        val updatedEpisodes = mutableListOf<EpisodeRemoteUpdate>()
         val removedEpisodes = dbEpisodes.filterNot { dbEpisode ->
             sourceEpisodes.any { sourceEpisode ->
                 dbEpisode.url == sourceEpisode.url
@@ -125,39 +126,23 @@ class SyncEpisodesWithSource(
                         downloadManager.renameEpisode(source, anime, dbEpisode, episode)
                     }
 
-                    var toChangeEpisode = dbEpisode.copy(
-                        name = episode.name,
-                        episodeNumber = episode.episodeNumber,
-                        scanlator = episode.scanlator,
-                        // AY -->
-                        summary = episode.summary,
-                        // <-- AY
-                        sourceOrder = episode.sourceOrder,
-                        memo = episode.memo,
-                        // AM -->
-                        previewUrl = episode.previewUrl,
-                        thumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
-                        // <-- AM
+                    updatedEpisodes.add(
+                        EpisodeRemoteUpdate(
+                            id = dbEpisode.id,
+                            name = episode.name,
+                            episodeNumber = episode.episodeNumber,
+                            scanlator = episode.scanlator,
+                            sourceOrder = episode.sourceOrder,
+                            dateUpload = episode.dateUpload.takeIf { it != 0L },
+                            memo = episode.memo,
+                            // AM -->
+                            fillerMark = if (episode.fillermark) episode.fillermark else sourceEpisode.fillermark,
+                            summary = episode.summary,
+                            previewUrl = episode.previewUrl.takeUnless { it.isNullOrBlank() },
+                            thumbnailLastModified = episode.thumbnailLastModifiedAt,
+                            // <-- AM
+                        ),
                     )
-
-                    if (episode.dateUpload != 0L) {
-                        toChangeEpisode = toChangeEpisode.copy(dateUpload = episode.dateUpload)
-                    }
-
-                    // AY -->
-                    if (!toChangeEpisode.fillermark) {
-                        toChangeEpisode = toChangeEpisode.copy(
-                            fillermark = sourceEpisode.fillermark,
-                        )
-                    }
-                    if (toChangeEpisode.previewUrl.isNullOrBlank()) {
-                        toChangeEpisode = toChangeEpisode.copy(
-                            previewUrl = sourceEpisode.previewUrl,
-                        )
-                    }
-                    // <-- AY
-
-                    updatedEpisodes.add(toChangeEpisode)
                 }
             }
         }
@@ -237,8 +222,7 @@ class SyncEpisodesWithSource(
         }
 
         if (updatedEpisodes.isNotEmpty()) {
-            val episodeUpdates = updatedEpisodes.map { it.toEpisodeUpdate() }
-            updateEpisode.awaitAll(episodeUpdates)
+            updateEpisode.awaitAllRemote(updatedEpisodes)
         }
         updateAnime.awaitUpdateFetchInterval(anime, timeZone, now, fetchWindow)
 

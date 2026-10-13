@@ -223,8 +223,23 @@ RETURNING _id;
 
 update:
 UPDATE animes SET
-    source = coalesce(:source, source),
-    url = coalesce(:url, url),
+    favorite = coalesce(:favorite, favorite),
+    last_update = coalesce(:lastUpdate, last_update),
+    next_update = coalesce(:nextUpdate, next_update),
+    viewer = coalesce(:viewer, viewer),
+    episode_flags = coalesce(:episodeFlags, episode_flags),
+    cover_last_modified = coalesce(:coverLastModified, cover_last_modified),
+    date_added = coalesce(:dateAdded, date_added),
+    calculate_interval = coalesce(:calculateInterval, calculate_interval),
+    notes = coalesce(:notes, notes),
+    -- AY -->
+    season_flags = coalesce(:seasonFlags, season_flags),
+    background_last_modified = coalesce(:backgroundLastModified, background_last_modified)
+    -- <-- AY
+WHERE _id = :animeId;
+
+updateFromBackup:
+UPDATE animes SET
     artist = coalesce(:artist, artist),
     author = coalesce(:author, author),
     description = coalesce(:description, description),
@@ -234,14 +249,12 @@ UPDATE animes SET
     thumbnail_url = coalesce(:thumbnailUrl, thumbnail_url),
     favorite = coalesce(:favorite, favorite),
     last_update = coalesce(:lastUpdate, last_update),
-    next_update = coalesce(:nextUpdate, next_update),
     initialized = coalesce(:initialized, initialized),
     viewer = coalesce(:viewer, viewer),
     episode_flags = coalesce(:episodeFlags, episode_flags),
     cover_last_modified = coalesce(:coverLastModified, cover_last_modified),
     date_added = coalesce(:dateAdded, date_added),
     update_strategy = coalesce(:updateStrategy, update_strategy),
-    calculate_interval = coalesce(:calculateInterval, calculate_interval),
     notes = coalesce(:notes, notes),
     -- AY -->
     fetch_type = coalesce(:fetchType, fetch_type),
@@ -253,6 +266,29 @@ UPDATE animes SET
     background_last_modified = coalesce(:backgroundLastModified, background_last_modified),
     -- <-- AY
     memo = coalesce(:memo, memo)
+WHERE _id = :animeId;
+
+updateRemote:
+UPDATE animes SET
+    artist = coalesce(:artist, artist),
+    author = coalesce(:author, author),
+    description = coalesce(:description, description),
+    genre = coalesce(:genre, genre),
+    title = coalesce(:title, title),
+    status = :status,
+    thumbnail_url = coalesce(:thumbnailUrl, thumbnail_url),
+    initialized = :initialized,
+    cover_last_modified = coalesce(:coverLastModified, cover_last_modified),
+    update_strategy = :updateStrategy,
+    -- AY -->
+    --fetch_type = coalesce(:fetchType, fetch_type),
+    parent_id = coalesce(:parentId, parent_id),
+    season_number = coalesce(:seasonNumber, season_number),
+    season_source_order = coalesce(:seasonSourceOrder, season_source_order),
+    background_url = coalesce(:backgroundUrl, background_url),
+    background_last_modified = coalesce(:backgroundLastModified, background_last_modified),
+    -- <-- AY
+    memo = :memo
 WHERE _id = :animeId;
 
 insertNetworkAnime {

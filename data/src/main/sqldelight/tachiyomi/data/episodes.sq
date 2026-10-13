@@ -92,9 +92,6 @@ RETURNING _id;
 update:
 UPDATE episodes
 SET anime_id = coalesce(:animeId, anime_id),
-    url = coalesce(:url, url),
-    name = coalesce(:name, name),
-    scanlator = coalesce(:scanlator, scanlator),
     seen = coalesce(:seen, seen),
     bookmark = coalesce(:bookmark, bookmark),
     -- AY -->
@@ -104,11 +101,38 @@ SET anime_id = coalesce(:animeId, anime_id),
     -- AY -->
     total_seconds = coalesce(:totalSeconds, total_seconds),
     -- <-- AY
-    episode_number = coalesce(:episodeNumber, episode_number),
-    source_order = coalesce(:sourceOrder, source_order),
     date_fetch = coalesce(:dateFetch, date_fetch),
+    -- AM -->
+    thumbnail_last_modified_at = coalesce(:thumbnailLastModifiedAt, thumbnail_last_modified_at)
+    -- <-- AM
+WHERE _id = :episodeId;
+
+updateFromBackup:
+UPDATE episodes
+SET seen = coalesce(:seen, seen),
+    bookmark = coalesce(:bookmark, bookmark),
+    -- AY -->
+    fillermark = coalesce(:fillermark, fillermark),
+    -- <-- AY
+    last_second_seen = coalesce(:lastSecondSeen, last_second_seen),
+    -- AY -->
+    total_seconds = coalesce(:totalSeconds, total_seconds),
+    -- <-- AY
+    memo = coalesce(:memo, memo),
+    -- AM -->
+    thumbnail_last_modified_at = coalesce(:thumbnailLastModifiedAt, thumbnail_last_modified_at)
+    -- <-- AM
+WHERE _id = :episodeId;
+
+updateRemote:
+UPDATE episodes
+SET name = :name,
+    scanlator = coalesce(:scanlator, scanlator),
+    episode_number = :episodeNumber,
+    source_order = :sourceOrder,
     date_upload = coalesce(:dateUpload, date_upload),
     -- AY -->
+    fillermark = coalesce(:fillermark, fillermark),
     summary = coalesce(:summary, summary),
     preview_url = coalesce(:previewUrl, preview_url),
     -- <-- AY

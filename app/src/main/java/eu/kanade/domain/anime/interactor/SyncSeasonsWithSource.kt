@@ -1,14 +1,17 @@
 // AY -->
 package eu.kanade.domain.anime.interactor
 
+import android.util.Log
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import mihon.domain.anime.model.toDomainAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.NoSeasonsException
 import tachiyomi.domain.anime.model.toAnimeUpdate
 import tachiyomi.domain.anime.repository.AnimeRepository
@@ -39,18 +42,22 @@ class SyncSeasonsWithSource(
 
         val timeZone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(timeZone)
+        val nowMillis = now.toInstant(timeZone).toEpochMilliseconds()
 
         val sourceSeasons = rawSourceSeasons
             .distinctBy { it.url }
             .mapIndexed { i, sAnime ->
-                networkToLocalAnime.invoke(sAnime.toDomainAnime(source.id))
-                    .copy(parentId = anime.id, seasonSourceOrder = i.toLong())
+                networkToLocalAnime.invoke(
+                    sAnime.toDomainAnime(source.id)
+                        .copy(parentId = anime.id, seasonSourceOrder = i.toLong()),
+                )
+                    .copy(seasonSourceOrder = i.toLong())
             }
 
         val dbSeasons = getAnimeSeasonsByParentId.await(anime.id)
 
         val newSeasons = mutableListOf<Anime>()
-        val updatedSeasons = mutableListOf<Anime>()
+        val updatedSeasons = mutableListOf<AnimeRemoteUpdate>()
         val removedSeasons = dbSeasons.filterNot { dbSeasons ->
             sourceSeasons.any { sourceSeason ->
                 dbSeasons.anime.url == sourceSeason.url
@@ -73,15 +80,27 @@ class SyncSeasonsWithSource(
                 newSeasons.add(season)
             } else {
                 if (shouldUpdateDbSeason.await(dbSeason, season)) {
-                    val toChangeSeason = dbSeason.copy(
-                        // AM (CUSTOM_INFORMATION) -->
-                        ogTitle = season.title,
-                        // <-- AM (CUSTOM_INFORMATION)
-                        seasonNumber = season.seasonNumber,
-                        seasonSourceOrder = season.seasonSourceOrder,
-                        memo = season.memo,
+                    updatedSeasons.add(
+                        AnimeRemoteUpdate(
+                            id = dbSeason.id,
+                            title = season.title,
+                            author = season.author,
+                            artist = season.artist,
+                            description = season.description,
+                            genre = season.genre,
+                            status = season.status,
+                            thumbnailUrl = season.thumbnailUrl,
+                            updateStrategy = season.updateStrategy,
+                            memo = season.memo,
+                            initialized = season.initialized,
+                            coverLastModified = season.coverLastModified,
+                            backgroundUrl = season.backgroundUrl,
+                            backgroundLastModified = season.backgroundLastModified,
+                            parentId = season.parentId,
+                            seasonNumber = season.seasonNumber,
+                            seasonSourceOrder = season.seasonSourceOrder,
+                        ),
                     )
-                    updatedSeasons.add(toChangeSeason)
                 }
             }
         }
@@ -99,16 +118,24 @@ class SyncSeasonsWithSource(
             return sourceSeasons
         }
 
+        val deletedSeasonNumbers = removedSeasons.map { it.anime.seasonNumber }
+
+        var itemCount = newSeasons.size
+        var updatedToAdd = newSeasons.map { toAddItem ->
+            toAddItem.copy(dateAdded = nowMillis + itemCount--)
+        }
+
         if (removedSeasons.isNotEmpty()) {
             val toDeleteIds = removedSeasons.map { it.id }
             animeRepository.removeParentIdByIds(toDeleteIds)
         }
 
-        val toUpdate = newSeasons.map { it.toAnimeUpdate() } +
-            updatedSeasons.map { it.toAnimeUpdate() }
+        if (updatedToAdd.isNotEmpty()) {
+            updateAnime.awaitAll(updatedToAdd.map { it.toAnimeUpdate() })
+        }
 
-        if (toUpdate.isNotEmpty()) {
-            updateAnime.awaitAll(toUpdate)
+        if (updatedSeasons.isNotEmpty()) {
+            animeRepository.updateAllRemote(updatedSeasons)
         }
 
         updateAnime.awaitUpdateLastUpdate(anime.id)

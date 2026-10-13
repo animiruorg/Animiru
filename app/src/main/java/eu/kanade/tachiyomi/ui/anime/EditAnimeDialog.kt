@@ -39,8 +39,8 @@ import kotlinx.coroutines.CoroutineScope
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
-import tachiyomi.i18n.animiru.R
 import tachiyomi.i18n.animiru.AMMR
+import tachiyomi.i18n.animiru.R
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.source.local.isLocal
 

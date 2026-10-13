@@ -102,6 +102,7 @@ import tachiyomi.domain.anime.interactor.SetAnimeEpisodeFlags
 import tachiyomi.domain.anime.interactor.SetAnimeSeasonFlags
 import tachiyomi.domain.anime.interactor.SetCustomAnimeInfo
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.anime.model.CustomAnimeInfo
@@ -198,8 +199,8 @@ class AnimeViewModel(
     // <-- AM (CUSTOM_INFORMATION)
 ) : ViewModel() {
 
-    val state: StateFlow<AnimeViewModel.State>
-        field = MutableStateFlow<AnimeViewModel.State>(State.Loading)
+    val state: StateFlow<State>
+        field = MutableStateFlow<State>(State.Loading)
 
     @AssistedFactory
     @ManualViewModelAssistedFactoryKey
@@ -555,15 +556,26 @@ class AnimeViewModel(
             )
             viewModelScope.launchNonCancellable {
                 (sourceManager.get(LocalSource.ID) as LocalSource).updateAnimeInfo(anime.toSAnime())
-                updateAnime.await(
-                    AnimeUpdate(
+                // TODO: clean this up
+                animeRepository.updateRemote(
+                    AnimeRemoteUpdate(
                         anime.id,
                         title = newTitle,
                         author = newAuthor,
                         artist = newArtist,
                         description = newDesc,
                         genre = tags,
-                        status = status,
+                        status = status ?: 0L,
+                        thumbnailUrl = anime.thumbnailUrl,
+                        updateStrategy = anime.updateStrategy,
+                        memo = anime.memo,
+                        initialized = anime.initialized,
+                        coverLastModified = anime.coverLastModified,
+                        backgroundUrl = anime.backgroundUrl,
+                        backgroundLastModified = anime.backgroundLastModified,
+                        parentId = anime.parentId,
+                        seasonNumber = anime.seasonNumber,
+                        seasonSourceOrder = anime.seasonSourceOrder,
                     ),
                 )
             }

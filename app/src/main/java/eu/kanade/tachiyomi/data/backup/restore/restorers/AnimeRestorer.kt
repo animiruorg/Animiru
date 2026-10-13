@@ -172,14 +172,12 @@ class AnimeRestorer(
                 initialized = anime.initialized || anime.initialized,
                 // Merge both backup and local data with local winning
                 memo = JsonObject(anime.memo + anime.memo),
-            )
+            ),
         )
     }
 
     internal suspend fun updateAnime(anime: Anime): Anime {
-        database.animesQueries.update(
-            source = anime.source,
-            url = anime.url,
+        database.animesQueries.updateFromBackup(
             artist = anime.artist,
             author = anime.author,
             description = anime.description,
@@ -189,8 +187,6 @@ class AnimeRestorer(
             thumbnailUrl = anime.thumbnailUrl,
             favorite = anime.favorite,
             lastUpdate = anime.lastUpdate,
-            nextUpdate = null,
-            calculateInterval = null,
             initialized = anime.initialized,
             viewer = anime.viewerFlags,
             episodeFlags = anime.episodeFlags,
@@ -297,15 +293,7 @@ class AnimeRestorer(
     private suspend fun updateExistingEpisodes(episodes: List<Episode>) {
         database.transaction {
             episodes.forEach { episode ->
-                database.episodesQueries.update(
-                    animeId = null,
-                    url = null,
-                    name = null,
-                    scanlator = null,
-                    // AY -->
-                    summary = null,
-                    previewUrl = null,
-                    // <-- AY
+                database.episodesQueries.updateFromBackup(
                     seen = episode.seen,
                     bookmark = episode.bookmark,
                     // AY -->
@@ -315,10 +303,6 @@ class AnimeRestorer(
                     // AY -->
                     totalSeconds = episode.totalSeconds,
                     // <-- AY
-                    episodeNumber = null,
-                    sourceOrder = null,
-                    dateFetch = null,
-                    dateUpload = null,
                     episodeId = episode.id,
                     memo = episode.memo,
                     // AM -->
