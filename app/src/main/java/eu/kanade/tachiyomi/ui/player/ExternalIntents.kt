@@ -503,16 +503,15 @@ class ExternalIntents(
             val progress = playerPreferences.progressPreference.get()
             val seen = if (!currEp.seen) lastSecondSeen >= totalSeconds * progress else true
             updateEpisode.await(
-                EpisodeUpdate(
-                    id = currEp.id,
-                    seen = seen,
-                    bookmark = currEp.bookmark,
+                EpisodeUpdate(currEp.id) {
+                    this.seen = seen
+                    bookmark = currEp.bookmark
                     // AY -->
-                    fillermark = currEp.fillermark,
+                    fillermark = currEp.fillermark
                     // <-- AY
-                    lastSecondSeen = lastSecondSeen,
-                    totalSeconds = totalSeconds,
-                ),
+                    this.lastSecondSeen = lastSecondSeen
+                    this.totalSeconds = totalSeconds
+                },
             )
             if (trackPreferences.autoUpdateTrack.get() && currEp.seen) {
                 updateTrackEpisodeSeen(currEp.episodeNumber, anime)

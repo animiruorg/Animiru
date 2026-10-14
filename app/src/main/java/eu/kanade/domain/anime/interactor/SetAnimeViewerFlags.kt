@@ -15,13 +15,12 @@ class SetAnimeViewerFlags(
     suspend fun awaitSetSkipIntroLength(id: Long, flag: Long) {
         val anime = animeRepository.getAnimeById(id)
         animeRepository.update(
-            AnimeUpdate(
-                id = id,
+            AnimeUpdate(id) {
                 viewerFlags = anime.viewerFlags
                     .setFlag(flag, Anime.ANIME_INTRO_MASK)
                     // Disable skip intro button if length is set to 0
-                    .setFlag((flag == 0L).toLong().addHexZeros(14), Anime.ANIME_INTRO_DISABLE_MASK),
-            ),
+                    .setFlag((flag == 0L).toLong().addHexZeros(14), Anime.ANIME_INTRO_DISABLE_MASK)
+            },
         )
     }
 
@@ -33,20 +32,18 @@ class SetAnimeViewerFlags(
     private suspend fun awaitSetNextEpisodeToAir(id: Long, flag: Long) {
         val anime = animeRepository.getAnimeById(id)
         animeRepository.update(
-            AnimeUpdate(
-                id = id,
-                viewerFlags = anime.viewerFlags.setFlag(flag, Anime.ANIME_AIRING_EPISODE_MASK),
-            ),
+            AnimeUpdate(id) {
+                viewerFlags = anime.viewerFlags.setFlag(flag, Anime.ANIME_AIRING_EPISODE_MASK)
+            },
         )
     }
 
     private suspend fun awaitSetNextEpisodeAiringAt(id: Long, flag: Long) {
         val anime = animeRepository.getAnimeById(id)
         animeRepository.update(
-            AnimeUpdate(
-                id = id,
-                viewerFlags = anime.viewerFlags.setFlag(flag, Anime.ANIME_AIRING_TIME_MASK),
-            ),
+            AnimeUpdate(id) {
+                viewerFlags = anime.viewerFlags.setFlag(flag, Anime.ANIME_AIRING_TIME_MASK)
+            },
         )
     }
     // <-- AY

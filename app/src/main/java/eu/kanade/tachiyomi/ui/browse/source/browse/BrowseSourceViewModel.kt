@@ -48,8 +48,8 @@ import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.GetDuplicateLibraryAnime
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
-import tachiyomi.domain.anime.model.toAnimeUpdate
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.interactor.SetAnimeCategories
 import tachiyomi.domain.category.model.Category
@@ -258,17 +258,31 @@ class BrowseSourceViewModel(
                 },
             )
 
-            if (!new.favorite) {
-                new = new.removeCovers(coverCache)
-                // AY -->
-                new = new.removeBackgrounds(backgroundCache)
-                // <-- AY
+            val update = if (anime.favorite) {
+                val coverLastModified = anime.removeCovers(coverCache).coverLastModified
+                // AM -->
+                val backgroundLastModified = anime.removeBackgrounds(backgroundCache).backgroundLastModified
+                // <-- AM
+                AnimeUpdate(anime.id) {
+                    favorite = false
+                    dateAdded = 0
+                    if (coverLastModified != anime.coverLastModified) this.coverLastModified = coverLastModified
+                    // AM -->
+                    if (backgroundLastModified != anime.backgroundLastModified) {
+                        this.backgroundLastModified = backgroundLastModified
+                    }
+                    // <-- AM
+                }
             } else {
                 setAnimeDefaultEpisodeFlags.await(anime)
                 addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source))
+                AnimeUpdate(anime.id) {
+                    favorite = true
+                    dateAdded = Clock.System.now().toEpochMilliseconds()
+                }
             }
 
-            updateAnime.await(new.toAnimeUpdate())
+            updateAnime.await(update)
         }
     }
 

@@ -31,7 +31,7 @@ import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.episode.interactor.GetEpisode
 import tachiyomi.domain.episode.interactor.UpdateEpisode
 import tachiyomi.domain.episode.model.Episode
-import tachiyomi.domain.episode.model.toEpisodeUpdate
+import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.aniyomi.AYMR
 import eu.kanade.tachiyomi.BuildConfig.APPLICATION_ID as ID
@@ -208,7 +208,6 @@ class NotificationReceiver : BroadcastReceiver() {
         launchIO {
             val toUpdate = episodeUrls.mapNotNull { getEpisode.await(it, animeId) }
                 .map {
-                    val episode = it.copy(seen = true)
                     if (downloadPreferences.removeAfterMarkedAsSeen.get()) {
                         val anime = getAnime.await(animeId)
                         if (anime != null) {
@@ -218,7 +217,7 @@ class NotificationReceiver : BroadcastReceiver() {
                             }
                         }
                     }
-                    episode.toEpisodeUpdate()
+                    EpisodeUpdate(it.id) { seen = true }
                 }
             updateEpisode.awaitAll(toUpdate)
         }

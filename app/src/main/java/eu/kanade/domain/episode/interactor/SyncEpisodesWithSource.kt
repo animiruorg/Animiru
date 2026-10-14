@@ -21,7 +21,6 @@ import tachiyomi.domain.episode.interactor.UpdateEpisode
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
 import tachiyomi.domain.episode.model.NoEpisodesException
-import tachiyomi.domain.episode.model.toEpisodeUpdate
 import tachiyomi.domain.episode.repository.EpisodeRepository
 import tachiyomi.domain.episode.service.EpisodeRecognition
 import tachiyomi.domain.library.service.LibraryPreferences

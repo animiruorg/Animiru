@@ -1,39 +1,20 @@
 package tachiyomi.domain.episode.model
 
-data class EpisodeUpdate(
-    val id: Long,
-    val animeId: Long? = null,
-    val seen: Boolean? = null,
-    val bookmark: Boolean? = null,
-    // AY -->
-    val fillermark: Boolean? = null,
-    // <-- AY
-    val lastSecondSeen: Long? = null,
-    // AY -->
-    val totalSeconds: Long? = null,
-    // <-- AY
-    val dateFetch: Long? = null,
-    // AM -->
-    val thumbnailLastModifiedAt: Long? = null,
-    // <-- AM
-)
+import mihon.domain.common.PartialUpdate
 
-fun Episode.toEpisodeUpdate(): EpisodeUpdate {
-    return EpisodeUpdate(
-        id = id,
-        animeId = animeId,
-        seen = seen,
-        bookmark = bookmark,
-        // AY -->
-        fillermark = fillermark,
-        // <-- AY
-        lastSecondSeen = lastSecondSeen,
-        // AY -->
-        totalSeconds = totalSeconds,
-        // <-- AY
-        dateFetch = dateFetch,
-        // AM -->
-        thumbnailLastModifiedAt = thumbnailLastModifiedAt,
-        // <-- AM
-    )
+class EpisodeUpdate(val id: Long, block: EpisodeUpdate.() -> Unit) : PartialUpdate() {
+    var seen: Boolean? by field(null)
+    var bookmark: Boolean? by field(null)
+    var lastSecondSeen: Long? by field(null)
+    var dateFetch: Long? by field(null)
+
+    // AM -->
+    var fillermark: Boolean? by field(null)
+    var totalSeconds: Long? by field(null)
+    var thumbnailLastModifiedAt: Long? by field(null)
+    // <-- AM
+
+    init {
+        block()
+    }
 }

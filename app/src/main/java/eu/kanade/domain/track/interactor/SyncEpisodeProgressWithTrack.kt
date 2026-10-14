@@ -8,7 +8,7 @@ import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.episode.interactor.UpdateEpisode
-import tachiyomi.domain.episode.model.toEpisodeUpdate
+import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.track.interactor.InsertTrack
 import tachiyomi.domain.track.model.Track
 import kotlin.math.max
@@ -35,7 +35,7 @@ class SyncEpisodeProgressWithTrack(
 
         val episodeUpdates = sortedEpisodes
             .filter { episode -> episode.episodeNumber <= remoteTrack.lastEpisodeSeen && !episode.seen }
-            .map { it.copy(seen = true).toEpisodeUpdate() }
+            .map { EpisodeUpdate(it.id) { seen = true } }
 
         // only take into account continuous watching
         val localLastSeen = sortedEpisodes.takeWhile { it.seen }.lastOrNull()?.episodeNumber ?: 0F

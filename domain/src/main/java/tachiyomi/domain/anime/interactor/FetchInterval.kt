@@ -22,7 +22,7 @@ class FetchInterval(
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
 ) {
 
-    suspend fun toAnimeUpdate(
+    suspend fun withFetchInterval(
         anime: Anime,
         dateTime: LocalDateTime,
         timeZone: TimeZone,
@@ -39,7 +39,10 @@ class FetchInterval(
         }
         val nextUpdate = calculateNextUpdate(anime, interval, dateTime, timeZone, currentWindow)
 
-        return AnimeUpdate(id = anime.id, nextUpdate = nextUpdate, fetchInterval = interval)
+        return AnimeUpdate(anime.id) {
+            this.nextUpdate = nextUpdate
+            fetchInterval = interval
+        }
     }
 
     fun getWindow(localDateTime: LocalDate, timeZone: TimeZone): Pair<Long, Long> {

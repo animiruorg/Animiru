@@ -676,10 +676,9 @@ class LibraryViewModel(
                     // AY -->
                     it.removeBackgrounds(backgroundCache)
                     // <-- AY
-                    AnimeUpdate(
-                        favorite = false,
-                        id = it.id,
-                    )
+                    AnimeUpdate(it.id) {
+                        favorite = false
+                    }
                 }
                 updateAnime.awaitAll(toDelete)
             }

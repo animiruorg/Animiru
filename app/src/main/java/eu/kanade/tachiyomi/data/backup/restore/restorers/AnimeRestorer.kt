@@ -107,7 +107,7 @@ class AnimeRestorer(
         }
 
         restoreRepository.restoreAnime(entries) {
-            fetchInterval.toAnimeUpdate(it, now, timeZone, currentFetchWindow)
+            fetchInterval.withFetchInterval(it, now, timeZone, currentFetchWindow)
         }
     }
 }

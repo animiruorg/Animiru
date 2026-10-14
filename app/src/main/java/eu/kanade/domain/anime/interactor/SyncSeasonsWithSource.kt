@@ -1,7 +1,6 @@
 // AY -->
 package eu.kanade.domain.anime.interactor
 
-import android.util.Log
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -12,8 +11,8 @@ import mihon.domain.anime.model.toDomainAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeRemoteUpdate
+import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.NoSeasonsException
-import tachiyomi.domain.anime.model.toAnimeUpdate
 import tachiyomi.domain.anime.repository.AnimeRepository
 import tachiyomi.domain.season.interactor.GetAnimeSeasonsByParentId
 import tachiyomi.domain.season.interactor.ShouldUpdateDbSeason
@@ -122,7 +121,9 @@ class SyncSeasonsWithSource(
 
         var itemCount = newSeasons.size
         var updatedToAdd = newSeasons.map { toAddItem ->
-            toAddItem.copy(dateAdded = nowMillis + itemCount--)
+            AnimeUpdate(toAddItem.id) {
+                dateAdded = nowMillis + itemCount--
+            }
         }
 
         if (removedSeasons.isNotEmpty()) {
@@ -131,7 +132,7 @@ class SyncSeasonsWithSource(
         }
 
         if (updatedToAdd.isNotEmpty()) {
-            updateAnime.awaitAll(updatedToAdd.map { it.toAnimeUpdate() })
+            updateAnime.awaitAll(updatedToAdd)
         }
 
         if (updatedSeasons.isNotEmpty()) {

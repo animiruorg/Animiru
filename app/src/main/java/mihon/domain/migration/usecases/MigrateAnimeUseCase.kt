@@ -20,7 +20,7 @@ import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.interactor.SetAnimeCategories
 import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.episode.interactor.UpdateEpisode
-import tachiyomi.domain.episode.model.toEpisodeUpdate
+import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
 import tachiyomi.domain.track.interactor.InsertTrack
@@ -64,7 +64,7 @@ class MigrateAnimeUseCase(
                 }
             }
 
-            // Update episodes seen, bookmark and dateFetch
+            // Update episodes seen, bookmark, filler, and dateFetch
             // AY -->
             if (MigrationFlag.EPISODE in flags && target.fetchType == FetchType.Episodes) {
                 // <-- AY
@@ -75,28 +75,26 @@ class MigrateAnimeUseCase(
                     .filter { it.seen }
                     .maxOfOrNull { it.episodeNumber }
 
-                val updatedAnimeEpisodes = animeEpisodes.map { animeEpisode ->
-                    var updatedEpisode = animeEpisode
-                    if (updatedEpisode.isRecognizedNumber) {
+                val episodeUpdates = animeEpisodes
+                    .filter { it.isRecognizedNumber }
+                    .map { animeEpisode ->
                         val prevEpisode = prevAnimeEpisodes
-                            .find { it.isRecognizedNumber && it.episodeNumber == updatedEpisode.episodeNumber }
+                            .find { it.isRecognizedNumber && it.episodeNumber == animeEpisode.episodeNumber }
 
-                        if (prevEpisode != null) {
-                            updatedEpisode = updatedEpisode.copy(
-                                dateFetch = prevEpisode.dateFetch,
-                                bookmark = prevEpisode.bookmark,
-                            )
-                        }
-
-                        if (maxEpisodeSeen != null && updatedEpisode.episodeNumber <= maxEpisodeSeen) {
-                            updatedEpisode = updatedEpisode.copy(seen = true)
+                        EpisodeUpdate(animeEpisode.id) {
+                            if (prevEpisode != null) {
+                                dateFetch = prevEpisode.dateFetch
+                                bookmark = prevEpisode.bookmark
+                                // AM -->
+                                fillermark = prevEpisode.fillermark
+                                // <-- AM
+                            }
+                            if (maxEpisodeSeen != null && animeEpisode.episodeNumber <= maxEpisodeSeen) {
+                                seen = true
+                            }
                         }
                     }
 
-                    updatedEpisode
-                }
-
-                val episodeUpdates = updatedAnimeEpisodes.map { it.toEpisodeUpdate() }
                 updateEpisode.awaitAll(episodeUpdates)
             }
 
@@ -144,20 +142,18 @@ class MigrateAnimeUseCase(
                 )
             }
 
-            val currentAnimeUpdate = AnimeUpdate(
-                id = current.id,
-                favorite = false,
-                dateAdded = 0,
-            )
+            val currentAnimeUpdate = AnimeUpdate(current.id) {
+                favorite = false
+                dateAdded = 0
+            }
                 .takeIf { replace }
-            val targetAnimeUpdate = AnimeUpdate(
-                id = target.id,
-                favorite = true,
-                episodeFlags = current.episodeFlags,
-                viewerFlags = current.viewerFlags,
-                dateAdded = if (replace) current.dateAdded else Clock.System.now().toEpochMilliseconds(),
-                notes = if (MigrationFlag.NOTES in flags) current.notes else null,
-            )
+            val targetAnimeUpdate = AnimeUpdate(target.id) {
+                favorite = true
+                episodeFlags = current.episodeFlags
+                viewerFlags = current.viewerFlags
+                dateAdded = if (replace) current.dateAdded else Clock.System.now().toEpochMilliseconds()
+                if (MigrationFlag.NOTES in flags) notes = current.notes
+            }
 
             updateAnime.awaitAll(listOfNotNull(currentAnimeUpdate, targetAnimeUpdate))
         } catch (e: Throwable) {

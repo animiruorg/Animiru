@@ -11,10 +11,9 @@ class UpdateAnimeNotes(
 
     suspend operator fun invoke(animeId: Long, notes: String): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = animeId,
-                notes = notes,
-            ),
+            AnimeUpdate(animeId) {
+                this.notes = notes
+            },
         )
     }
 }

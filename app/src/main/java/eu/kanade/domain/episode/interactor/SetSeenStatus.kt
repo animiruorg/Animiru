@@ -21,11 +21,10 @@ class SetSeenStatus(
 ) {
 
     private val mapper = { episode: Episode, seen: Boolean ->
-        EpisodeUpdate(
-            seen = seen,
-            lastSecondSeen = if (!seen) 0 else null,
-            id = episode.id,
-        )
+        EpisodeUpdate(episode.id) {
+            this.seen = seen
+            if (!seen) lastSecondSeen = 0
+        }
     }
 
     suspend fun await(seen: Boolean, vararg episodes: Episode): Result = withNonCancellableContext {

@@ -53,30 +53,27 @@ class SetAnimeSeasonFlags(
             }
         }
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                seasonFlags = newFlags,
-            ),
+            AnimeUpdate(anime.id) {
+                seasonFlags = newFlags
+            },
         )
     }
 
     suspend fun awaitSetGridMode(anime: Anime, mode: SeasonDisplayMode): Boolean {
         val flag = SeasonDisplayMode.toLong(mode) shl Anime.SEASON_GRID_DISPLAY_MODE_BIT_OFFSET
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                seasonFlags = anime.seasonFlags.setFlag(flag, Anime.SEASON_GRID_DISPLAY_MODE_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                seasonFlags = anime.seasonFlags.setFlag(flag, Anime.SEASON_GRID_DISPLAY_MODE_MASK)
+            },
         )
     }
 
     suspend fun awaitSetGridSize(anime: Anime, size: Int): Boolean {
         val flag = size.toLong() shl Anime.SEASON_GRID_DISPLAY_SIZE_BIT_OFFSET
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                seasonFlags = anime.seasonFlags.setFlag(flag, Anime.SEASON_GRID_DISPLAY_SIZE_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                seasonFlags = anime.seasonFlags.setFlag(flag, Anime.SEASON_GRID_DISPLAY_SIZE_MASK)
+            },
         )
     }
 
@@ -124,8 +121,7 @@ class SetAnimeSeasonFlags(
         displayMode: Long,
     ): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = animeId,
+            AnimeUpdate(animeId) {
                 seasonFlags = 0L.setFlag(downloadFilter, Anime.SEASON_DOWNLOADED_MASK)
                     .setFlag(unseenFilter, Anime.SEASON_UNSEEN_MASK)
                     .setFlag(startedFilter, Anime.SEASON_STARTED_MASK)
@@ -162,27 +158,25 @@ class SetAnimeSeasonFlags(
                         if (continueOverlay) Anime.SEASON_OVERLAY_CONT_MASK else 0L,
                         Anime.SEASON_OVERLAY_CONT_MASK,
                     )
-                    .setFlag(displayMode, Anime.SEASON_DISPLAY_MODE_MASK),
-            ),
+                    .setFlag(displayMode, Anime.SEASON_DISPLAY_MODE_MASK)
+            },
         )
     }
 
     private suspend fun setFlag(anime: Anime, flag: Long, mask: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                seasonFlags = anime.seasonFlags.setFlag(flag, mask),
-            ),
+            AnimeUpdate(anime.id) {
+                seasonFlags = anime.seasonFlags.setFlag(flag, mask)
+            },
         )
     }
 
     private suspend fun setBooleanFlag(anime: Anime, value: Boolean, mask: Long): Boolean {
         val flag = if (value) mask else 0L
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                seasonFlags = anime.seasonFlags.setFlag(flag, mask),
-            ),
+            AnimeUpdate(anime.id) {
+                seasonFlags = anime.seasonFlags.setFlag(flag, mask)
+            },
         )
     }
 

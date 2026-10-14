@@ -3118,7 +3118,7 @@ class PlayerViewModel(
                     episode.isRecognizedNumber &&
                     episode.episode_number == currentEp.episode_number
                 ) {
-                    EpisodeUpdate(id = episode.id!!, seen = true)
+                    EpisodeUpdate(episode.id!!) { seen = true }
                 } else {
                     null
                 }
@@ -3169,14 +3169,13 @@ class PlayerViewModel(
         val stateData = stateData.value
         if (!stateData.incognitoMode || stateData.hasTrackers) {
             updateEpisode.await(
-                EpisodeUpdate(
-                    id = episode.id!!,
-                    seen = episode.seen,
-                    bookmark = episode.bookmark,
-                    fillermark = episode.fillermark,
-                    lastSecondSeen = episode.last_second_seen,
-                    totalSeconds = episode.total_seconds,
-                ),
+                EpisodeUpdate(episode.id!!) {
+                    seen = episode.seen
+                    bookmark = episode.bookmark
+                    fillermark = episode.fillermark
+                    lastSecondSeen = episode.last_second_seen
+                    totalSeconds = episode.total_seconds
+                },
             )
             // AM (SYNC) -->
             val isSyncEnabled = syncPreferences.isSyncEnabled()
@@ -3207,10 +3206,9 @@ class PlayerViewModel(
     fun bookmarkEpisode(episodeId: Long?, bookmarked: Boolean) {
         viewModelScope.launchNonCancellable {
             updateEpisode.await(
-                EpisodeUpdate(
-                    id = episodeId!!,
-                    bookmark = bookmarked,
-                ),
+                EpisodeUpdate(episodeId!!) {
+                    bookmark = bookmarked
+                },
             )
         }
     }
@@ -3221,10 +3219,9 @@ class PlayerViewModel(
     fun fillermarkEpisode(episodeId: Long?, fillermarked: Boolean) {
         viewModelScope.launchNonCancellable {
             updateEpisode.await(
-                EpisodeUpdate(
-                    id = episodeId!!,
-                    fillermark = fillermarked,
-                ),
+                EpisodeUpdate(episodeId!!) {
+                    fillermark = fillermarked
+                },
             )
         }
     }

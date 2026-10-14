@@ -327,7 +327,7 @@ class UpdatesViewModel(
         viewModelScope.launchIO {
             updates
                 .filterNot { it.update.bookmark == bookmark }
-                .map { EpisodeUpdate(id = it.update.episodeId, bookmark = bookmark) }
+                .map { EpisodeUpdate(it.update.episodeId) { this.bookmark = bookmark } }
                 .let { updateEpisode.awaitAll(it) }
         }
         toggleAllSelection(false)
@@ -343,7 +343,7 @@ class UpdatesViewModel(
         viewModelScope.launchIO {
             updates
                 .filterNot { it.update.fillermark == fillermark }
-                .map { EpisodeUpdate(id = it.update.episodeId, fillermark = fillermark) }
+                .map { EpisodeUpdate(it.update.episodeId) { this.fillermark = fillermark } }
                 .let { updateEpisode.awaitAll(it) }
         }
         toggleAllSelection(false)

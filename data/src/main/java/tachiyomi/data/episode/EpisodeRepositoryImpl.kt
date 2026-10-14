@@ -98,7 +98,6 @@ class EpisodeRepositoryImpl(
         database.transaction {
             episodeUpdates.forEach { episodeUpdate ->
                 database.episodesQueries.update(
-                    animeId = episodeUpdate.animeId,
                     seen = episodeUpdate.seen,
                     bookmark = episodeUpdate.bookmark,
                     // AY -->

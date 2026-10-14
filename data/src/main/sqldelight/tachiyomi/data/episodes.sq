@@ -91,8 +91,7 @@ RETURNING _id;
 
 update:
 UPDATE episodes
-SET anime_id = coalesce(:animeId, anime_id),
-    seen = coalesce(:seen, seen),
+SET seen = coalesce(:seen, seen),
     bookmark = coalesce(:bookmark, bookmark),
     -- AY -->
     fillermark = coalesce(:fillermark, fillermark),

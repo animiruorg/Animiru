@@ -303,24 +303,24 @@ class AnimeRepositoryImpl(
     private suspend fun partialUpdate(vararg animeUpdates: AnimeUpdate) {
         database.transaction {
             animeUpdates.forEach { value ->
-                database.animesQueries.update(
-                    favorite = value.favorite,
-                    lastUpdate = value.lastUpdate,
-                    nextUpdate = value.nextUpdate,
-                    calculateInterval = value.fetchInterval?.toLong(),
-                    viewer = value.viewerFlags,
-                    episodeFlags = value.episodeFlags,
-                    coverLastModified = value.coverLastModified,
-                    // AY -->
-                    backgroundLastModified = value.backgroundLastModified,
-                    // <-- AY
-                    dateAdded = value.dateAdded,
-                    animeId = value.id,
-                    notes = value.notes,
-                    // AY -->
-                    seasonFlags = value.seasonFlags,
-                    // <-- AY
-                )
+                with(value) {
+                    database.animesQueries.update(
+                        favorite = favorite,
+                        lastUpdate = lastUpdate,
+                        nextUpdate = nextUpdate,
+                        viewer = viewerFlags,
+                        episodeFlags = episodeFlags,
+                        coverLastModified = coverLastModified,
+                        dateAdded = dateAdded,
+                        calculateInterval = fetchInterval?.toLong(),
+                        notes = notes,
+                        // AM -->
+                        seasonFlags = seasonFlags,
+                        backgroundLastModified = backgroundLastModified,
+                        // <-- AM
+                        animeId = id,
+                    )
+                }
             }
         }
     }

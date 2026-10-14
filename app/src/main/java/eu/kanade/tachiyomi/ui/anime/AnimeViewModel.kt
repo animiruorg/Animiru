@@ -103,7 +103,6 @@ import tachiyomi.domain.anime.interactor.SetAnimeSeasonFlags
 import tachiyomi.domain.anime.interactor.SetCustomAnimeInfo
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeRemoteUpdate
-import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.anime.model.CustomAnimeInfo
 import tachiyomi.domain.anime.model.NoSeasonsException
@@ -1239,7 +1238,7 @@ class AnimeViewModel(
         viewModelScope.launchIO {
             episodes
                 .filterNot { it.bookmark == bookmarked }
-                .map { EpisodeUpdate(id = it.id, bookmark = bookmarked) }
+                .map { EpisodeUpdate(it.id) { bookmark = bookmarked } }
                 .let { updateEpisode.awaitAll(it) }
         }
         toggleAllSelection(false)
@@ -1255,7 +1254,7 @@ class AnimeViewModel(
         viewModelScope.launchIO {
             episodes
                 .filterNot { it.fillermark == fillermarked }
-                .map { EpisodeUpdate(id = it.id, fillermark = fillermarked) }
+                .map { EpisodeUpdate(it.id) { fillermark = fillermarked } }
                 .let { updateEpisode.awaitAll(it) }
         }
         toggleAllSelection(false)

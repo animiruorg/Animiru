@@ -12,48 +12,43 @@ class SetAnimeEpisodeFlags(
 
     suspend fun awaitSetDownloadedFilter(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_DOWNLOADED_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_DOWNLOADED_MASK)
+            },
         )
     }
 
     suspend fun awaitSetUnseenFilter(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_UNSEEN_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_UNSEEN_MASK)
+            },
         )
     }
 
     suspend fun awaitSetBookmarkFilter(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_BOOKMARKED_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_BOOKMARKED_MASK)
+            },
         )
     }
 
     // AY -->
     suspend fun awaitSetFillermarkFilter(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_FILLERMARKED_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_FILLERMARKED_MASK)
+            },
         )
     }
     // <-- AY
 
     suspend fun awaitSetDisplayMode(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_DISPLAY_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_DISPLAY_MASK)
+            },
         )
     }
 
@@ -75,29 +70,26 @@ class SetAnimeEpisodeFlags(
             }
         }
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = newFlags,
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = newFlags
+            },
         )
     }
 
     // AY -->
     suspend fun awaitShowEpisodePreviews(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_PREVIEWS_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_PREVIEWS_MASK)
+            },
         )
     }
 
     suspend fun awaitShowEpisodeSummaries(anime: Anime, flag: Long): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_SUMMARIES_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_SUMMARIES_MASK)
+            },
         )
     }
     // <-- AY
@@ -106,10 +98,9 @@ class SetAnimeEpisodeFlags(
     suspend fun awaitSetThumbnailSize(anime: Anime, size: Int): Boolean {
         val flag = size.toLong() shl Anime.EPISODE_THUMBNAIL_SIZE_BIT_OFFSET
         return animeRepository.update(
-            AnimeUpdate(
-                id = anime.id,
-                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_THUMBNAIL_SIZE_MASK),
-            ),
+            AnimeUpdate(anime.id) {
+                episodeFlags = anime.episodeFlags.setFlag(flag, Anime.EPISODE_THUMBNAIL_SIZE_MASK)
+            },
         )
     }
     // <-- AM
@@ -132,8 +123,7 @@ class SetAnimeEpisodeFlags(
         thumbnailSize: Int,
     ): Boolean {
         return animeRepository.update(
-            AnimeUpdate(
-                id = animeId,
+            AnimeUpdate(animeId) {
                 episodeFlags = 0L.setFlag(unseenFilter, Anime.EPISODE_UNSEEN_MASK)
                     .setFlag(downloadedFilter, Anime.EPISODE_DOWNLOADED_MASK)
                     .setFlag(bookmarkedFilter, Anime.EPISODE_BOOKMARKED_MASK)
@@ -151,9 +141,9 @@ class SetAnimeEpisodeFlags(
                     .setFlag(
                         thumbnailSize.toLong() shl Anime.EPISODE_THUMBNAIL_SIZE_BIT_OFFSET,
                         Anime.EPISODE_THUMBNAIL_SIZE_MASK,
-                    ),
+                    )
                 // <-- AM
-            ),
+            },
         )
     }
 
