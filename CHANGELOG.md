@@ -29,6 +29,7 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Fixed entries being incorrectly marked as duplicates when tracked with some trackers ([@Secozzi](https://github.com/Secozzi)) ([#230](https://github.com/animiruorg/Animiru/pull/230))
 - Fixed being unable to use external player ([@Secozzi](https://github.com/Secozzi)) ([#232](https://github.com/animiruorg/Animiru/pull/232))
 - Fix download notifications and downloads from local http servers ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
+- Fix custom titles not being updated in library ([@Secozzi](https://github.com/Secozzi)) ([#241](https://github.com/animiruorg/Animiru/pull/241))
 
 ### Other
 - Merged from mihon ([@Secozzi](https://github.com/Secozzi)) ([#239](https://github.com/animiruorg/Animiru/pull/239))
