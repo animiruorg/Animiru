@@ -22,9 +22,6 @@ data class BackupOptions(
     // AY -->
     val extensions: Boolean = false,
     // <-- AY
-    // AM (CUSTOM_INFORMATION) -->
-    val customInfo: Boolean = false,
-    // <-- AM (CUSTOM_INFORMATION)
 ) {
 
     fun asBooleanArray() = booleanArrayOf(
@@ -44,9 +41,6 @@ data class BackupOptions(
         // AY -->
         extensions,
         // <-- AY
-        // AM (CUSTOM_INFORMATION) -->
-        customInfo,
-        // <-- AM (CUSTOM_INFORMATION)
     )
 
     fun canCreate() = libraryEntries ||
@@ -94,14 +88,6 @@ data class BackupOptions(
                 setter = { options, enabled -> options.copy(seenEntries = enabled) },
                 enabled = { it.libraryEntries },
             ),
-            // AM (CUSTOM_INFORMATION) -->
-            Entry(
-                label = AMMR.strings.custom_entry_info,
-                getter = BackupOptions::customInfo,
-                setter = { options, enabled -> options.copy(customInfo = enabled) },
-                enabled = { it.libraryEntries },
-            ),
-            // <-- AM (CUSTOM_INFORMATION)
         )
 
         val settingsOptions = listOf(
@@ -162,9 +148,6 @@ data class BackupOptions(
             // AY -->
             extensions = array[11],
             // <-- AY
-            // AM (CUSTOM_INFORMATION) -->
-            customInfo = array[12],
-            // <-- AM (CUSTOM_INFORMATION)
         )
     }
 
