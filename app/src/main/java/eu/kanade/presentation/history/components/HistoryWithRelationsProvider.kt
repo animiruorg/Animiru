@@ -12,6 +12,7 @@ internal class HistoryWithRelationsProvider : PreviewParameterProvider<HistoryWi
         episodeId = 2L,
         animeId = 3L,
         // AM (CUSTOM_INFORMATION) -->
+        customTitle = null,
         ogTitle = "Test Title",
         // <-- AM (CUSTOM_INFORMATION)
         episodeNumber = 10.2,
@@ -30,6 +31,7 @@ internal class HistoryWithRelationsProvider : PreviewParameterProvider<HistoryWi
         episodeId = 2L,
         animeId = 3L,
         // AM (CUSTOM_INFORMATION) -->
+        customTitle = null,
         ogTitle = "Test Title",
         // <-- AM (CUSTOM_INFORMATION)
         episodeNumber = 10.2,
@@ -48,6 +50,7 @@ internal class HistoryWithRelationsProvider : PreviewParameterProvider<HistoryWi
         episodeId = 2L,
         animeId = 3L,
         // AM (CUSTOM_INFORMATION) -->
+        customTitle = null,
         ogTitle = "Test Title",
         // <-- AM (CUSTOM_INFORMATION)
         episodeNumber = -2.0,

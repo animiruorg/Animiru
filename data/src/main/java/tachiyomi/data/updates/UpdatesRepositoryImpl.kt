@@ -78,6 +78,9 @@ class UpdatesRepositoryImpl(
     @Suppress("UNUSED_PARAMETER")
     private fun mapUpdatesWithRelations(
         animeId: Long,
+        // AM -->
+        customAnimeTitle: String?,
+        // <-- AM
         animeTitle: String,
         episodeId: Long,
         episodeName: String,
@@ -102,6 +105,7 @@ class UpdatesRepositoryImpl(
     ): UpdatesWithRelations = UpdatesWithRelations(
         animeId = animeId,
         // AM (CUSTOM_INFORMATION) -->
+        customAnimeTitle = customAnimeTitle,
         ogAnimeTitle = animeTitle,
         // <-- AM (CUSTOM_INFORMATION)
         episodeId = episodeId,

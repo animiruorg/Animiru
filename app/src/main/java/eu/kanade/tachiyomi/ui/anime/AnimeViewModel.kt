@@ -100,11 +100,10 @@ import tachiyomi.domain.anime.interactor.GetAnimeWithEpisodesAndSeasons
 import tachiyomi.domain.anime.interactor.GetDuplicateLibraryAnime
 import tachiyomi.domain.anime.interactor.SetAnimeEpisodeFlags
 import tachiyomi.domain.anime.interactor.SetAnimeSeasonFlags
-import tachiyomi.domain.anime.interactor.SetCustomAnimeInfo
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeCustomUpdate
 import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
-import tachiyomi.domain.anime.model.CustomAnimeInfo
 import tachiyomi.domain.anime.model.NoSeasonsException
 import tachiyomi.domain.anime.model.applyFilter
 import tachiyomi.domain.anime.repository.AnimeRepository
@@ -193,9 +192,6 @@ class AnimeViewModel(
     // AM (FILE_SIZE) -->
     storagePreferences: StoragePreferences,
     // <-- AM (FILE_SIZE)
-    // AM (CUSTOM_INFORMATION) -->
-    private val setCustomAnimeInfo: SetCustomAnimeInfo,
-    // <-- AM (CUSTOM_INFORMATION)
 ) : ViewModel() {
 
     val state: StateFlow<State>
@@ -584,18 +580,20 @@ class AnimeViewModel(
             } else {
                 null
             }
-            setCustomAnimeInfo.set(
-                CustomAnimeInfo(
-                    state.anime.id,
-                    title?.trimOrNull(),
-                    author?.trimOrNull(),
-                    artist?.trimOrNull(),
-                    description?.trimOrNull(),
-                    genre,
-                    status.takeUnless { it == state.anime.ogStatus },
-                ),
-            )
-            anime = anime.copy(lastUpdate = anime.lastUpdate + 1)
+            viewModelScope.launchNonCancellable {
+                animeRepository.updateCustomInfo(
+                    AnimeCustomUpdate(
+                        id = state.anime.id,
+                        customArtist = artist?.trimOrNull(),
+                        customAuthor = author?.trimOrNull(),
+                        customDescription = description?.trimOrNull(),
+                        customGenre = genre,
+                        customTitle = title?.trimOrNull(),
+                        customStatus = status.takeUnless { it == state.anime.ogStatus },
+                    ),
+                )
+                anime = anime.copy(lastUpdate = anime.lastUpdate + 1)
+            }
         }
 
         updateSuccessState { successState ->

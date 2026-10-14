@@ -3,6 +3,7 @@ package tachiyomi.domain.anime.repository
 import aniyomi.domain.anime.model.SeasonAnime
 import kotlinx.coroutines.flow.Flow
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeCustomUpdate
 import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
@@ -83,5 +84,9 @@ interface AnimeRepository {
     suspend fun getAllAnimeThatNeedsSync(): List<Anime>
 
     suspend fun updateAnime(anime: Anime)
+
+    suspend fun updateCustomInfo(customInfo: AnimeCustomUpdate)
+
+    suspend fun updateCustomInfoAll(customInfos: List<AnimeCustomUpdate>)
     // <-- AM
 }

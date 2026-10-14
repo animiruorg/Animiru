@@ -63,7 +63,6 @@ import mihon.domain.extension.interactor.GetExtensionStoreCountAsFlow
 import nl.adaptivity.xmlutil.serialization.XML
 import tachiyomi.core.common.storage.AndroidStorageFolderProvider
 import tachiyomi.domain.anime.interactor.GetAnime
-import tachiyomi.domain.anime.interactor.GetCustomAnimeInfo
 import tachiyomi.domain.anime.interactor.GetFavorites
 import tachiyomi.domain.anime.interactor.ResetViewerFlags
 import tachiyomi.domain.backup.service.BackupPreferences
@@ -173,7 +172,6 @@ interface AppGraph : ViewModelGraph {
     val getAnime: GetAnime
     val externalIntents: ExternalIntents
     val brightnessManager: BrightnessManager
-    val getCustomAnimeInfo: GetCustomAnimeInfo
     // <-- AM
 
     @DependencyGraph.Factory

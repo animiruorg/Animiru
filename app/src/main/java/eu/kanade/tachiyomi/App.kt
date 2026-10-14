@@ -67,7 +67,6 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.PreferenceStore
 import tachiyomi.core.common.util.system.logcat
-import tachiyomi.domain.anime.model.CustomAnimeInfoHolder
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.widget.WidgetManager
@@ -129,9 +128,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         // AM -->
         TorrentUtilsHolder.init(graph.torrentUtilsImpl)
         // <-- AM
-        // AM (CUSTOM_INFORMATION) -->
-        CustomAnimeInfoHolder.init(graph.getCustomAnimeInfo)
-        // <-- AM (CUSTOM_INFORMATION)
 
         GlobalExceptionHandler.initialize(applicationContext, CrashActivity::class.java)
 

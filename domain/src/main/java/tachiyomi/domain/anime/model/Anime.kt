@@ -11,7 +11,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import mihon.core.common.extensions.EMPTY
 import tachiyomi.core.common.preference.TriState
-import tachiyomi.domain.anime.interactor.GetCustomAnimeInfo
 import java.io.ObjectStreamException
 import kotlin.math.pow
 import kotlin.time.Instant
@@ -57,32 +56,33 @@ data class Anime(
     val seasonSourceOrder: Long,
     // <-- AY
     val memo: JsonObject,
+    // AM -->
+    val customArtist: String?,
+    val customAuthor: String?,
+    val customDescription: String?,
+    val customGenre: List<String>?,
+    val customTitle: String?,
+    val customStatus: Long?,
+    // <-- AM
 ) : JavaSerializable {
 
-    // AM (CUSTOM_INFORMATION) -->
-    private val customAnimeInfo = if (favoriteAt != null) {
-        getCustomAnimeInfo.get(id)
-    } else {
-        null
-    }
-
     val title: String
-        get() = customAnimeInfo?.title ?: ogTitle
+        get() = customTitle ?: ogTitle
 
     val author: String?
-        get() = customAnimeInfo?.author ?: ogAuthor
+        get() = customAuthor ?: ogAuthor
 
     val artist: String?
-        get() = customAnimeInfo?.artist ?: ogArtist
+        get() = customArtist ?: ogArtist
 
     val description: String?
-        get() = customAnimeInfo?.description ?: ogDescription
+        get() = customDescription ?: ogDescription
 
     val genre: List<String>?
-        get() = customAnimeInfo?.genre ?: ogGenre
+        get() = customGenre ?: ogGenre
 
     val status: Long
-        get() = customAnimeInfo?.status ?: ogStatus
+        get() = customStatus ?: ogStatus
     // <-- AM (CUSTOM_INFORMATION)
 
     val favorite: Boolean
@@ -414,13 +414,15 @@ data class Anime(
             seasonSourceOrder = 0L,
             // <-- AY
             memo = JsonObject.EMPTY,
+            // AM -->
+            customArtist = null,
+            customAuthor = null,
+            customDescription = null,
+            customGenre = null,
+            customTitle = null,
+            customStatus = null,
+            // <-- AM
         )
-
-        // AM (CUSTOM_INFORMATION) -->
-        private val getCustomAnimeInfo: GetCustomAnimeInfo by lazy {
-            CustomAnimeInfoHolder.getCustomAnimeInfo
-        }
-        // <-- AM (CUSTOM_INFORMATION)
     }
 
     @Throws(ObjectStreamException::class)

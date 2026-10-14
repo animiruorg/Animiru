@@ -20,6 +20,9 @@ object HistoryMapper {
         historyId: Long,
         animeId: Long,
         episodeId: Long,
+        // AM -->
+        customTitle: String?,
+        // <-- AM
         title: String,
         thumbnailUrl: String?,
         sourceId: Long,
@@ -32,6 +35,7 @@ object HistoryMapper {
         episodeId = episodeId,
         animeId = animeId,
         // AM (CUSTOM_INFORMATION) -->
+        customTitle = customTitle,
         ogTitle = title,
         // <-- AM (CUSTOM_INFORMATION)
         episodeNumber = episodeNumber,

@@ -35,7 +35,15 @@ CREATE TABLE animes(
     background_last_modified INTEGER NOT NULL,
     -- <-- AY
     memo BLOB AS JsonObject NOT NULL DEFAULT '{}',
-    favorite_at INTEGER
+    favorite_at INTEGER,
+    -- AM -->
+    custom_artist TEXT,
+    custom_author TEXT,
+    custom_description TEXT,
+    custom_genre TEXT AS List<String>,
+    custom_title TEXT,
+    custom_status INTEGER
+    -- <-- AM
 );
 
 CREATE INDEX library_favorite_at_index ON animes(favorite_at) WHERE favorite_at IS NOT NULL ;
@@ -274,6 +282,18 @@ UPDATE animes SET
     -- <-- AY
     memo = :memo
 WHERE _id = :animeId;
+
+-- AM -->
+updateCustomInformation:
+UPDATE animes SET
+    custom_artist = :customArtist,
+    custom_author = :customAuthor,
+    custom_description = :customDescription,
+    custom_genre = :customGenre,
+    custom_title = :customTitle,
+    custom_status = :customStatus
+WHERE _id = :animeId;
+-- <-- AM
 
 insertNetworkAnime {
     -- Insert the anime if it doesn't exist already

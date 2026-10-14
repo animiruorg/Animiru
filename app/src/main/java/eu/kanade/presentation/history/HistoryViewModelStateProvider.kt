@@ -100,6 +100,7 @@ class HistoryViewModelStateProvider : PreviewParameterProvider<HistoryViewModel.
                         episodeId = Random.nextLong(),
                         animeId = Random.nextLong(),
                         // AM (CUSTOM_INFORMATION) -->
+                        customTitle = null,
                         ogTitle = "Test Title",
                         // <-- AM (CUSTOM_INFORMATION)
                         episodeNumber = Random.nextDouble(),

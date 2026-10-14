@@ -1,6 +1,9 @@
 CREATE VIEW updatesView AS
 SELECT
     animes._id AS animeId,
+    -- AM -->
+    animes.custom_title AS customAnimeTitle,
+    -- <-- AM
     animes.title AS animeTitle,
     episodes._id AS episodeId,
     episodes.name AS episodeName,

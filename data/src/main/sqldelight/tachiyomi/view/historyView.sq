@@ -3,6 +3,9 @@ SELECT
     history._id AS id,
     animes._id AS animeId,
     episodes._id AS episodeId,
+    -- AM -->
+    animes.custom_title,
+    -- <-- AM
     animes.title,
     animes.thumbnail_url AS thumbnailUrl,
     animes.source,
@@ -30,6 +33,7 @@ SELECT
 id,
 animeId,
 episodeId,
+custom_title,
 title,
 thumbnailUrl,
 source,
@@ -48,6 +52,7 @@ SELECT
 id,
 animeId,
 episodeId,
+custom_title,
 title,
 thumbnailUrl,
 source,

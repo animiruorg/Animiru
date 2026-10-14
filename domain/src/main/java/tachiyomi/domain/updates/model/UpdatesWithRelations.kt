@@ -1,12 +1,11 @@
 package tachiyomi.domain.updates.model
 
-import tachiyomi.domain.anime.interactor.GetCustomAnimeInfo
 import tachiyomi.domain.anime.model.AnimeCover
-import tachiyomi.domain.anime.model.CustomAnimeInfoHolder
 
 data class UpdatesWithRelations(
     val animeId: Long,
     // AM (CUSTOM_INFORMATION) -->
+    val customAnimeTitle: String?,
     val ogAnimeTitle: String,
     // <-- AM (CUSTOM_INFORMATION)
     val episodeId: Long,
@@ -27,12 +26,6 @@ data class UpdatesWithRelations(
     val coverData: AnimeCover,
 ) {
     // AM (CUSTOM_INFORMATION) -->
-    val animeTitle: String = getCustomAnimeInfo.get(animeId)?.title ?: ogAnimeTitle
-
-    companion object {
-        private val getCustomAnimeInfo: GetCustomAnimeInfo by lazy {
-            CustomAnimeInfoHolder.getCustomAnimeInfo
-        }
-    }
+    val animeTitle: String = customAnimeTitle ?: ogAnimeTitle
     // <-- AM (CUSTOM_INFORMATION)
 }

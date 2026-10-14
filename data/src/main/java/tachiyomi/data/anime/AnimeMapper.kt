@@ -41,6 +41,14 @@ object AnimeMapper {
         // <-- AY
         memo: JsonObject,
         favoriteAt: Long?,
+        // AM -->
+        customArtist: String?,
+        customAuthor: String?,
+        customDescription: String?,
+        customGenre: List<String>?,
+        customTitle: String?,
+        customStatus: Long?,
+        // <-- AM
     ): Anime = Anime(
         id = id,
         source = source,
@@ -78,6 +86,12 @@ object AnimeMapper {
         seasonSourceOrder = seasonSourceOrder,
         // <-- AY
         memo = memo,
+        customArtist = customArtist,
+        customAuthor = customAuthor,
+        customDescription = customDescription,
+        customGenre = customGenre,
+        customTitle = customTitle,
+        customStatus = customStatus,
     )
 
     fun mapLibraryAnime(
@@ -111,6 +125,14 @@ object AnimeMapper {
         // <-- AY
         memo: JsonObject,
         favoriteAt: Long?,
+        // AM -->
+        customArtist: String?,
+        customAuthor: String?,
+        customDescription: String?,
+        customGenre: List<String>?,
+        customTitle: String?,
+        customStatus: Long?,
+        // <-- AM
         totalCount: Long,
         seenCount: Double,
         latestUpload: Long,
@@ -153,6 +175,12 @@ object AnimeMapper {
             // <-- AY
             memo,
             favoriteAt,
+            customArtist,
+            customAuthor,
+            customDescription,
+            customGenre,
+            customTitle,
+            customStatus,
         ),
         categories = categories.split(",").map { it.toLong() },
         totalCount = totalCount,
@@ -197,6 +225,14 @@ object AnimeMapper {
         // <-- AY
         memo: JsonObject,
         favoriteAt: Long?,
+        // AM -->
+        customArtist: String?,
+        customAuthor: String?,
+        customDescription: String?,
+        customGenre: List<String>?,
+        customTitle: String?,
+        customStatus: Long?,
+        // <-- AM
         totalCount: Long,
     ): AnimeWithEpisodeCount = AnimeWithEpisodeCount(
         anime = mapAnime(
@@ -230,6 +266,12 @@ object AnimeMapper {
             // <-- AY
             memo,
             favoriteAt,
+            customArtist,
+            customAuthor,
+            customDescription,
+            customGenre,
+            customTitle,
+            customStatus,
         ),
         episodeCount = totalCount,
     )
@@ -264,6 +306,14 @@ object AnimeMapper {
         backgroundLastModified: Long,
         memo: JsonObject,
         favoriteAt: Long?,
+        // AM -->
+        customArtist: String?,
+        customAuthor: String?,
+        customDescription: String?,
+        customGenre: List<String>?,
+        customTitle: String?,
+        customStatus: Long?,
+        // <-- AM
         totalCount: Long,
         seenCount: Double,
         latestUpload: Long,
@@ -301,6 +351,12 @@ object AnimeMapper {
             backgroundLastModified,
             memo,
             favoriteAt,
+            customArtist,
+            customAuthor,
+            customDescription,
+            customGenre,
+            customTitle,
+            customStatus,
         ),
         totalCount = totalCount,
         seenCount = seenCount.toLong(),
@@ -340,6 +396,14 @@ object AnimeMapper {
         backgroundLastModified: Long,
         memo: JsonObject,
         favoriteAt: Long?,
+        // AM -->
+        customArtist: String?,
+        customAuthor: String?,
+        customDescription: String?,
+        customGenre: List<String>?,
+        customTitle: String?,
+        customStatus: Long?,
+        // <-- AM
         name: String,
     ): Pair<String, Anime> = name to mapAnime(
         id,
@@ -370,6 +434,12 @@ object AnimeMapper {
         backgroundLastModified,
         memo,
         favoriteAt,
+        customArtist,
+        customAuthor,
+        customDescription,
+        customGenre,
+        customTitle,
+        customStatus,
     )
 
     fun mapDeletableAnime(

@@ -21,6 +21,7 @@ import tachiyomi.data.subscribeToList
 import tachiyomi.data.subscribeToOne
 import tachiyomi.data.subscribeToOneOrNull
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.model.AnimeCustomUpdate
 import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
@@ -420,6 +421,36 @@ class AnimeRepositoryImpl(
             memo = anime.memo,
             animeId = anime.id,
         )
+    }
+    // <-- AM
+
+    // AM -->
+    override suspend fun updateCustomInfo(customInfo: AnimeCustomUpdate) {
+        database.animesQueries.updateCustomInformation(
+            customArtist = customInfo.customArtist,
+            customAuthor = customInfo.customAuthor,
+            customDescription = customInfo.customDescription,
+            customGenre = customInfo.customGenre,
+            customTitle = customInfo.customTitle,
+            customStatus = customInfo.customStatus,
+            animeId = customInfo.id,
+        )
+    }
+
+    override suspend fun updateCustomInfoAll(customInfos: List<AnimeCustomUpdate>) {
+        database.transaction {
+            customInfos.forEach { customInfo ->
+                database.animesQueries.updateCustomInformation(
+                    customArtist = customInfo.customArtist,
+                    customAuthor = customInfo.customAuthor,
+                    customDescription = customInfo.customDescription,
+                    customGenre = customInfo.customGenre,
+                    customTitle = customInfo.customTitle,
+                    customStatus = customInfo.customStatus,
+                    animeId = customInfo.id,
+                )
+            }
+        }
     }
     // <-- AM
 }

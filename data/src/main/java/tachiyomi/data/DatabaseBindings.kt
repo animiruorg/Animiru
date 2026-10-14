@@ -45,6 +45,9 @@ object DatabaseBindings {
                 fetch_typeAdapter = FetchTypeColumnAdapter,
                 // <-- AY
                 memoAdapter = MemoColumnAdapter,
+                // AM -->
+                custom_genreAdapter = StringListColumnAdapter,
+                // <-- AM
             ),
             episodesAdapter = Episodes.Adapter(
                 memoAdapter = MemoColumnAdapter,

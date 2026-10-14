@@ -6,9 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
 import mihon.core.common.extensions.JsonObjectEmptyBytes
 import mihon.core.common.extensions.toJsonObject
-import tachiyomi.data.MemoColumnAdapter
 import tachiyomi.domain.anime.model.Anime
-import tachiyomi.domain.anime.model.CustomAnimeInfo
 
 @Suppress("DEPRECATION")
 @Serializable
@@ -114,27 +112,4 @@ data class BackupAnime(
             memo = this@BackupAnime.memo.toJsonObject(),
         )
     }
-
-    // AM (CUSTOM_INFORMATION) -->
-    fun getCustomAnimeInfo(): CustomAnimeInfo? {
-        if (customTitle != null ||
-            customArtist != null ||
-            customAuthor != null ||
-            customDescription != null ||
-            customGenre != null ||
-            customStatus != 0
-        ) {
-            return CustomAnimeInfo(
-                id = 0L,
-                title = customTitle,
-                author = customAuthor,
-                artist = customArtist,
-                description = customDescription,
-                genre = customGenre,
-                status = customStatus.takeUnless { it == 0 }?.toLong(),
-            )
-        }
-        return null
-    }
-    // <-- AM (CUSTOM_INFORMATION)
 }

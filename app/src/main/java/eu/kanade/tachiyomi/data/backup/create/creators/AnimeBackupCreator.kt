@@ -7,9 +7,7 @@ import eu.kanade.tachiyomi.data.backup.models.BackupHistory
 import eu.kanade.tachiyomi.data.backup.models.toBackupEpisode
 import eu.kanade.tachiyomi.data.backup.models.toBackupTracking
 import mihon.core.common.extensions.toByteArray
-import tachiyomi.domain.anime.interactor.GetCustomAnimeInfo
 import tachiyomi.domain.anime.model.Anime
-import tachiyomi.domain.anime.model.CustomAnimeInfo
 import tachiyomi.domain.anime.repository.AnimeRepository
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.episode.repository.EpisodeRepository
@@ -23,9 +21,6 @@ class AnimeBackupCreator(
     private val trackRepository: TrackRepository,
     private val getCategories: GetCategories,
     private val getHistory: GetHistory,
-    // AM (CUSTOM_INFORMATION) -->
-    private val getCustomAnimeInfo: GetCustomAnimeInfo,
-    // <-- AM (CUSTOM_INFORMATION)
 ) {
 
     suspend operator fun invoke(animes: List<Anime>, options: BackupOptions): List<BackupAnime> {
@@ -36,11 +31,7 @@ class AnimeBackupCreator(
 
     private suspend fun backupAnime(anime: Anime, options: BackupOptions): BackupAnime {
         // Entry for this anime
-        val animeObject = anime.toBackupAnime(
-            // AM (CUSTOM_INFORMATION) -->
-            if (options.customInfo) getCustomAnimeInfo.get(anime.id) else null,
-            // <-- AM (CUSTOM_INFORMATION)
-        )
+        val animeObject = anime.toBackupAnime()
 
         animeObject.excludedScanlators = animeRepository.getExcludedScanlators(anime.id).toList()
 
@@ -84,11 +75,7 @@ class AnimeBackupCreator(
     }
 }
 
-private fun Anime.toBackupAnime(
-    // AM (CUSTOM_INFORMATION) -->
-    customAnimeInfo: CustomAnimeInfo?,
-    // <-- AM (CUSTOM_INFORMATION)
-) =
+private fun Anime.toBackupAnime() =
     BackupAnime(
         url = this.url,
         // AM (CUSTOM_INFORMATION) -->
@@ -117,16 +104,12 @@ private fun Anime.toBackupAnime(
         seasonSourceOrder = this.seasonSourceOrder,
         // <-- AY
         memo = this.memo.toByteArray(),
+        // AM -->
+        customArtist = this.customArtist,
+        customAuthor = this.customAuthor,
+        customDescription = this.customDescription,
+        customGenre = this.customGenre,
+        customTitle = this.customTitle,
+        customStatus = this.customStatus?.toInt() ?: 0,
+        // <-- AM
     )
-        // AM (CUSTOM_INFORMATION) -->
-        .also { backupAnime ->
-            customAnimeInfo?.let {
-                backupAnime.customTitle = it.title
-                backupAnime.customArtist = it.artist
-                backupAnime.customAuthor = it.author
-                backupAnime.customDescription = it.description
-                backupAnime.customGenre = it.genre
-                backupAnime.customStatus = it.status?.toInt() ?: 0
-            }
-        }
-// <-- AM (CUSTOM_INFORMATION)
