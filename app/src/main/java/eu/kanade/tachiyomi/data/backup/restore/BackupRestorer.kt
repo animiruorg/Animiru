@@ -30,7 +30,6 @@ import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.system.createFileInCacheDir
 import tachiyomi.core.common.util.system.logcat
-import tachiyomi.data.Database
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import java.io.File
@@ -49,7 +48,6 @@ class BackupRestorer(
     @Assisted private val isSync: Boolean,
     private val context: Context,
 
-    private val database: Database,
     private val downloadCache: DownloadCache,
     private val categoriesRestorer: CategoriesRestorer,
     private val preferenceRestorer: PreferenceRestorer,
@@ -193,24 +191,21 @@ class BackupRestorer(
     ) = launch {
         categoriesRestoreJob?.join()
         // AM -->
-        val ids = backupAnimes.map { it.id }.toSet()
+        val ids = backupAnimes.mapNotNull { it.id }.toHashSet()
         // <-- AM
         animeRestorer.sortByNew(backupAnimes)
             .chunked(100)
             .forEach { chunk ->
                 val restoredAsBatch = try {
-                    database.transaction {
-                        chunk.forEach {
-                            ensureActive()
-                            // AY -->
-                            val seasons = backupAnimes.filter { s -> s.parentId == it.id && s.id != s.parentId }
-                            // <-- AY
-                            // AM (CUSTOM_INFORMATION) -->
-                            val customInfo = it.getCustomAnimeInfo()
-                            // <-- AM (CUSTOM_INFORMATION)
-                            animeRestorer.restore(it, backupCategories, customInfo, seasons, it.parentId in ids)
-                        }
-                    }
+                    ensureActive()
+                    animeRestorer.restore(
+                        chunk,
+                        backupCategories,
+                        // AM -->
+                        backupAnimes,
+                        ids,
+                        // <-- AM
+                    )
                     true
                 } catch (e: Exception) {
                     ensureActive()
@@ -223,15 +218,8 @@ class BackupRestorer(
                 } else {
                     chunk.forEach {
                         ensureActive()
-
-                        // AY -->
-                        val seasons = backupAnimes.filter { s -> s.parentId == it.id }
-                        // <-- AY
                         try {
-                            // AM (CUSTOM_INFORMATION) -->
-                            val customInfo = it.getCustomAnimeInfo()
-                            // <-- AM (CUSTOM_INFORMATION)
-                            animeRestorer.restore(it, backupCategories, customInfo, seasons, it.parentId in ids)
+                            animeRestorer.restore(listOf(it), backupCategories, backupAnimes, ids)
                         } catch (e: Exception) {
                             ensureActive()
                             val sourceName = sourceMapping[it.source] ?: it.source.toString()
@@ -286,18 +274,16 @@ class BackupRestorer(
         backupExtensionStores
             .chunked(100)
             .forEach { chunk ->
-                database.transaction {
-                    chunk.forEach {
-                        ensureActive()
+                chunk.forEach {
+                    ensureActive()
 
-                        try {
-                            extensionStoreRestorer(it)
-                        } catch (e: Exception) {
-                            errors.add(Date() to "Error Adding Repo: ${it.name} : ${e.message}")
-                        }
-
-                        restoreProgress.incrementAndFetch()
+                    try {
+                        extensionStoreRestorer(it)
+                    } catch (e: Exception) {
+                        errors.add(Date() to "Error Adding Repo: ${it.name} : ${e.message}")
                     }
+
+                    restoreProgress.incrementAndFetch()
                 }
 
                 notifier.showRestoreProgress(

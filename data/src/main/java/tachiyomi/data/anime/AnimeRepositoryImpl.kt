@@ -9,10 +9,12 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import logcat.LogPriority
+import tachiyomi.core.common.util.lang.toLong
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.data.Database
 import tachiyomi.data.subscribeToList
@@ -117,12 +119,43 @@ class AnimeRepositoryImpl(
         }
     }
 
+    override suspend fun deleteNonLibraryAnime(sourceIds: List<Long>, keepSeenAnime: Boolean) {
+        database.animesQueries.deleteAnimesNotInLibraryByAnimeIds(sourceIds, keepSeenAnime.toLong())
+    }
+
     override suspend fun setAnimeCategories(animeId: Long, categoryIds: List<Long>) {
         database.transaction {
             database.animes_categoriesQueries.deleteAnimeCategoryByAnimeId(animeId)
             categoryIds.forEach { categoryId ->
                 database.animes_categoriesQueries.insert(animeId, categoryId)
             }
+        }
+    }
+
+    override suspend fun getExcludedScanlators(animeId: Long): Set<String> {
+        return database.excluded_scanlatorsQueries
+            .getExcludedScanlatorsByAnimeId(animeId)
+            .awaitAsList()
+            .toSet()
+    }
+
+    override fun getExcludedScanlatorsAsFlow(animeId: Long): Flow<Set<String>> {
+        return database.excluded_scanlatorsQueries
+            .getExcludedScanlatorsByAnimeId(animeId)
+            .subscribeToList()
+            .map { it.toSet() }
+    }
+
+    override suspend fun setExcludedScanlators(animeId: Long, excludedScanlators: Set<String>) {
+        database.transaction {
+            val current = database.excluded_scanlatorsQueries
+                .getExcludedScanlatorsByAnimeId(animeId)
+                .awaitAsList()
+                .toSet()
+            excludedScanlators.minus(current).forEach { scanlator ->
+                database.excluded_scanlatorsQueries.insert(animeId, scanlator)
+            }
+            database.excluded_scanlatorsQueries.remove(animeId, current.minus(excludedScanlators))
         }
     }
 
@@ -291,4 +324,46 @@ class AnimeRepositoryImpl(
             }
         }
     }
+
+    // AM -->
+    override suspend fun getAllAnime(): List<Anime> {
+        return database.animesQueries.getAllAnime(AnimeMapper::mapAnime).awaitAsList()
+    }
+
+    override suspend fun getAllAnimeThatNeedsSync(): List<Anime> {
+        return database.animesQueries.getAnimesWithFavoriteTimestamp(AnimeMapper::mapAnime).awaitAsList()
+    }
+
+    override suspend fun updateAnime(anime: Anime) {
+        database.animesQueries.updateFromBackup(
+            artist = anime.artist,
+            author = anime.author,
+            description = anime.description,
+            genre = anime.genre,
+            title = anime.title,
+            status = anime.status,
+            thumbnailUrl = anime.thumbnailUrl,
+            favorite = anime.favorite,
+            lastUpdate = anime.lastUpdate,
+            initialized = anime.initialized,
+            viewer = anime.viewerFlags,
+            episodeFlags = anime.episodeFlags,
+            coverLastModified = anime.coverLastModified,
+            dateAdded = anime.dateAdded,
+            updateStrategy = anime.updateStrategy,
+            notes = anime.notes,
+            // AM -->
+            fetchType = anime.fetchType,
+            parentId = anime.parentId,
+            seasonFlags = anime.seasonFlags,
+            seasonNumber = anime.seasonNumber,
+            seasonSourceOrder = anime.seasonSourceOrder,
+            backgroundUrl = anime.backgroundUrl,
+            backgroundLastModified = anime.backgroundLastModified,
+            // <-- AM
+            memo = anime.memo,
+            animeId = anime.id,
+        )
+    }
+    // <-- AM
 }

@@ -31,6 +31,7 @@ class CustomButtonRepositoryImpl(
 
     override suspend fun insertCustomButton(
         name: String,
+        favorite: Boolean,
         sortIndex: Long,
         content: String,
         longPressContent: String,
@@ -39,7 +40,7 @@ class CustomButtonRepositoryImpl(
         try {
             database.custom_buttonsQueries.insert(
                 name,
-                false,
+                favorite,
                 sortIndex,
                 content,
                 longPressContent,

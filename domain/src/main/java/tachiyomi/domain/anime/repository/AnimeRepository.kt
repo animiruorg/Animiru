@@ -39,7 +39,15 @@ interface AnimeRepository {
 
     suspend fun resetViewerFlags(): Boolean
 
+    suspend fun deleteNonLibraryAnime(sourceIds: List<Long>, keepSeenAnime: Boolean)
+
     suspend fun setAnimeCategories(animeId: Long, categoryIds: List<Long>)
+
+    suspend fun getExcludedScanlators(animeId: Long): Set<String>
+
+    fun getExcludedScanlatorsAsFlow(animeId: Long): Flow<Set<String>>
+
+    suspend fun setExcludedScanlators(animeId: Long, excludedScanlators: Set<String>)
 
     suspend fun update(update: AnimeUpdate): Boolean
 
@@ -62,4 +70,12 @@ interface AnimeRepository {
 
     suspend fun getChildrenByParentId(parentId: Long): List<Anime>
     // <-- AY
+
+    // AM -->
+    suspend fun getAllAnime(): List<Anime>
+
+    suspend fun getAllAnimeThatNeedsSync(): List<Anime>
+
+    suspend fun updateAnime(anime: Anime)
+    // <-- AM
 }

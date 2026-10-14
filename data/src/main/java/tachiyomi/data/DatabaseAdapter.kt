@@ -5,6 +5,8 @@ import eu.kanade.tachiyomi.animesource.model.AnimeUpdateStrategy
 import eu.kanade.tachiyomi.animesource.model.FetchType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import mihon.core.common.extensions.toByteArray
+import mihon.core.common.extensions.toJsonObject
 import java.util.Date
 
 object DateColumnAdapter : ColumnAdapter<Date, Long> {
@@ -41,11 +43,6 @@ object FetchTypeColumnAdapter : ColumnAdapter<FetchType, Long> {
 // <-- AY
 
 object MemoColumnAdapter : ColumnAdapter<JsonObject, ByteArray> {
-    override fun decode(databaseValue: ByteArray): JsonObject {
-        return Json.decodeFromString<JsonObject>(databaseValue.decodeToString())
-    }
-
-    override fun encode(value: JsonObject): ByteArray {
-        return value.toString().encodeToByteArray()
-    }
+    override fun decode(databaseValue: ByteArray): JsonObject = databaseValue.toJsonObject()
+    override fun encode(value: JsonObject): ByteArray = value.toByteArray()
 }

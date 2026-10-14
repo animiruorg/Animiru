@@ -5,6 +5,7 @@ import eu.kanade.tachiyomi.animesource.model.FetchType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
 import mihon.core.common.extensions.JsonObjectEmptyBytes
+import mihon.core.common.extensions.toJsonObject
 import tachiyomi.data.MemoColumnAdapter
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.CustomAnimeInfo
@@ -104,7 +105,7 @@ data class BackupAnime(
             seasonNumber = this@BackupAnime.seasonNumber,
             seasonSourceOrder = this@BackupAnime.seasonSourceOrder,
             // <-- AY
-            memo = MemoColumnAdapter.decode(this@BackupAnime.memo),
+            memo = this@BackupAnime.memo.toJsonObject(),
         )
     }
 

@@ -13,6 +13,7 @@ interface CustomButtonRepository {
 
     suspend fun insertCustomButton(
         name: String,
+        favorite: Boolean,
         sortIndex: Long,
         content: String,
         longPressContent: String,

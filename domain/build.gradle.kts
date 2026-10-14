@@ -37,7 +37,7 @@ dependencies {
     implementation(libs.injekt)
     // <-- AM (CUSTOM_INFORMATIO)
 
-    api(libs.sqldelight.androidxPaging)
+    api(libs.androidx.paging.runtime)
 
     compileOnly(platform(libs.androidx.compose.bom))
     compileOnly(libs.androidx.compose.runtimeAnnotation)

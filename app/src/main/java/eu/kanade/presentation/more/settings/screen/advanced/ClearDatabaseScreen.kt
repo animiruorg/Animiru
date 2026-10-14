@@ -56,6 +56,8 @@ import tachiyomi.core.common.util.lang.toLong
 import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.data.Database
 import tachiyomi.data.source.mapSourceToDomainSource
+import tachiyomi.domain.anime.repository.AnimeRepository
+import tachiyomi.domain.history.repository.HistoryRepository
 import tachiyomi.domain.source.interactor.GetSourcesWithNonLibraryAnime
 import tachiyomi.domain.source.model.Source
 import tachiyomi.domain.source.model.SourceWithIds
@@ -237,7 +239,8 @@ class ClearDatabaseViewModel(
     // AY -->
     private val getSourcesWithNonLibraryAnime: GetSourcesWithNonLibraryAnime,
     // <-- AY
-    private val database: Database,
+    private val animeRepository: AnimeRepository,
+    private val historyRepository: HistoryRepository,
     private val sourceManager: SourceManager,
 ) : ViewModel() {
 
@@ -319,10 +322,10 @@ class ClearDatabaseViewModel(
         val orphaned = selected.flatMap { it.orphaned }
             .filterNot { it in animeIds }
 
-        database.animesQueries.deleteAnimesNotInLibraryByAnimeIds(animeIds, keepSeenAnime.toLong())
-        database.animesQueries.removeParentIdByIds(orphaned)
+        animeRepository.deleteNonLibraryAnime(animeIds, keepSeenAnime)
+        animeRepository.removeParentIdByIds(orphaned)
         // <-- AY
-        database.historyQueries.removeResettedHistory()
+        historyRepository.deleteResetHistory()
     }
 
     fun toggleSelection(source: Source) = state.update { state ->

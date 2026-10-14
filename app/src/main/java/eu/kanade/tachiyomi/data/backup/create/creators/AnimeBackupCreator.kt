@@ -1,25 +1,26 @@
 package eu.kanade.tachiyomi.data.backup.create.creators
 
-import app.cash.sqldelight.async.coroutines.awaitAsList
-import app.cash.sqldelight.async.coroutines.awaitAsOne
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.data.backup.create.BackupOptions
 import eu.kanade.tachiyomi.data.backup.models.BackupAnime
-import eu.kanade.tachiyomi.data.backup.models.BackupEpisode
 import eu.kanade.tachiyomi.data.backup.models.BackupHistory
-import eu.kanade.tachiyomi.data.backup.models.backupEpisodeMapper
-import eu.kanade.tachiyomi.data.backup.models.backupTrackMapper
-import tachiyomi.data.Database
-import tachiyomi.data.MemoColumnAdapter
+import eu.kanade.tachiyomi.data.backup.models.toBackupEpisode
+import eu.kanade.tachiyomi.data.backup.models.toBackupTracking
+import mihon.core.common.extensions.toByteArray
 import tachiyomi.domain.anime.interactor.GetCustomAnimeInfo
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.CustomAnimeInfo
+import tachiyomi.domain.anime.repository.AnimeRepository
 import tachiyomi.domain.category.interactor.GetCategories
+import tachiyomi.domain.episode.repository.EpisodeRepository
 import tachiyomi.domain.history.interactor.GetHistory
+import tachiyomi.domain.track.repository.TrackRepository
 
 @Inject
 class AnimeBackupCreator(
-    private val database: Database,
+    private val animeRepository: AnimeRepository,
+    private val episodeRepository: EpisodeRepository,
+    private val trackRepository: TrackRepository,
     private val getCategories: GetCategories,
     private val getHistory: GetHistory,
     // AM (CUSTOM_INFORMATION) -->
@@ -41,18 +42,13 @@ class AnimeBackupCreator(
             // <-- AM (CUSTOM_INFORMATION)
         )
 
-        animeObject.excludedScanlators = database.excluded_scanlatorsQueries.getExcludedScanlatorsByAnimeId(anime.id)
-            .awaitAsList()
+        animeObject.excludedScanlators = animeRepository.getExcludedScanlators(anime.id).toList()
 
         if (options.episodes) {
             // Backup all the episodes
-            database.episodesQueries.getEpisodesByAnimeId(
-                animeId = anime.id,
-                applyScanlatorFilter = 0, // false
-                mapper = backupEpisodeMapper,
-            )
-                .awaitAsList()
-                .takeUnless(List<BackupEpisode>::isEmpty)
+            episodeRepository.getEpisodeByAnimeId(anime.id, applyScanlatorFilter = false)
+                .map { it.toBackupEpisode() }
+                .takeUnless { it.isEmpty() }
                 ?.let { animeObject.episodes = it }
         }
 
@@ -65,7 +61,7 @@ class AnimeBackupCreator(
         }
 
         if (options.tracking) {
-            val tracks = database.anime_syncQueries.getTracksByAnimeId(anime.id, backupTrackMapper).awaitAsList()
+            val tracks = trackRepository.getTracksByAnimeId(anime.id).map { it.toBackupTracking() }
             if (tracks.isNotEmpty()) {
                 animeObject.tracking = tracks
             }
@@ -75,7 +71,7 @@ class AnimeBackupCreator(
             val historyByAnimeId = getHistory.await(anime.id)
             if (historyByAnimeId.isNotEmpty()) {
                 val history = historyByAnimeId.map { history ->
-                    val episode = database.episodesQueries.getEpisodeById(history.episodeId).awaitAsOne()
+                    val episode = checkNotNull(episodeRepository.getEpisodeById(history.episodeId))
                     BackupHistory(episode.url, history.seenAt?.time ?: 0L)
                 }
                 if (history.isNotEmpty()) {
@@ -121,7 +117,7 @@ private fun Anime.toBackupAnime(
         seasonNumber = this.seasonNumber,
         seasonSourceOrder = this.seasonSourceOrder,
         // <-- AY
-        memo = MemoColumnAdapter.encode(this.memo),
+        memo = this.memo.toByteArray(),
     )
         // AM (CUSTOM_INFORMATION) -->
         .also { backupAnime ->

@@ -3,8 +3,8 @@ package eu.kanade.tachiyomi.data.connection.syncmiru
 
 import android.content.Context
 import android.net.Uri
-import app.cash.sqldelight.async.coroutines.awaitAsList
 import dev.zacsweers.metro.Inject
+import eu.kanade.domain.anime.interactor.UpdateAnime
 import eu.kanade.domain.connection.SyncPreferences
 import eu.kanade.tachiyomi.data.backup.create.BackupCreator
 import eu.kanade.tachiyomi.data.backup.create.BackupOptions
@@ -22,11 +22,14 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.protobuf.ProtoBuf
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
-import tachiyomi.data.Database
 import tachiyomi.data.Episodes
 import tachiyomi.data.anime.AnimeMapper.mapAnime
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.anime.repository.AnimeRepository
 import tachiyomi.domain.category.interactor.GetCategories
+import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
+import tachiyomi.domain.episode.model.Episode
+import tachiyomi.domain.episode.repository.EpisodeRepository
 import java.io.File
 import java.io.IOException
 import java.util.Date
@@ -42,7 +45,9 @@ import logcat.logcat as log
 @Inject
 class SyncManager(
     private val context: Context,
-    private val database: Database,
+    private val updateAnime: UpdateAnime,
+    private val animeRepository: AnimeRepository,
+    private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     private val syncPreferences: SyncPreferences,
     private val getCategories: GetCategories,
     private val backupCreatorFactory: BackupCreator.Factory,
@@ -204,15 +209,15 @@ class SyncManager(
      * @return a list of all anime stored in the database
      */
     private suspend fun getAllAnimeFromDB(): List<Anime> {
-        return database.animesQueries.getAllAnime(::mapAnime).awaitAsList()
+        return animeRepository.getAllAnime()
     }
 
     private suspend fun getAllAnimeThatNeedsSync(): List<Anime> {
-        return database.animesQueries.getAnimesWithFavoriteTimestamp(::mapAnime).awaitAsList()
+        return animeRepository.getAllAnimeThatNeedsSync()
     }
 
     private suspend fun isAnimeDifferent(localAnime: Anime, remoteAnime: BackupAnime): Boolean {
-        val localEpisodes = database.episodesQueries.getEpisodesByAnimeId(localAnime.id, 0).awaitAsList()
+        val localEpisodes = getEpisodesByAnimeId.await(localAnime.id, false)
         val localCategories = getCategories.await(localAnime.id).map { it.order }
 
         if (areEpisodesDifferent(localEpisodes, remoteAnime.episodes)) {
@@ -226,7 +231,7 @@ class SyncManager(
         return false
     }
 
-    private fun areEpisodesDifferent(localEpisodes: List<Episodes>, remoteEpisodes: List<BackupEpisode>): Boolean {
+    private fun areEpisodesDifferent(localEpisodes: List<Episode>, remoteEpisodes: List<BackupEpisode>): Boolean {
         val localEpisodeMap = localEpisodes.associateBy { it.url }
         val remoteEpisodeMap = remoteEpisodes.associateBy { it.url }
 
@@ -305,7 +310,7 @@ class SyncManager(
             localAnimeMap[key]?.let { localAnime ->
                 if (localAnime.favorite != nonFavorite.favorite) {
                     val updatedAnime = localAnime.copy(favorite = nonFavorite.favorite)
-                    animeRestorer.updateAnime(updatedAnime)
+                    animeRepository.updateAnime(updatedAnime)
                 }
             }
         }

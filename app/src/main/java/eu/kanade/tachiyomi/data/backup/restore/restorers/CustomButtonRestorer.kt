@@ -3,13 +3,17 @@ package eu.kanade.tachiyomi.data.backup.restore.restorers
 
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.data.backup.models.BackupCustomButtons
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import tachiyomi.data.Database
 import tachiyomi.domain.custombutton.interactor.GetCustomButtons
+import tachiyomi.domain.custombutton.repository.CustomButtonRepository
 
 @Inject
 class CustomButtonRestorer(
     private val database: Database,
     private val getCustomButtons: GetCustomButtons,
+    private val customButtonRepository: CustomButtonRepository,
 ) {
     suspend operator fun invoke(
         backupCustomButtons: List<BackupCustomButtons>,
@@ -20,24 +24,23 @@ class CustomButtonRestorer(
             var nextSortIndex = dbCustomButtons.maxOfOrNull { it.sortIndex }?.plus(1) ?: 0
             val dbHasFavorite = dbCustomButtons.firstOrNull { it.isFavorite } != null
 
-            database.transaction {
-                backupCustomButtons
-                    .sortedBy { it.sortIndex }
-                    .forEach {
-                        val dbCustomButton = dbCustomButtonsByName[it.name]
-                        if (dbCustomButton != null) return@forEach
-                        val sortIndex = nextSortIndex++
-                        val isFavorite = it.isFavorite && !dbHasFavorite
-                        database.custom_buttonsQueries.insert(
-                            it.name,
-                            isFavorite,
-                            sortIndex,
-                            it.content,
-                            it.longPressContent,
-                            it.onStartup,
-                        )
-                    }
-            }
+            backupCustomButtons
+                .sortedBy { it.sortIndex }
+                .forEach {
+                    currentCoroutineContext().ensureActive()
+                    val dbCustomButton = dbCustomButtonsByName[it.name]
+                    if (dbCustomButton != null) return@forEach
+                    val sortIndex = nextSortIndex++
+                    val isFavorite = it.isFavorite && !dbHasFavorite
+                    customButtonRepository.insertCustomButton(
+                        name = it.name,
+                        favorite = isFavorite,
+                        sortIndex = sortIndex,
+                        content = it.content,
+                        longPressContent = it.longPressContent,
+                        onStartup = it.onStartup,
+                    )
+                }
         }
     }
 }

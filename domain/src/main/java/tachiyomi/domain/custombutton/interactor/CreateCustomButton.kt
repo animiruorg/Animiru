@@ -23,6 +23,7 @@ class CreateCustomButton(
         try {
             customButtonRepository.insertCustomButton(
                 name = name,
+                favorite = false,
                 sortIndex = nextSortIndex,
                 content = content,
                 longPressContent = longPressContent,
