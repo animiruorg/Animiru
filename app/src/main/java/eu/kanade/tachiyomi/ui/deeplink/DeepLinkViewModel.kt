@@ -78,11 +78,9 @@ class DeepLinkViewModel(
     private suspend fun getEpisodeFromSEpisode(sEpisode: SEpisode, anime: Anime, source: AnimeSource): Episode? {
         val localEpisode = getEpisodeByUrlAndAnimeId.await(sEpisode.url, anime.id)
 
-        return localEpisode
-            ?: updateAnimeFromRemote.awaitEpisodesUpdate(anime, fetchEpisodes = true)
-                .getOrElse { return null }
-                .newEpisodes
-                .find { it.url == sEpisode.url }
+        if (localEpisode != null) return localEpisode
+        updateAnimeFromRemote.awaitEpisodesUpdate(anime, fetchEpisodes = true).getOrElse { null }
+        return getEpisodeByUrlAndAnimeId.await(sEpisode.url, anime.id)
     }
 
     sealed interface State {

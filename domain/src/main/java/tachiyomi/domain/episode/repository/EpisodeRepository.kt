@@ -7,15 +7,15 @@ import tachiyomi.domain.episode.model.EpisodeUpdate
 
 interface EpisodeRepository {
 
-    suspend fun addAll(episodes: List<Episode>): List<Episode>
-
     suspend fun update(episodeUpdate: EpisodeUpdate)
 
     suspend fun updateAll(episodeUpdates: List<EpisodeUpdate>)
 
-    suspend fun updateAllRemote(episodeUpdates: List<EpisodeRemoteUpdate>)
-
-    suspend fun removeEpisodesWithIds(episodeIds: List<Long>)
+    suspend fun updateFromRemote(
+        removedIds: List<Long>,
+        added: List<Episode>,
+        updated: List<EpisodeRemoteUpdate>,
+    ): List<Episode>
 
     suspend fun getEpisodeByAnimeId(animeId: Long, applyScanlatorFilter: Boolean = false): List<Episode>
 

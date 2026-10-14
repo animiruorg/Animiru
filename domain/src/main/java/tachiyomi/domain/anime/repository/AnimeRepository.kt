@@ -55,7 +55,13 @@ interface AnimeRepository {
 
     suspend fun updateAll(animeUpdates: List<AnimeUpdate>): Boolean
 
-    suspend fun updateAllRemote(animeUpdates: List<AnimeRemoteUpdate>): Boolean
+    // AM -->
+    suspend fun updateFromRemote(
+        removedIds: List<Long>,
+        added: List<Anime>,
+        updated: List<AnimeRemoteUpdate>,
+    ): List<Anime>
+    // <-- AM
 
     suspend fun insertNetworkAnime(anime: List<Anime>): List<Anime>
 

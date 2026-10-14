@@ -175,6 +175,19 @@ class RestoreRepositoryImpl(
             .associateBy { it.url }
 
         val (existingEpisodes, newEpisodes) = restoredEpisodes
+            .groupBy { it.url }
+            .map { (_, copies) ->
+                copies.reduce { kept, other ->
+                    kept.copy(
+                        seen = kept.seen || other.seen,
+                        bookmark = kept.bookmark || other.bookmark,
+                        // AM -->
+                        fillermark = kept.fillermark || other.fillermark,
+                        // <-- AM
+                        lastSecondSeen = max(kept.lastSecondSeen, other.lastSecondSeen),
+                    )
+                }
+            }
             .mapNotNull {
                 val episode = it.copy(animeId = anime.id)
 

@@ -179,19 +179,77 @@ class AnimeRepositoryImpl(
         }
     }
 
-    override suspend fun updateAllRemote(animeUpdates: List<AnimeRemoteUpdate>): Boolean {
-        return try {
-            database.transaction {
-                animeUpdates.forEach { animeUpdate ->
-                    updateRemote(animeUpdate)
-                }
+    // AM -->
+    override suspend fun updateFromRemote(
+        removedIds: List<Long>,
+        added: List<Anime>,
+        updated: List<AnimeRemoteUpdate>,
+    ): List<Anime> {
+        return database.transactionWithResult {
+            if (removedIds.isNotEmpty()) {
+                database.animesQueries.removeParentIdByIds(removedIds)
             }
-            true
-        } catch (e: Exception) {
-            logcat(LogPriority.ERROR, e)
-            false
+            val existing = added.map { it.id to it.url }
+                .distinct()
+                .toMutableSet()
+            val stored = added.filter { existing.add(it.id to it.url) }.map { season ->
+                val animeId = database.animesQueries.insertReturningId(
+                    season.source,
+                    season.url,
+                    season.artist,
+                    season.author,
+                    season.description,
+                    season.genre,
+                    season.title,
+                    season.status,
+                    season.thumbnailUrl,
+                    season.favoriteAt,
+                    season.lastUpdate,
+                    season.nextUpdate,
+                    season.initialized,
+                    season.viewerFlags,
+                    season.episodeFlags,
+                    season.coverLastModified,
+                    season.updateStrategy,
+                    season.fetchInterval.toLong(),
+                    season.notes,
+                    season.fetchType,
+                    season.parentId,
+                    season.seasonFlags,
+                    season.seasonNumber,
+                    season.seasonSourceOrder,
+                    season.backgroundUrl,
+                    season.backgroundLastModified,
+                    season.memo,
+                )
+                    .awaitAsOne()
+                season.copy(id = animeId)
+            }
+            updated.forEach { seasonUpdate ->
+                database.animesQueries.updateRemote(
+                    artist = seasonUpdate.artist,
+                    author = seasonUpdate.author,
+                    description = seasonUpdate.description,
+                    genre = seasonUpdate.genre,
+                    title = seasonUpdate.title,
+                    status = seasonUpdate.status,
+                    thumbnailUrl = seasonUpdate.thumbnailUrl,
+                    initialized = seasonUpdate.initialized,
+                    coverLastModified = seasonUpdate.coverLastModified,
+                    updateStrategy = seasonUpdate.updateStrategy,
+                    parentId = seasonUpdate.parentId,
+                    seasonNumber = seasonUpdate.seasonNumber,
+                    seasonSourceOrder = seasonUpdate.seasonSourceOrder,
+                    backgroundUrl = seasonUpdate.backgroundUrl,
+                    backgroundLastModified = seasonUpdate.backgroundLastModified,
+                    memo = seasonUpdate.memo,
+                    animeId = seasonUpdate.id,
+                )
+            }
+            stored
         }
     }
+    // <-- AM
 
     override suspend fun insertNetworkAnime(anime: List<Anime>): List<Anime> {
         return database.transactionWithResult {

@@ -11,10 +11,8 @@ import mihon.domain.anime.model.toDomainAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeRemoteUpdate
-import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.model.NoSeasonsException
 import tachiyomi.domain.anime.repository.AnimeRepository
-import tachiyomi.domain.season.interactor.GetAnimeSeasonsByParentId
 import tachiyomi.domain.season.interactor.ShouldUpdateDbSeason
 import tachiyomi.domain.season.service.SeasonRecognition
 import tachiyomi.source.local.isLocal
@@ -26,7 +24,6 @@ class SyncSeasonsWithSource(
     private val animeRepository: AnimeRepository,
     private val networkToLocalAnime: NetworkToLocalAnime,
     private val shouldUpdateDbSeason: ShouldUpdateDbSeason,
-    private val getAnimeSeasonsByParentId: GetAnimeSeasonsByParentId,
 ) {
     suspend fun await(
         rawSourceSeasons: List<SAnime>,
@@ -53,18 +50,17 @@ class SyncSeasonsWithSource(
                     .copy(seasonSourceOrder = i.toLong())
             }
 
-        val dbSeasons = getAnimeSeasonsByParentId.await(anime.id)
+        val dbSeasons = animeRepository.getAnimeSeasonsById(anime.id)
+        val dbSeasonsByUrl = dbSeasons.associateBy { it.anime.url }
 
         val newSeasons = mutableListOf<Anime>()
         val updatedSeasons = mutableListOf<AnimeRemoteUpdate>()
-        val removedSeasons = dbSeasons.filterNot { dbSeasons ->
-            sourceSeasons.any { sourceSeason ->
-                dbSeasons.anime.url == sourceSeason.url
-            }
-        }
+        val sourceUrls = mutableSetOf<String>()
 
         for (sourceSeason in sourceSeasons) {
             var season = sourceSeason
+
+            if (!sourceUrls.add(season.url)) continue
 
             // Recognize season number for the season
             val seasonNumber = SeasonRecognition.parseSeasonNumber(
@@ -74,7 +70,7 @@ class SyncSeasonsWithSource(
             )
             season = season.copy(seasonNumber = seasonNumber)
 
-            val dbSeason = dbSeasons.find { it.anime.url == season.url }?.anime
+            val dbSeason = dbSeasonsByUrl[season.url]?.anime
             if (dbSeason == null) {
                 newSeasons.add(season)
             } else {
@@ -104,6 +100,8 @@ class SyncSeasonsWithSource(
             }
         }
 
+        val removedSeasons = dbSeasons.filterNot { it.anime.url in sourceUrls }
+
         // Return if there's nothing to add, delete, or update to avoid unnecessary db transactions.
         if (newSeasons.isEmpty() && removedSeasons.isEmpty() && updatedSeasons.isEmpty()) {
             if (manualFetch || anime.fetchInterval == 0 || anime.nextUpdate < fetchWindow.first) {
@@ -118,23 +116,14 @@ class SyncSeasonsWithSource(
         }
 
         val deletedSeasonNumbers = removedSeasons.map { it.anime.seasonNumber }
-
-        if (removedSeasons.isNotEmpty()) {
-            val toDeleteIds = removedSeasons.map { it.id }
-            animeRepository.removeParentIdByIds(toDeleteIds)
-        }
-
-        if (newSeasons.isNotEmpty()) {
-            networkToLocalAnime.invoke(newSeasons)
-        }
-
-        if (updatedSeasons.isNotEmpty()) {
-            animeRepository.updateAllRemote(updatedSeasons)
-        }
-
+        val added = animeRepository.updateFromRemote(
+            removedIds = removedSeasons.map { it.id },
+            added = newSeasons,
+            updated = updatedSeasons,
+        )
         updateAnime.awaitUpdateLastUpdate(anime.id)
 
-        return sourceSeasons
+        return added
     }
 }
 // <-- AY
