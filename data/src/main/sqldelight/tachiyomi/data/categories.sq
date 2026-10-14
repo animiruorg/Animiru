@@ -80,7 +80,8 @@ WHERE AC.anime_id = :animeId AND C.hidden = 0;
 
 insert:
 INSERT INTO categories(name, sort, flags)
-VALUES (:name, :order, :flags);
+SELECT :name, coalesce(max(sort), -1) + 1, :flags
+FROM categories;
 
 delete:
 DELETE FROM categories
@@ -97,6 +98,12 @@ UPDATE categories
 SET hidden = :hidden
 WHERE _id = :categoryId;
 -- <-- AY
+
+getUserCategoryIds:
+SELECT _id
+FROM categories
+WHERE _id > 0
+ORDER BY sort;
 
 updateOrder:
 UPDATE categories
