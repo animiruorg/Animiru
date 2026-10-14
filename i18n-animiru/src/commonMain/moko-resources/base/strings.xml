@@ -67,14 +67,15 @@
     <string name="migrationListScreen.mismatchedFetchType">Mismatched fetch type</string>
 
     <!-- Entry Info Edit -->
-    <string name="reset_tags">Reset Tags</string>
-    <string name="add_tag">Add Tag</string>
     <string name="title_hint">Title: %1$s</string>
     <string name="description_hint">Description: %1$s</string>
     <string name="author_hint">Author: %1$s</string>
     <string name="artist_hint">Artist: %1$s</string>
     <string name="action_edit_info">Edit info</string>
     <string name="custom_entry_info">Custom entry info</string>
+    <string name="add_genre">New</string>
+    <string name="custom_info_reset_genre">Reset genres</string>
+    <string name="custom_info_add_genre">Add genre</string>
 
     <!-- Downloads -->
     <string name="pref_download_ignore_broken_tracks">Skip broken external tracks</string>
