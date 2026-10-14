@@ -117,7 +117,7 @@ private fun ComparisonQueryNode.matches(item: LibraryItem): Boolean {
     val match = when (field) {
         ComparisonField.ID -> value.toLongOrNull()?.let { queryComparator.apply(anime.id, it) }
 
-        ComparisonField.DATE_ADDED -> compareDates(anime.dateAdded, value)
+        ComparisonField.DATE_ADDED -> anime.favoriteAt?.let { compareDates(it, value) }
 
         ComparisonField.FETCH_INTERVAL -> value.toIntOrNull()
             ?.let { queryComparator.apply(abs(anime.fetchInterval), it) }

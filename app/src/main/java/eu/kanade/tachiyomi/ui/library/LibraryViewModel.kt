@@ -417,7 +417,7 @@ class LibraryViewModel(
                     anime1.libraryAnime.episodeFetchedAt.compareTo(anime2.libraryAnime.episodeFetchedAt)
                 }
                 LibrarySort.Type.DateAdded -> {
-                    anime1.libraryAnime.anime.dateAdded.compareTo(anime2.libraryAnime.anime.dateAdded)
+                    compareValues(anime1.libraryAnime.anime.favoriteAt, anime2.libraryAnime.anime.favoriteAt)
                 }
                 LibrarySort.Type.TrackerMean -> {
                     val item1Score = trackerScores[anime1.id] ?: defaultTrackerScoreSortValue
@@ -677,7 +677,7 @@ class LibraryViewModel(
                     it.removeBackgrounds(backgroundCache)
                     // <-- AY
                     AnimeUpdate(it.id) {
-                        favorite = false
+                        favoriteAt = null
                     }
                 }
                 updateAnime.awaitAll(toDelete)

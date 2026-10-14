@@ -48,7 +48,7 @@ ON AC.anime_id = A._id
 -- AY -->
 LEFT JOIN animeseasonstatsView AS ASS ON A._id = ASS.parent_id
 -- <-- AY
-WHERE A.favorite = 1;
+WHERE A.favorite_at IS NOT NULL;
 
 library:
 SELECT *

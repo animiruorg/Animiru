@@ -6,7 +6,7 @@ SELECT
     animes.title,
     animes.thumbnail_url AS thumbnailUrl,
     animes.source,
-    animes.favorite,
+    animes.favorite_at IS NOT NULL AS favorite,
     animes.cover_last_modified,
     episodes.episode_number AS episodeNumber,
     history.last_seen AS seenAt,

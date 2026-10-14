@@ -16,17 +16,14 @@ CREATE TABLE animes(
     title TEXT NOT NULL,
     status INTEGER NOT NULL,
     thumbnail_url TEXT,
-    favorite INTEGER AS Boolean NOT NULL,
     last_update INTEGER,
     next_update INTEGER,
     initialized INTEGER AS Boolean NOT NULL,
     viewer INTEGER NOT NULL,
     episode_flags INTEGER NOT NULL,
     cover_last_modified INTEGER NOT NULL,
-    date_added INTEGER NOT NULL,
     update_strategy INTEGER AS AnimeUpdateStrategy NOT NULL DEFAULT 0,
     calculate_interval INTEGER DEFAULT 0 NOT NULL,
-    favorite_modified_at INTEGER,
     notes TEXT NOT NULL DEFAULT "",
     -- AY -->
     fetch_type INTEGER AS FetchType NOT NULL DEFAULT 1,
@@ -37,24 +34,17 @@ CREATE TABLE animes(
     background_url TEXT,
     background_last_modified INTEGER NOT NULL,
     -- <-- AY
-    memo BLOB AS JsonObject NOT NULL DEFAULT '{}'
+    memo BLOB AS JsonObject NOT NULL DEFAULT '{}',
+    favorite_at INTEGER
 );
 
-CREATE INDEX library_favorite_index ON animes(favorite) WHERE favorite = 1;
+CREATE INDEX library_favorite_at_index ON animes(favorite_at) WHERE favorite_at IS NOT NULL ;
 CREATE INDEX animes_url_index ON animes(url);
 CREATE INDEX idx_animes_source ON animes(source);
 -- AY -->
 CREATE INDEX animes_parent_id ON animes(parent_id);
 CREATE INDEX animes_fetch_type ON animes(fetch_type);
 -- <-- AY
-
-CREATE TRIGGER update_last_favorited_at_animes
-AFTER UPDATE OF favorite ON animes
-BEGIN
-  UPDATE animes
-  SET favorite_modified_at = strftime('%s', 'now')
-  WHERE _id = new._id;
-END;
 
 getAnimeById:
 SELECT *
@@ -72,12 +62,12 @@ LIMIT 1;
 getFavorites:
 SELECT *
 FROM animes
-WHERE favorite = 1;
+WHERE favorite_at IS NOT NULL ;
 
 getSeenAnimeNotInLibrary:
 SELECT *
 FROM animes
-WHERE favorite = 0 AND _id IN (
+WHERE favorite_at IS NULL AND _id IN (
     SELECT DISTINCT episodes.anime_id
     FROM episodes
     WHERE seen = 1 OR last_second_seen != 0
@@ -91,23 +81,18 @@ getAllAnimeSourceAndUrl:
 SELECT source, url
 FROM animes;
 
-getAnimesWithFavoriteTimestamp:
-SELECT *
-FROM animes
-WHERE favorite_modified_at IS NOT NULL;
-
 getSourceIdWithFavoriteCount:
 SELECT
 source,
 count(*)
 FROM animes
-WHERE favorite = 1
+WHERE favorite_at IS NOT NULL
 GROUP BY source;
 
 getFavoriteBySourceId:
 SELECT *
 FROM animes
-WHERE favorite = 1
+WHERE favorite_at IS NOT NULL
 AND source = :sourceId;
 
 getDuplicateLibraryAnime:
@@ -127,7 +112,7 @@ duplicates AS (
     FROM animes A
     LEFT JOIN track_dupes D
     ON D.anime_id = _id
-    WHERE favorite = 1
+    WHERE favorite_at IS NOT NULL
     AND _id != :id
     AND (lower(title) LIKE '%' || lower(:title) || '%' OR D.anime_id IS NOT NULL)
 ),
@@ -155,7 +140,7 @@ getUpcomingAnime:
 SELECT *
 FROM animes
 WHERE next_update >= :startOfDay
-AND favorite = 1
+AND favorite_at IS NOT NULL
 AND status IN :statuses
 AND (
     -- includedEmpty being true expresses "don't care" state and bypasses the membership filter
@@ -204,7 +189,7 @@ WHERE parent_id = :parentId;
 
 deleteAnimesNotInLibraryByAnimeIds:
 DELETE FROM animes
-WHERE favorite = 0
+WHERE favorite_at IS NULL
 AND _id IN :animeIds
 AND (
     :keepSeenAnime = 0
@@ -217,19 +202,19 @@ AND (
 );
 
 insertReturningId:
-INSERT INTO animes(source, url, artist, author, description, genre, title, status, thumbnail_url, favorite, last_update, next_update, initialized, viewer, episode_flags, cover_last_modified, date_added, update_strategy, calculate_interval, notes, fetch_type, parent_id, season_flags, season_number, season_source_order, background_url, background_last_modified, memo)
-VALUES (:source, :url, :artist, :author, :description, :genre, :title, :status, :thumbnailUrl, :favorite, :lastUpdate, :nextUpdate, :initialized, :viewerFlags, :episodeFlags, :coverLastModified, :dateAdded, :updateStrategy, :calculateInterval, :notes, :fetchType, :parentId, :seasonFlags, :seasonNumber, :seasonSourceOrder, :backgroundUrl, :backgroundLastModified, :memo)
+INSERT INTO animes(source, url, artist, author, description, genre, title, status, thumbnail_url, favorite_at, last_update, next_update, initialized, viewer, episode_flags, cover_last_modified, update_strategy, calculate_interval, notes, fetch_type, parent_id, season_flags, season_number, season_source_order, background_url, background_last_modified, memo)
+VALUES (:source, :url, :artist, :author, :description, :genre, :title, :status, :thumbnailUrl, :favoriteAt, :lastUpdate, :nextUpdate, :initialized, :viewerFlags, :episodeFlags, :coverLastModified, :updateStrategy, :calculateInterval, :notes, :fetchType, :parentId, :seasonFlags, :seasonNumber, :seasonSourceOrder, :backgroundUrl, :backgroundLastModified, :memo)
 RETURNING _id;
 
 update:
 UPDATE animes SET
-    favorite = coalesce(:favorite, favorite),
+    -- NULL is a real value here (not in the library), which coalesce cannot write
+    favorite_at = CASE WHEN :favoriteAtSet THEN :favoriteAt ELSE favorite_at END,
     last_update = coalesce(:lastUpdate, last_update),
     next_update = coalesce(:nextUpdate, next_update),
     viewer = coalesce(:viewer, viewer),
     episode_flags = coalesce(:episodeFlags, episode_flags),
     cover_last_modified = coalesce(:coverLastModified, cover_last_modified),
-    date_added = coalesce(:dateAdded, date_added),
     calculate_interval = coalesce(:calculateInterval, calculate_interval),
     notes = coalesce(:notes, notes),
     -- AY -->
@@ -247,13 +232,12 @@ UPDATE animes SET
     title = coalesce(:title, title),
     status = coalesce(:status, status),
     thumbnail_url = coalesce(:thumbnailUrl, thumbnail_url),
-    favorite = coalesce(:favorite, favorite),
+    favorite_at = :favoriteAt,
     last_update = coalesce(:lastUpdate, last_update),
     initialized = coalesce(:initialized, initialized),
     viewer = coalesce(:viewer, viewer),
     episode_flags = coalesce(:episodeFlags, episode_flags),
     cover_last_modified = coalesce(:coverLastModified, cover_last_modified),
-    date_added = coalesce(:dateAdded, date_added),
     update_strategy = coalesce(:updateStrategy, update_strategy),
     notes = coalesce(:notes, notes),
     -- AY -->
@@ -294,14 +278,14 @@ WHERE _id = :animeId;
 insertNetworkAnime {
     -- Insert the anime if it doesn't exist already
     INSERT INTO animes(
-        source, url, artist, author, description, genre, title, status, thumbnail_url, favorite,
-        last_update, next_update, initialized, viewer, episode_flags, cover_last_modified, date_added,
+        source, url, artist, author, description, genre, title, status, thumbnail_url, favorite_at,
+        last_update, next_update, initialized, viewer, episode_flags, cover_last_modified,
         update_strategy, calculate_interval, fetch_type, parent_id, season_flags,
         season_number, season_source_order, background_url, background_last_modified, memo
     )
     SELECT
-        :source, :url, :artist, :author, :description, :genre, :title, :status, :thumbnailUrl, :favorite,
-        :lastUpdate, :nextUpdate, :initialized, :viewerFlags, :episodeFlags, :coverLastModified, :dateAdded,
+        :source, :url, :artist, :author, :description, :genre, :title, :status, :thumbnailUrl, :favoriteAt,
+        :lastUpdate, :nextUpdate, :initialized, :viewerFlags, :episodeFlags, :coverLastModified,
         :updateStrategy, :calculateInterval, :fetchType, :parentId, :seasonFlags, :seasonNumber,
         :seasonSourceOrder, :backgroundUrl, :backgroundLastModified, :memo
     WHERE NOT EXISTS(SELECT 0 FROM animes WHERE source = :source AND url = :url);
@@ -326,7 +310,7 @@ insertNetworkAnime {
         memo = :memo
     WHERE source = :source
     AND url = :url
-    AND favorite = 0;
+    AND favorite_at IS NULL;
 
     -- Finally return the anime
     SELECT *

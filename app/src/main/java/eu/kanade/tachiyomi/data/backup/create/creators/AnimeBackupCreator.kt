@@ -102,11 +102,10 @@ private fun Anime.toBackupAnime(
         thumbnailUrl = this.thumbnailUrl,
         favorite = this.favorite,
         source = this.source,
-        dateAdded = this.dateAdded,
+        dateAdded = this.favoriteAt ?: 0L,
         viewer_flags = this.viewerFlags.toInt(),
         episodeFlags = this.episodeFlags.toInt(),
         updateStrategy = this.updateStrategy,
-        favoriteModifiedAt = this.favoriteModifiedAt,
         notes = this.notes,
         initialized = this.initialized,
         // AY -->

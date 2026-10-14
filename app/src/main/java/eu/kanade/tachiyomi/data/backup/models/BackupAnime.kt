@@ -89,13 +89,19 @@ data class BackupAnime(
             // AY -->
             backgroundUrl = this@BackupAnime.backgroundUrl,
             // <-- AY
-            favorite = this@BackupAnime.favorite,
             source = this@BackupAnime.source,
-            dateAdded = this@BackupAnime.dateAdded,
+            // For libraries older than dateAdded, the favorite timestamp is the only record of when
+            // an entry was added. It was written by a trigger in seconds, unlike dateAdded.
+            favoriteAt = if (this@BackupAnime.favorite) {
+                this@BackupAnime.dateAdded.takeIf { it != 0L }
+                    ?: this@BackupAnime.favoriteModifiedAt?.times(1000)
+                    ?: 0L
+            } else {
+                null
+            },
             viewerFlags = this@BackupAnime.viewer_flags.toLong(),
             episodeFlags = this@BackupAnime.episodeFlags.toLong(),
             updateStrategy = this@BackupAnime.updateStrategy,
-            favoriteModifiedAt = this@BackupAnime.favoriteModifiedAt,
             notes = this@BackupAnime.notes,
             initialized = this@BackupAnime.initialized,
             // AY -->

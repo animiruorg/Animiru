@@ -3,11 +3,10 @@ package tachiyomi.domain.anime.model
 import mihon.domain.common.PartialUpdate
 
 class AnimeUpdate(val id: Long, block: AnimeUpdate.() -> Unit) : PartialUpdate() {
-    var favorite: Boolean? by field(null)
+    var favoriteAt: Long? by field(null)
     var lastUpdate: Long? by field(null)
     var nextUpdate: Long? by field(null)
     var fetchInterval: Int? by field(null)
-    var dateAdded: Long? by field(null)
     var viewerFlags: Long? by field(null)
     var episodeFlags: Long? by field(null)
     var coverLastModified: Long? by field(null)

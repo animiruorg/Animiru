@@ -119,20 +119,13 @@ class SyncSeasonsWithSource(
 
         val deletedSeasonNumbers = removedSeasons.map { it.anime.seasonNumber }
 
-        var itemCount = newSeasons.size
-        var updatedToAdd = newSeasons.map { toAddItem ->
-            AnimeUpdate(toAddItem.id) {
-                dateAdded = nowMillis + itemCount--
-            }
-        }
-
         if (removedSeasons.isNotEmpty()) {
             val toDeleteIds = removedSeasons.map { it.id }
             animeRepository.removeParentIdByIds(toDeleteIds)
         }
 
-        if (updatedToAdd.isNotEmpty()) {
-            updateAnime.awaitAll(updatedToAdd)
+        if (newSeasons.isNotEmpty()) {
+            networkToLocalAnime.invoke(newSeasons)
         }
 
         if (updatedSeasons.isNotEmpty()) {

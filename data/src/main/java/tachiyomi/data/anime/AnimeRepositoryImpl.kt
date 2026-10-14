@@ -209,7 +209,7 @@ class AnimeRepositoryImpl(
                     // AY -->
                     backgroundUrl = it.backgroundUrl,
                     // <-- AY
-                    favorite = it.favorite,
+                    favoriteAt = it.favoriteAt,
                     lastUpdate = it.lastUpdate,
                     nextUpdate = it.nextUpdate,
                     calculateInterval = it.fetchInterval.toLong(),
@@ -220,7 +220,6 @@ class AnimeRepositoryImpl(
                     // AY -->
                     backgroundLastModified = it.backgroundLastModified,
                     // <-- AY
-                    dateAdded = it.dateAdded,
                     updateStrategy = it.updateStrategy,
                     // AY -->
                     fetchType = it.fetchType,
@@ -305,13 +304,13 @@ class AnimeRepositoryImpl(
             animeUpdates.forEach { value ->
                 with(value) {
                     database.animesQueries.update(
-                        favorite = favorite,
+                        favoriteAtSet = isSet(::favoriteAt),
+                        favoriteAt = favoriteAt,
                         lastUpdate = lastUpdate,
                         nextUpdate = nextUpdate,
                         viewer = viewerFlags,
                         episodeFlags = episodeFlags,
                         coverLastModified = coverLastModified,
-                        dateAdded = dateAdded,
                         calculateInterval = fetchInterval?.toLong(),
                         notes = notes,
                         // AM -->
@@ -331,7 +330,7 @@ class AnimeRepositoryImpl(
     }
 
     override suspend fun getAllAnimeThatNeedsSync(): List<Anime> {
-        return database.animesQueries.getAnimesWithFavoriteTimestamp(AnimeMapper::mapAnime).awaitAsList()
+        return database.animesQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
     }
 
     override suspend fun updateAnime(anime: Anime) {
@@ -343,13 +342,12 @@ class AnimeRepositoryImpl(
             title = anime.title,
             status = anime.status,
             thumbnailUrl = anime.thumbnailUrl,
-            favorite = anime.favorite,
+            favoriteAt = anime.favoriteAt,
             lastUpdate = anime.lastUpdate,
             initialized = anime.initialized,
             viewer = anime.viewerFlags,
             episodeFlags = anime.episodeFlags,
             coverLastModified = anime.coverLastModified,
-            dateAdded = anime.dateAdded,
             updateStrategy = anime.updateStrategy,
             notes = anime.notes,
             // AM -->

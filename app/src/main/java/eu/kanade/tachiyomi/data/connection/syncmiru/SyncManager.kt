@@ -309,7 +309,9 @@ class SyncManager(
             val key = Triple(nonFavorite.source, nonFavorite.url, nonFavorite.title)
             localAnimeMap[key]?.let { localAnime ->
                 if (localAnime.favorite != nonFavorite.favorite) {
-                    val updatedAnime = localAnime.copy(favorite = nonFavorite.favorite)
+                    val favoriteAt = nonFavorite.dateAdded.takeIf { it != 0L }
+                        ?: nonFavorite.favoriteModifiedAt?.times(1000L)
+                    val updatedAnime = localAnime.copy(favoriteAt = favoriteAt)
                     animeRepository.updateAnime(updatedAnime)
                 }
             }

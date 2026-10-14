@@ -62,15 +62,10 @@ class UpdateAnime(
     // <-- AY
 
     suspend fun awaitUpdateFavorite(animeId: Long, favorite: Boolean): Boolean {
-        val dateAdded = when (favorite) {
-            true -> Clock.System.now().toEpochMilliseconds()
-            false -> 0
+        val update = when (favorite) {
+            true -> AnimeUpdate(animeId) { favoriteAt = Clock.System.now().toEpochMilliseconds() }
+            false -> AnimeUpdate(animeId) { favoriteAt = null }
         }
-        return animeRepository.update(
-            AnimeUpdate(animeId) {
-                this.favorite = favorite
-                this.dateAdded = dateAdded
-            },
-        )
+        return animeRepository.update(update)
     }
 }

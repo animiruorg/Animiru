@@ -5,7 +5,7 @@ SELECT
     A.source,
     A.fetch_type
 FROM animes AS A
-WHERE A.favorite = 0
+WHERE A.favorite_at IS NULL
 AND A.parent_id IS NULL;
 
 getDeletableParentAnime:

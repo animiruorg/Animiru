@@ -16,7 +16,7 @@ SELECT
     episodes.total_seconds AS totalSeconds,
     -- <-- AY
     animes.source,
-    animes.favorite,
+    animes.favorite_at IS NOT NULL AS favorite,
     animes.thumbnail_url AS thumbnailUrl,
     animes.cover_last_modified AS coverLastModified,
     episodes.date_upload AS dateUpload,
@@ -27,8 +27,8 @@ ON animes._id = episodes.anime_id
 LEFT JOIN excluded_scanlators
 ON animes._id = excluded_scanlators.anime_id
 AND episodes.scanlator = excluded_scanlators.scanlator
-WHERE favorite = 1
-AND date_fetch > date_added
+WHERE favorite_at IS NOT NULL
+AND date_fetch > favorite_at
 ORDER BY date_fetch DESC;
 
 getRecentUpdates:

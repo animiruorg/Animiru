@@ -78,11 +78,11 @@ class RestoreRepositoryImpl(
     private fun mergeAnime(anime: Anime, dbAnime: Anime): Anime {
         val details = if (dbAnime.initialized || !anime.initialized) dbAnime else anime
         return dbAnime.copy(
-            favorite = dbAnime.favorite || anime.favorite,
-            dateAdded = listOfNotNull(
-                dbAnime.dateAdded.takeIf { it > 0 },
-                anime.dateAdded.takeIf { it > 0 },
-            ).minOrNull() ?: 0L,
+            favoriteAt = if (dbAnime.favorite || anime.favorite) {
+                listOfNotNull(dbAnime.favoriteAt, anime.favoriteAt).filter { it > 0 }.minOrNull() ?: 0L
+            } else {
+                null
+            },
             ogTitle = details.title,
             ogArtist = details.artist,
             ogAuthor = details.artist,
@@ -105,6 +105,7 @@ class RestoreRepositoryImpl(
 
     private suspend fun updateAnime(anime: Anime): Anime {
         database.animesQueries.updateFromBackup(
+            favoriteAt = anime.favoriteAt,
             artist = anime.artist,
             author = anime.author,
             description = anime.description,
@@ -112,13 +113,11 @@ class RestoreRepositoryImpl(
             title = anime.title,
             status = anime.status,
             thumbnailUrl = anime.thumbnailUrl,
-            favorite = anime.favorite,
             lastUpdate = anime.lastUpdate,
             initialized = anime.initialized,
             viewer = anime.viewerFlags,
             episodeFlags = anime.episodeFlags,
             coverLastModified = anime.coverLastModified,
-            dateAdded = anime.dateAdded,
             updateStrategy = anime.updateStrategy,
             notes = anime.notes,
             // AM -->
@@ -138,6 +137,7 @@ class RestoreRepositoryImpl(
 
     private suspend fun insertAnime(anime: Anime): Long {
         return database.animesQueries.insertReturningId(
+            favoriteAt = anime.favoriteAt,
             source = anime.source,
             url = anime.url,
             artist = anime.artist,
@@ -147,14 +147,12 @@ class RestoreRepositoryImpl(
             title = anime.title,
             status = anime.status,
             thumbnailUrl = anime.thumbnailUrl,
-            favorite = anime.favorite,
             lastUpdate = anime.lastUpdate,
             nextUpdate = 0L,
             initialized = anime.initialized,
             viewerFlags = anime.viewerFlags,
             episodeFlags = anime.episodeFlags,
             coverLastModified = anime.coverLastModified,
-            dateAdded = anime.dateAdded,
             updateStrategy = anime.updateStrategy,
             calculateInterval = 0L,
             notes = anime.notes,

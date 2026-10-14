@@ -250,22 +250,13 @@ class BrowseSourceViewModel(
      */
     fun changeAnimeFavorite(anime: Anime) {
         viewModelScope.launch {
-            var new = anime.copy(
-                favorite = !anime.favorite,
-                dateAdded = when (anime.favorite) {
-                    true -> 0
-                    false -> Clock.System.now().toEpochMilliseconds()
-                },
-            )
-
             val update = if (anime.favorite) {
                 val coverLastModified = anime.removeCovers(coverCache).coverLastModified
                 // AM -->
                 val backgroundLastModified = anime.removeBackgrounds(backgroundCache).backgroundLastModified
                 // <-- AM
                 AnimeUpdate(anime.id) {
-                    favorite = false
-                    dateAdded = 0
+                    favoriteAt = null
                     if (coverLastModified != anime.coverLastModified) this.coverLastModified = coverLastModified
                     // AM -->
                     if (backgroundLastModified != anime.backgroundLastModified) {
@@ -276,10 +267,7 @@ class BrowseSourceViewModel(
             } else {
                 setAnimeDefaultEpisodeFlags.await(anime)
                 addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source))
-                AnimeUpdate(anime.id) {
-                    favorite = true
-                    dateAdded = Clock.System.now().toEpochMilliseconds()
-                }
+                AnimeUpdate(anime.id) { favoriteAt = Clock.System.now().toEpochMilliseconds() }
             }
 
             updateAnime.await(update)
