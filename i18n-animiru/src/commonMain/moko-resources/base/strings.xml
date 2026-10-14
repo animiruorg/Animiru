@@ -96,7 +96,7 @@
     <!-- Connection section -->
     <string name="special_services">Special Services</string>
     <string name="pref_category_connection">Connections</string>
-    <string name="pref_connection_summary">Discord, Cross Sync, more to come..</string>
+    <string name="pref_connection_summary">Discord, more to come..</string>
     <string name="connection_info">Special Services that are unique and enhance the way you use the app</string>
     <string name="connection_discord">Discord</string>
     <string name="connection_discord_info">This Discord Service works through token logging. Use at your own risk. Your token is stored locally and Animiru does not share it anywhere else</string>
@@ -213,7 +213,6 @@
     <string name="pref_sync_service_category">Sync</string>
     <string name="pref_sync_automatic_category">Automatic Synchronization</string>
     <string name="pref_sync_interval">Synchronization frequency</string>
-    <string name="pref_choose_what_to_sync">Choose what to sync</string>
     <string name="success_reset_sync_timestamp">Last sync timestamp reset</string>
     <string name="syncyomi">SyncYomi</string>
     <string name="sync_completed_message">Done in %1$s</string>

@@ -29,7 +29,6 @@ import coil3.util.DebugLogger
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.createGraphFactory
 import eu.kanade.domain.base.BasePreferences
-import eu.kanade.domain.connection.SyncPreferences
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.setAppCompatDelegateThemeMode
 import eu.kanade.tachiyomi.crash.CrashActivity
@@ -41,7 +40,6 @@ import eu.kanade.tachiyomi.data.coil.AnimeImageFetcher
 import eu.kanade.tachiyomi.data.coil.AnimeKeyer
 import eu.kanade.tachiyomi.data.coil.BufferedSourceFetcher
 import eu.kanade.tachiyomi.data.connection.discord.DiscordRPCService
-import eu.kanade.tachiyomi.data.connection.syncmiru.SyncDataJob
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.NetworkPreferences
@@ -52,7 +50,6 @@ import eu.kanade.tachiyomi.util.system.animatorDurationScale
 import eu.kanade.tachiyomi.util.system.cancelNotification
 import eu.kanade.tachiyomi.util.system.isDebugBuildType
 import eu.kanade.tachiyomi.util.system.notify
-import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -107,10 +104,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     @Inject private lateinit var thumbnailCache: ThumbnailCache
     // <-- AM
-
-    // AM (SYNC) -->
-    @Inject private lateinit var syncPreferences: SyncPreferences
-    // <-- AM (SYNC)
 
     // AM (CAST) -->
     @Inject private lateinit var castManager: CastManager
@@ -186,10 +179,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
         // Updates widget update
         widgetManager.init(scope)
-
-        // AM (SYNC) -->
-        startSyncJob(syncPreferences.getSyncTriggerOptions().syncOnAppStart)
-        // <-- AM (SYNC)
 
         // AM --> (CAST)
         if (playerPreferences.enableCast.get()) {
@@ -269,9 +258,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         // AM (DISCORD_RPC) -->
         DiscordRPCService.start(applicationContext)
         // <-- AM (DISCORD_RPC)
-        // AM (SYNC) -->
-        startSyncJob(syncPreferences.getSyncTriggerOptions().syncOnAppResume)
-        // <-- AM (SYNC)
     }
 
     override fun onStop(owner: LifecycleOwner) {
@@ -279,9 +265,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         // AM (DISCORD_RPC) -->
         DiscordRPCService.stop(applicationContext, 10000L)
         // <-- AM (DISCORD_RPC)
-        // AM (SYNC) -->
-        startSyncJob(syncPreferences.getSyncTriggerOptions().syncOnAppStart)
-        // <-- AM (SYNC)
     }
 
     override fun getPackageName(): String {
@@ -334,14 +317,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             }
         }
     }
-
-    // AM (SYNC) -->
-    private fun startSyncJob(syncTriggerOption: Boolean) {
-        if (syncPreferences.isSyncEnabled() && syncTriggerOption) {
-            SyncDataJob.startNow(this@App.applicationContext.workManager)
-        }
-    }
-    // <-- AM (SYNC)
 }
 
 private const val ACTION_DISABLE_INCOGNITO_MODE = "tachi.action.DISABLE_INCOGNITO_MODE"

@@ -45,7 +45,6 @@ Surround the new code with:
 - **AM (CUSTOM_INFORMATION)** --> Copied from SY, Thank you jobobby4/syer!
 - **AM (GROUPING)** --> Copied from SY, Thank you jobobby4/syer!
 - **AM (RECENTS)** --> Idea inspired from J2K, Thank you Jays2Kings!
-- **AM (SYNC, SYNC_DRIVE, SYNC_YOMI)** --> Original code in SyncYomi, copied from Kuukiyomi. Thank you Kaiserbh and Luftverbot!
 - **AM (STORAGE_SCREEN)** --> Taken from Aniyomi and refactored to fit Animiru's codebase!
 - **AM (RECENTS_FILTER_CHIP)** --> Thank you Quickdesh!
 

@@ -205,23 +205,6 @@
             </intent-filter>
         </activity>
 
-        <!--AM (SYNC_DRIVE) -->
-        <activity
-            android:name=".ui.setting.connection.GoogleDriveLoginActivity"
-            android:label="GoogleDrive"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="animiru.google.oauth" />
-            </intent-filter>
-        </activity>
-        <!--AM (SYNC_DRIVE) -->
-
         <!--AM (DISCORD_RPC) -->
         <service
             android:name=".data.connection.discord.DiscordRPCService"

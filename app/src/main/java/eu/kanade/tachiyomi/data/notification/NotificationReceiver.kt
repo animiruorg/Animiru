@@ -9,7 +9,6 @@ import androidx.core.net.toUri
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob
 import eu.kanade.tachiyomi.data.connection.discord.DiscordRPCService
-import eu.kanade.tachiyomi.data.connection.syncmiru.SyncDataJob
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.ui.main.MainActivity
@@ -81,9 +80,6 @@ class NotificationReceiver : BroadcastReceiver() {
                     "application/x-protobuf+gzip",
                 )
             ACTION_CANCEL_RESTORE -> cancelRestore(context)
-            // AM (SYNC) -->
-            ACTION_CANCEL_SYNC -> cancelSync(context)
-            // <-- AM (SYNC)
             // AM (DISCORD_RPC) -->
             // Stop Discord RPC service
             ACTION_STOP_DISCORD_RPC -> stopDiscordRPC(context)
@@ -183,12 +179,6 @@ class NotificationReceiver : BroadcastReceiver() {
         BackupRestoreJob.stop(context.workManager)
     }
 
-    // AM (SYNC) -->
-    private fun cancelSync(context: Context) {
-        SyncDataJob.stop(context)
-    }
-    // <-- AM (SYNC)
-
     /**
      * Method called when user wants to stop a library update
      *
@@ -259,10 +249,6 @@ class NotificationReceiver : BroadcastReceiver() {
         private const val ACTION_SHARE_BACKUP = "$ID.$NAME.SEND_BACKUP"
 
         private const val ACTION_CANCEL_RESTORE = "$ID.$NAME.CANCEL_RESTORE"
-
-        // AM (SYNC) -->
-        private const val ACTION_CANCEL_SYNC = "$ID.$NAME.CANCEL_SYNC"
-        // <-- AM (SYNC)
 
         // AM (DISCORD_RPC) -->
         // Stop Discord RPC service
@@ -624,21 +610,6 @@ class NotificationReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
         }
-
-        // AM (SYNC) -->
-        internal fun cancelSyncPendingBroadcast(context: Context, notificationId: Int): PendingIntent {
-            val intent = Intent(context, NotificationReceiver::class.java).apply {
-                action = ACTION_CANCEL_SYNC
-                putExtra(EXTRA_NOTIFICATION_ID, notificationId)
-            }
-            return PendingIntent.getBroadcast(
-                context,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-        }
-        // <-- AM (SYNC)
 
         // AM (DISCORD_RPC) -->
         internal fun stopDiscordRPCService(context: Context): PendingIntent {

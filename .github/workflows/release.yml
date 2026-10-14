@@ -46,15 +46,6 @@ jobs:
           java-version-file: .github/.java-version
           distribution: temurin
 
-      # AM (SYNC_DRIVE) -->
-      - name: Write client_secrets.json
-        uses: DamianReeves/write-file-action@v1.2
-        with:
-            path: app/src/main/assets/client_secrets.json
-            contents: ${{ secrets.CLIENT_SECRETS_TEXT }}
-            write-mode: overwrite
-      # <-- AM (SYNC_DRIVE)
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
@@ -109,15 +100,6 @@ jobs:
         with:
           java-version-file: .github/.java-version
           distribution: temurin
-
-      # AM (SYNC_DRIVE) -->
-      - name: Write client_secrets.json
-        uses: DamianReeves/write-file-action@v1.2
-        with:
-          path: app/src/main/assets/client_secrets.json
-          contents: ${{ secrets.CLIENT_SECRETS_TEXT }}
-          write-mode: overwrite
-      # <-- AM (SYNC_DRIVE)
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0

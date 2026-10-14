@@ -103,32 +103,3 @@
     public <init>();
     public void destroy();
 }
-
-# AM (SYNC_DRIVE) -->
-# Google Drive
--keep class com.google.api.services.** { *; }
-
-# Google OAuth
--keep class com.google.api.client.** { *; }
-# <-- AM (SYNC_DRIVE)
-
-# AM (SYNC_YOMI) -->
-# Keep apache http client
--keep class org.apache.http.** { *; }
-# <-- AM (SYNC_YOMI)
-
-# AM (SYNC) -->
-# Suggested rules
--dontwarn javax.naming.InvalidNameException
--dontwarn javax.naming.NamingException
--dontwarn javax.naming.directory.Attribute
--dontwarn javax.naming.directory.Attributes
--dontwarn javax.naming.ldap.LdapName
--dontwarn javax.naming.ldap.Rdn
--dontwarn org.ietf.jgss.GSSContext
--dontwarn org.ietf.jgss.GSSCredential
--dontwarn org.ietf.jgss.GSSException
--dontwarn org.ietf.jgss.GSSManager
--dontwarn org.ietf.jgss.GSSName
--dontwarn org.ietf.jgss.Oid
-# <-- AM (SYNC)

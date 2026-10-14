@@ -45,7 +45,6 @@ import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import eu.kanade.domain.anime.interactor.SetAnimeViewerFlags
 import eu.kanade.domain.anime.interactor.UpdateAnime
 import eu.kanade.domain.base.BasePreferences
-import eu.kanade.domain.connection.SyncPreferences
 import eu.kanade.domain.episode.model.toDbEpisode
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.track.interactor.TrackEpisode
@@ -62,7 +61,6 @@ import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
-import eu.kanade.tachiyomi.data.connection.syncmiru.SyncDataJob
 import eu.kanade.tachiyomi.data.database.models.Episode
 import eu.kanade.tachiyomi.data.database.models.isRecognizedNumber
 import eu.kanade.tachiyomi.data.database.models.toDomainEpisode
@@ -107,7 +105,6 @@ import eu.kanade.tachiyomi.util.lang.takeBytes
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import eu.kanade.tachiyomi.util.storage.cacheImageDir
 import eu.kanade.tachiyomi.util.system.getWanIp
-import eu.kanade.tachiyomi.util.system.workManager
 import `is`.xyz.mpv.MPVNode
 import `is`.xyz.mpv.Utils
 import kotlinx.coroutines.Dispatchers
@@ -230,9 +227,6 @@ class PlayerViewModel(
     private val coverManager: LocalCoverManager,
     private val backgroundManager: LocalBackgroundManager,
     private val thumbnailManager: LocalEpisodeThumbnailManager,
-    // AM (SYNC) -->
-    private val syncPreferences: SyncPreferences,
-    // <-- AM (SYNC)
     // AM --> (CAST)
     internal val castManager: CastManager,
     private val videoInformation: VideoInformation,
@@ -3124,14 +3118,6 @@ class PlayerViewModel(
                 }
             }
         updateEpisode.awaitAll(duplicateUnseenEpisodes)
-
-        // AM (SYNC) -->
-        val isSyncEnabled = syncPreferences.isSyncEnabled()
-        val syncTriggerOpt = syncPreferences.getSyncTriggerOptions()
-        if (isSyncEnabled && syncTriggerOpt.syncOnEpisodeSeen) {
-            SyncDataJob.startNow(context.workManager)
-        }
-        // <-- AM (SYNC)
     }
 
     private fun updateTrackEpisodeSeen(episode: Episode) {
@@ -3177,13 +3163,6 @@ class PlayerViewModel(
                     totalSeconds = episode.total_seconds
                 },
             )
-            // AM (SYNC) -->
-            val isSyncEnabled = syncPreferences.isSyncEnabled()
-            val syncTriggerOpt = syncPreferences.getSyncTriggerOptions()
-            if (isSyncEnabled && syncTriggerOpt.syncOnEpisodeOpen && episode.last_second_seen >= 1L) {
-                SyncDataJob.startNow(context.workManager)
-            }
-            // <-- AM (SYNC)
         }
     }
 

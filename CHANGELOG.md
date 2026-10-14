@@ -20,6 +20,9 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Make the scrollbar in an anime entry less buggy when scrolling and dragging the thumb ([@Secozzi](https://github.com/Secozzi)) ([#229](https://github.com/animiruorg/Animiru/pull/229))
 - Use extension client for downloading ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
 
+### Removed
+- Removed sync from connections ([@Secozzi](https://github.com/Secozzi)) ([#240](https://github.com/animiruorg/Animiru/pull/240))
+
 ### Fixed
 - Fix episode thumbnails not being fetched with source headers ([@Secozzi](https://github.com/Secozzi)) ([#225](https://github.com/animiruorg/Animiru/pull/225))
 - Fix animiru crashing for rpc when rpc is turned off ([@Secozzi](https://github.com/Secozzi)) ([#228](https://github.com/animiruorg/Animiru/pull/228))

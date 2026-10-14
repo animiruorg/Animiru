@@ -28,7 +28,7 @@ android {
     defaultConfig {
         applicationId = "xyz.Quickdev.Animiru.mi"
 
-        versionCode = 151
+        versionCode = 152
         versionName = "0.20.0.1"
 
         buildConfigField("boolean", "UPDATER_ENABLED", "${Config.enableUpdater}")
@@ -364,11 +364,6 @@ dependencies {
     // torrserver
     implementation(aniyomilibs.torrserver)
     // <-- AY
-
-    // AM (SYNC_DRIVE) -->
-    implementation(aniyomilibs.google.api.services.drive)
-    implementation(aniyomilibs.google.api.client.oauth)
-    // <-- AM (SYNC_DRIVE)
 
     // AM (CAST) -->
     implementation(aniyomilibs.nanohttpd)

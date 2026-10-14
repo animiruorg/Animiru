@@ -11,8 +11,6 @@ nanohttpd = "2.3.1"
 seeker = "1.2.2"
 torrserver = "0.1.1"
 truetypeparser = "2.1.4"
-google-api-drive = "v3-rev197-1.25.0"
-google-api-oauth = "1.34.1"
 
 [libraries]
 mpv-lib = { module = "io.github.secozzi:mpv-android-lib", version.ref = "mpv-lib" }
@@ -25,11 +23,6 @@ nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
 seeker = { module = "io.github.2307vivek:seeker", version.ref = "seeker" }
 torrserver = { module = "io.github.secozzi:torrserver", version.ref = "torrserver" }
 truetypeparser = { module = "io.github.yubyf:truetypeparser-light", version.ref = "truetypeparser" }
-
-# AM (SYNC_DRIVE) -->
-google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "google-api-drive" }
-google-api-client-oauth = { module = "com.google.oauth-client:google-oauth-client", version.ref = "google-api-oauth" }
-# <-- AM (SYNC_DRIVE)
 
 # AM (CAST) -->
 gms-cast = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "gms-cast" }

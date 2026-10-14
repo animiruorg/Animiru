@@ -17,7 +17,6 @@ import dev.zacsweers.metro.Provides
 import dev.zacsweers.metrox.viewmodel.MetroViewModelFactory
 import dev.zacsweers.metrox.viewmodel.ViewModelGraph
 import eu.kanade.domain.base.BasePreferences
-import eu.kanade.domain.connection.SyncPreferences
 import eu.kanade.domain.connection.service.ConnectionPreferences
 import eu.kanade.domain.extension.interactor.TrustExtension
 import eu.kanade.domain.source.service.SourcePreferences
@@ -33,8 +32,6 @@ import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.connection.ConnectionManager
 import eu.kanade.tachiyomi.data.connection.discord.DiscordRPCService
-import eu.kanade.tachiyomi.data.connection.syncmiru.SyncDataJob
-import eu.kanade.tachiyomi.data.connection.syncmiru.service.GoogleDriveService
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadJob
 import eu.kanade.tachiyomi.data.download.DownloadManager
@@ -101,7 +98,6 @@ interface AppGraph : ViewModelGraph {
 
     // AM -->
     fun inject(discordRPCService: DiscordRPCService)
-    fun inject(syncDataJob: SyncDataJob)
     fun inject(httpServerService: HttpServerService)
     fun inject(torrentServerService: TorrentServerService)
     fun inject(castProxyServerService: CastProxyServerService)
@@ -131,7 +127,6 @@ interface AppGraph : ViewModelGraph {
     val torrentPreferences: TorrentPreferences
     val advancedPlayerPreferences: AdvancedPlayerPreferences
     val connectionPreferences: ConnectionPreferences
-    val syncPreferences: SyncPreferences
     // <-- AM
 
     val crashLogUtil: CrashLogUtil
@@ -173,7 +168,6 @@ interface AppGraph : ViewModelGraph {
     val connectionManager: ConnectionManager
     val storageManager: StorageManager
     val downloadProvider: DownloadProvider
-    val googleDriveService: GoogleDriveService
     val torrentServerApi: TorrentServerApi
     val torrentUtilsImpl: TorrentUtilsImpl
     val getAnime: GetAnime

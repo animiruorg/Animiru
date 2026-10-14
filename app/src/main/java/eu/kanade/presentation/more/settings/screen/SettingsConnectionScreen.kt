@@ -51,16 +51,6 @@ object SettingsConnectionScreen : SearchableSettings {
                         login = { navigator.push(DiscordLoginScreen()) },
                         openSettings = { navigator.push(SettingsDiscordScreen) },
                     ),
-                    // <-- AM (DISCORD_RPC)
-                    // AM (SYNC) -->
-                    Preference.PreferenceItem.ConnectionPreference(
-                        title = connectionManager.syncmiru.name,
-                        connection = connectionManager.syncmiru,
-                        login = { navigator.push(SettingsSyncmiruScreen) },
-                        openSettings = { navigator.push(SettingsSyncmiruScreen) },
-                    ),
-                    // <-- AM (SYNC)
-                    // AM (DISCORD_RPC) -->
                     Preference.PreferenceItem.InfoPreference(stringResource(AMMR.strings.connection_discord_info)),
                     // <-- AM (DISCORD_RPC)
                 ),
