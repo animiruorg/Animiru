@@ -264,29 +264,30 @@ class RestoreRepositoryImpl(
         this.copy(id = 0L, animeId = 0L, dateFetch = 0L, dateUpload = 0L, thumbnailLastModifiedAt = 0L)
 
     private suspend fun restoreHistory(anime: Anime, restoredHistory: List<RestoredHistory>) {
-        val toUpdate = restoredHistory.mapNotNull { history ->
-            val dbHistory = database.historyQueries
-                .getHistoryByEpisodeUrlAndAnimeId(history.episodeUrl, anime.id)
-                .awaitAsOneOrNull()
-
-            if (dbHistory == null) {
-                val episode = database.episodesQueries
-                    .getEpisodeByUrlAndAnimeId(history.episodeUrl, anime.id)
+        val toUpdate = restoredHistory
+            .groupBy { it.episodeUrl }
+            .mapNotNull { (episodeUrl, copies) ->
+                val seenAt = copies.maxOf { it.seenAt?.time ?: 0L }
+                val dbHistory = database.historyQueries
+                    .getHistoryByEpisodeUrlAndAnimeId(episodeUrl, anime.id)
                     .awaitAsOneOrNull()
-                    // Episode doesn't exist; skip
-                    ?: return@mapNotNull null
-                // New history entry
-                return@mapNotNull Pair(episode._id, history.seenAt)
-            }
 
-            // Update history entry
-            Pair(
-                dbHistory.episode_id,
-                max(history.seenAt?.time ?: 0L, dbHistory.last_seen?.time ?: 0L)
-                    .takeIf { it > 0L }
-                    ?.let { Date(it) },
-            )
-        }
+                if (dbHistory == null) {
+                    val episode = database.episodesQueries
+                        .getEpisodeByUrlAndAnimeId(episodeUrl, anime.id)
+                        .awaitAsOneOrNull()
+                        // Episode doesn't exist; skip
+                        ?: return@mapNotNull null
+                    // New history entry
+                    return@mapNotNull Pair(episode._id, Date(seenAt))
+                }
+
+                // Update history entry
+                Pair(
+                    dbHistory.episode_id,
+                    Date(max(seenAt, dbHistory.last_seen?.time ?: 0L)),
+                )
+            }
 
         toUpdate.forEach { (episodeId, seenAt) ->
             database.historyQueries.upsert(episodeId, seenAt)

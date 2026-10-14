@@ -69,9 +69,8 @@ class AddTracks(
 
                         if (track.startDate <= 0) {
                             val firstSeenEpisodeDate = getHistory.await(anime.id)
-                                .sortedBy { it.seenAt }
-                                .firstOrNull()
-                                ?.seenAt
+                                .mapNotNull { it.seenAt?.takeIf { seenAt -> seenAt.time > 0 } }
+                                .minOrNull()
 
                             firstSeenEpisodeDate?.let {
                                 val startDate = firstSeenEpisodeDate.time.convertEpochMillisZone(
