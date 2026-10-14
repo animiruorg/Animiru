@@ -27,6 +27,9 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Fixed being unable to use external player ([@Secozzi](https://github.com/Secozzi)) ([#232](https://github.com/animiruorg/Animiru/pull/232))
 - Fix download notifications and downloads from local http servers ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
 
+### Other
+- Merged from mihon ([@Secozzi](https://github.com/Secozzi)) ([#239](https://github.com/animiruorg/Animiru/pull/239))
+
 ## [v0.20.0.1] - 2026-09-14
 ### Fixed
 - Fixed per-category sorting mode ([@Secozzi](https://github.com/Secozzi)) ([#209](https://github.com/animiruorg/Animiru/pull/209))
