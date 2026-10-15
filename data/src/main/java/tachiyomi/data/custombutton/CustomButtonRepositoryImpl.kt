@@ -39,12 +39,12 @@ class CustomButtonRepositoryImpl(
     ) {
         try {
             database.custom_buttonsQueries.insert(
-                name,
-                favorite,
-                sortIndex,
-                content,
-                longPressContent,
-                onStartup,
+                name = name,
+                isFavorite = favorite,
+                sortIndex = sortIndex,
+                content = content,
+                longPressContent = longPressContent,
+                onStartup = onStartup,
             )
         } catch (ex: SQLiteException) {
             throw SaveCustomButtonException(ex)

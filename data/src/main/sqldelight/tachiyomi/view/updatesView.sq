@@ -35,14 +35,24 @@ AND date_fetch > favorite_at
 ORDER BY date_fetch DESC;
 
 getRecentUpdates:
-SELECT *
+SELECT
+    animeId, customAnimeTitle, animeId, episodeId, episodeName,
+    scanlator, episodeUrl, seen, bookmark, fillermark,
+    last_second_seen, totalSeconds, source, favorite,
+    thumbnailUrl, coverLastModified, dateUpload, datefetch,
+    excludedScanlator
 FROM updatesView
 WHERE dateUpload > :after
 ORDER BY datefetch DESC
 LIMIT :limit;
 
 getRecentUpdatesWithFilters:
-SELECT *
+SELECT
+    animeId, customAnimeTitle, animeId, episodeId, episodeName,
+    scanlator, episodeUrl, seen, bookmark, fillermark,
+    last_second_seen, totalSeconds, source, favorite,
+    thumbnailUrl, coverLastModified, dateUpload, datefetch,
+    excludedScanlator
 FROM updatesView
 WHERE dateUpload > :after
 AND (:seen IS NULL OR seen = :seen)
@@ -88,7 +98,12 @@ ORDER BY datefetch DESC
 LIMIT :limit;
 
 getUpdatesBySeenStatus:
-SELECT *
+SELECT
+    animeId, customAnimeTitle, animeId, episodeId, episodeName,
+    scanlator, episodeUrl, seen, bookmark, fillermark,
+    last_second_seen, totalSeconds, source, favorite,
+    thumbnailUrl, coverLastModified, dateUpload, datefetch,
+    excludedScanlator
 FROM updatesView
 WHERE seen = :seen
 AND dateUpload > :after

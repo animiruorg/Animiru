@@ -220,28 +220,28 @@ class RestoreRepositoryImpl(
 
         newEpisodes.forEach { episode ->
             database.episodesQueries.insert(
-                episode.animeId,
-                episode.url,
-                episode.name,
-                episode.scanlator,
-                episode.seen,
-                episode.bookmark,
+                animeId = episode.animeId,
+                url = episode.url,
+                name = episode.name,
+                scanlator = episode.scanlator,
+                seen = episode.seen,
+                bookmark = episode.bookmark,
                 // AM -->
-                episode.fillermark,
+                fillermark = episode.fillermark,
                 // <-- AM
-                episode.lastSecondSeen,
+                lastSecondSeen = episode.lastSecondSeen,
                 // AM -->
-                episode.totalSeconds,
+                totalSeconds = episode.totalSeconds,
                 // <-- AM
-                episode.episodeNumber,
-                episode.sourceOrder,
-                episode.dateFetch,
-                episode.dateUpload,
+                episodeNumber = episode.episodeNumber,
+                sourceOrder = episode.sourceOrder,
+                dateFetch = episode.dateFetch,
+                dateUpload = episode.dateUpload,
                 // AM -->
-                episode.summary,
-                episode.previewUrl,
+                summary = episode.summary,
+                previewUrl = episode.previewUrl,
                 // <-- AM
-                episode.memo,
+                memo = episode.memo,
             )
         }
         existingEpisodes.forEach { episode ->
@@ -290,7 +290,7 @@ class RestoreRepositoryImpl(
             }
 
         toUpdate.forEach { (episodeId, seenAt) ->
-            database.historyQueries.upsert(episodeId, seenAt)
+            database.historyQueries.upsert(episodeId = episodeId, seenAt = seenAt)
         }
     }
 
@@ -319,20 +319,20 @@ class RestoreRepositoryImpl(
 
         existingTracks.forEach { track ->
             database.anime_syncQueries.update(
-                track.animeId,
-                track.trackerId,
-                track.remoteId,
-                track.libraryId,
-                track.title,
-                track.lastEpisodeSeen,
-                track.totalEpisodes,
-                track.status,
-                track.score,
-                track.remoteUrl,
-                track.startDate,
-                track.finishDate,
-                track.private,
-                track.id,
+                animeId = track.animeId,
+                syncId = track.trackerId,
+                mediaId = track.remoteId,
+                libraryId = track.libraryId,
+                title = track.title,
+                lastEpisodeSeen = track.lastEpisodeSeen,
+                totalEpisodes = track.totalEpisodes,
+                status = track.status,
+                score = track.score,
+                trackingUrl = track.remoteUrl,
+                startDate = track.startDate,
+                finishDate = track.finishDate,
+                private = track.private,
+                id = track.id,
             )
         }
     }

@@ -47,17 +47,17 @@ class AnimeRepositoryImpl(
 
     override suspend fun getAnimeByUrlAndSourceId(url: String, sourceId: Long): Anime? {
         return database.animesQueries.getAnimeByUrlAndSource(
-            url,
-            sourceId,
-            AnimeMapper::mapAnime,
+            url = url,
+            source = sourceId,
+            mapper = AnimeMapper::mapAnime,
         ).awaitAsOneOrNull()
     }
 
     override fun getAnimeByUrlAndSourceIdAsFlow(url: String, sourceId: Long): Flow<Anime?> {
         return database.animesQueries.getAnimeByUrlAndSource(
-            url,
-            sourceId,
-            AnimeMapper::mapAnime,
+            url = url,
+            source = sourceId,
+            mapper = AnimeMapper::mapAnime,
         ).subscribeToOneOrNull()
     }
 
@@ -83,9 +83,9 @@ class AnimeRepositoryImpl(
 
     override suspend fun getDuplicateLibraryAnime(id: Long, title: String): List<AnimeWithEpisodeCount> {
         return database.animesQueries.getDuplicateLibraryAnime(
-            id,
-            title,
-            AnimeMapper::mapAnimeWithEpisodeCount,
+            id = id,
+            title = title,
+            mapper = AnimeMapper::mapAnimeWithEpisodeCount,
         ).awaitAsList()
     }
 
@@ -128,7 +128,7 @@ class AnimeRepositoryImpl(
         database.transaction {
             database.animes_categoriesQueries.deleteAnimeCategoryByAnimeId(animeId)
             categoryIds.forEach { categoryId ->
-                database.animes_categoriesQueries.insert(animeId, categoryId)
+                database.animes_categoriesQueries.insert(animeId = animeId, categoryId = categoryId)
             }
         }
     }
@@ -195,33 +195,33 @@ class AnimeRepositoryImpl(
                 .toMutableSet()
             val stored = added.filter { existing.add(it.id to it.url) }.map { season ->
                 val animeId = database.animesQueries.insertReturningId(
-                    season.source,
-                    season.url,
-                    season.artist,
-                    season.author,
-                    season.description,
-                    season.genre,
-                    season.title,
-                    season.status,
-                    season.thumbnailUrl,
-                    season.favoriteAt,
-                    season.lastUpdate,
-                    season.nextUpdate,
-                    season.initialized,
-                    season.viewerFlags,
-                    season.episodeFlags,
-                    season.coverLastModified,
-                    season.updateStrategy,
-                    season.fetchInterval.toLong(),
-                    season.notes,
-                    season.fetchType,
-                    season.parentId,
-                    season.seasonFlags,
-                    season.seasonNumber,
-                    season.seasonSourceOrder,
-                    season.backgroundUrl,
-                    season.backgroundLastModified,
-                    season.memo,
+                    source = season.source,
+                    url = season.url,
+                    artist = season.artist,
+                    author = season.author,
+                    description = season.description,
+                    genre = season.genre,
+                    title = season.title,
+                    status = season.status,
+                    thumbnailUrl = season.thumbnailUrl,
+                    favoriteAt = season.favoriteAt,
+                    lastUpdate = season.lastUpdate,
+                    nextUpdate = season.nextUpdate,
+                    initialized = season.initialized,
+                    viewerFlags = season.viewerFlags,
+                    episodeFlags = season.episodeFlags,
+                    coverLastModified = season.coverLastModified,
+                    updateStrategy = season.updateStrategy,
+                    calculateInterval = season.fetchInterval.toLong(),
+                    notes = season.notes,
+                    fetchType = season.fetchType,
+                    parentId = season.parentId,
+                    seasonFlags = season.seasonFlags,
+                    seasonNumber = season.seasonNumber,
+                    seasonSourceOrder = season.seasonSourceOrder,
+                    backgroundUrl = season.backgroundUrl,
+                    backgroundLastModified = season.backgroundLastModified,
+                    memo = season.memo,
                 )
                     .awaitAsOne()
                 season.copy(id = animeId)

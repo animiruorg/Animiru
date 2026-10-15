@@ -31,7 +31,9 @@ if $isPrimary then
 end');
 
 findAll:
-SELECT *
+SELECT
+    _id, name, isFavorite, sortIndex,
+    content, longPressContent, onStartup
 FROM custom_buttons
 ORDER BY sortIndex;
 

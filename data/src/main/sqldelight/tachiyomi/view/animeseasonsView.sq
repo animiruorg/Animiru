@@ -40,7 +40,16 @@ ON A._id = ASS.parent_id
 WHERE A.parent_id IS NOT NULL;
 
 getAnimeSeasonsById:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status,
+    totalCount, seenCount, latestUpload, episodeFetchedAt,
+    lastSeen, bookmarkCount, fillermarkCount
 FROM animeseasonsView
 WHERE parent_id = :parentId;
 -- <-- AY

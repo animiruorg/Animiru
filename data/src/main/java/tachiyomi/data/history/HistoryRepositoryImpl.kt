@@ -69,8 +69,8 @@ class HistoryRepositoryImpl(
     override suspend fun upsertHistory(historyUpdate: HistoryUpdate) {
         try {
             database.historyQueries.upsert(
-                historyUpdate.episodeId,
-                historyUpdate.seenAt,
+                episodeId = historyUpdate.episodeId,
+                seenAt = historyUpdate.seenAt,
             )
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, throwable = e)

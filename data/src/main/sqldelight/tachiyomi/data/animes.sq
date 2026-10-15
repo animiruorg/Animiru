@@ -55,25 +55,53 @@ CREATE INDEX animes_fetch_type ON animes(fetch_type);
 -- <-- AY
 
 getAnimeById:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes
 WHERE _id = :id;
 
 -- TODO: this should ideally never really have more than 1 result
 getAnimeByUrlAndSource:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes
 WHERE url = :url
 AND source = :source
 LIMIT 1;
 
 getFavorites:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes
 WHERE favorite_at IS NOT NULL ;
 
 getSeenAnimeNotInLibrary:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes
 WHERE favorite_at IS NULL AND _id IN (
     SELECT DISTINCT episodes.anime_id
@@ -82,7 +110,14 @@ WHERE favorite_at IS NULL AND _id IN (
 );
 
 getAllAnime:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes;
 
 getAllAnimeSourceAndUrl:
@@ -98,7 +133,14 @@ WHERE favorite_at IS NOT NULL
 GROUP BY source;
 
 getFavoriteBySourceId:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes
 WHERE favorite_at IS NOT NULL
 AND source = :sourceId;
@@ -116,7 +158,14 @@ track_dupes AS (
     WHERE S1.anime_id = :id
 ),
 duplicates AS (
-    SELECT A.*
+    SELECT
+        A._id, A.source, A.url, A.artist, A.author, A.description, A.genre, A.title,
+        A.status, A.thumbnail_url, A.last_update, A.next_update, A.initialized,
+        A.viewer, A.episode_flags, A.cover_last_modified, A.update_strategy,
+        A.calculate_interval, A.notes, A.fetch_type, A.parent_id, A.season_flags,
+        A.season_number, A.season_source_order, A.background_last_modified,
+        A.memo, A.favorite_at, A.custom_artist, A.custom_author,
+        A.custom_description, A.custom_genre, A.custom_title, A.custom_status
     FROM animes A
     LEFT JOIN track_dupes D
     ON D.anime_id = _id
@@ -138,14 +187,27 @@ episode_counts AS (
     GROUP BY A._id
 )
 SELECT
-    A.*,
+    A._id, A.source, A.url, A.artist, A.author, A.description, A.genre, A.title,
+    A.status, A.thumbnail_url, A.last_update, A.next_update, A.initialized,
+    A.viewer, A.episode_flags, A.cover_last_modified, A.update_strategy,
+    A.calculate_interval, A.notes, A.fetch_type, A.parent_id, A.season_flags,
+    A.season_number, A.season_source_order, A.background_last_modified,
+    A.memo, A.favorite_at, A.custom_artist, A.custom_author,
+    A.custom_description, A.custom_genre, A.custom_title, A.custom_status,
     coalesce(EC.episode_count, 0) AS episode_count
 FROM duplicates A
 LEFT JOIN episode_counts EC
 ON A._id = EC.anime_id;
 
 getUpcomingAnime:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes
 WHERE next_update >= :startOfDay
 AND favorite_at IS NOT NULL
@@ -190,7 +252,14 @@ SET parent_id = NULL
 WHERE _id IN :animeIds;
 
 getChildrenByParentId:
-SELECT *
+SELECT
+    _id, source, url, artist, author, description, genre, title,
+    status, thumbnail_url, last_update, next_update, initialized,
+    viewer, episode_flags, cover_last_modified, update_strategy,
+    calculate_interval, notes, fetch_type, parent_id, season_flags,
+    season_number, season_source_order, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author,
+    custom_description, custom_genre, custom_title, custom_status
 FROM animes
 WHERE parent_id = :parentId;
 -- <-- AY
@@ -333,7 +402,14 @@ insertNetworkAnime {
     AND favorite_at IS NULL;
 
     -- Finally return the anime
-    SELECT *
+    SELECT
+        _id, source, url, artist, author, description, genre, title,
+        status, thumbnail_url, last_update, next_update, initialized,
+        viewer, episode_flags, cover_last_modified, update_strategy,
+        calculate_interval, notes, fetch_type, parent_id, season_flags,
+        season_number, season_source_order, background_last_modified,
+        memo, favorite_at, custom_artist, custom_author,
+        custom_description, custom_genre, custom_title, custom_status
     FROM animes
     WHERE source = :source
     AND url = :url

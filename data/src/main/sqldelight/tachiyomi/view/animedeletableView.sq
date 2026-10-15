@@ -9,6 +9,6 @@ WHERE A.favorite_at IS NULL
 AND A.parent_id IS NULL;
 
 getDeletableParentAnime:
-SELECT *
+SELECT _id, source, fetch_type
 FROM animedeletableView;
 -- <-- AY

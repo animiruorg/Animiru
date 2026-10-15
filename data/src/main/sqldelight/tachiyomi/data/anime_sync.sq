@@ -27,16 +27,25 @@ DELETE FROM anime_sync
 WHERE anime_id = :animeId AND sync_id = :syncId;
 
 getTracks:
-SELECT *
+SELECT
+    _id, anime_id, sync_id, remote_id, library_id,
+    title, last_episode_seen, total_episodes, start_date, score,
+    remote_url, start_date, finish_date, private
 FROM anime_sync;
 
 getTrackById:
-SELECT *
+SELECT
+    _id, anime_id, sync_id, remote_id, library_id,
+    title, last_episode_seen, total_episodes, start_date, score,
+    remote_url, start_date, finish_date, private
 FROM anime_sync
 WHERE _id = :id;
 
 getTracksByAnimeId:
-SELECT *
+SELECT
+    _id, anime_id, sync_id, remote_id, library_id,
+    title, last_episode_seen, total_episodes, start_date, score,
+    remote_url, start_date, finish_date, private
 FROM anime_sync
 WHERE anime_id = :animeId;
 

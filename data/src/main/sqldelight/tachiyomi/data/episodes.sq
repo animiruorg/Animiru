@@ -37,12 +37,20 @@ CREATE INDEX episodes_unseen_by_anime_index ON episodes(anime_id, seen) WHERE se
 CREATE INDEX idx_episodes_url ON episodes(url);
 
 getEpisodeById:
-SELECT *
+SELECT
+    _id, anime_id, url, name, scanlator,
+    seen, bookmark, fillermark, last_second_seen, total_seconds,
+    episode_number, source_order, date_fetch, date_upload,
+    summary, preview_url, memo, thumbnail_last_modified_at
 FROM episodes
 WHERE _id = :id;
 
 getEpisodesByAnimeId:
-SELECT EP.*
+SELECT
+    EP._id, EP.anime_id, EP.url, EP.name, EP.scanlator,
+    EP.seen, EP.bookmark, EP.fillermark, EP.last_second_seen, EP.total_seconds,
+    EP.episode_number, EP.source_order, EP.date_fetch, EP.date_upload,
+    EP.summary, EP.preview_url, EP.memo, EP.thumbnail_last_modified_at
 FROM episodes EP
 LEFT JOIN excluded_scanlators ES
 ON EP.anime_id = ES.anime_id
@@ -59,18 +67,30 @@ FROM episodes
 WHERE anime_id = :animeId;
 
 getBookmarkedEpisodesByAnimeId:
-SELECT *
+SELECT
+    _id, anime_id, url, name, scanlator,
+    seen, bookmark, fillermark, last_second_seen, total_seconds,
+    episode_number, source_order, date_fetch, date_upload,
+    summary, preview_url, memo, thumbnail_last_modified_at
 FROM episodes
 WHERE bookmark
 AND anime_id = :animeId;
 
 getEpisodeByUrl:
-SELECT *
+SELECT
+    _id, anime_id, url, name, scanlator,
+    seen, bookmark, fillermark, last_second_seen, total_seconds,
+    episode_number, source_order, date_fetch, date_upload,
+    summary, preview_url, memo, thumbnail_last_modified_at
 FROM episodes
 WHERE url = :episodeUrl;
 
 getEpisodeByUrlAndAnimeId:
-SELECT *
+SELECT
+    _id, anime_id, url, name, scanlator,
+    seen, bookmark, fillermark, last_second_seen, total_seconds,
+    episode_number, source_order, date_fetch, date_upload,
+    summary, preview_url, memo, thumbnail_last_modified_at
 FROM episodes
 WHERE url = :episodeUrl
 AND anime_id = :animeId

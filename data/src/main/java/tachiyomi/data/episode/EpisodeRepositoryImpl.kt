@@ -45,35 +45,39 @@ class EpisodeRepositoryImpl(
                 .distinct()
                 .flatMap { animeId ->
                     database.episodesQueries
-                        .getEpisodesByAnimeId(animeId, applyScanlatorFilter = false.toLong(), ::mapEpisode)
+                        .getEpisodesByAnimeId(
+                            animeId = animeId,
+                            applyScanlatorFilter = false.toLong(),
+                            mapper = ::mapEpisode,
+                        )
                         .awaitAsList()
                         .map { animeId to it.url }
                 }
                 .toMutableSet()
             val stored = added.filter { existing.add(it.animeId to it.url) }.map { episode ->
                 val episodeId = database.episodesQueries.insertReturningId(
-                    episode.animeId,
-                    episode.url,
-                    episode.name,
-                    episode.scanlator,
-                    episode.seen,
-                    episode.bookmark,
+                    animeId = episode.animeId,
+                    url = episode.url,
+                    name = episode.name,
+                    scanlator = episode.scanlator,
+                    seen = episode.seen,
+                    bookmark = episode.bookmark,
                     // AM -->
-                    episode.fillermark,
+                    fillermark = episode.fillermark,
                     // <-- AM
-                    episode.lastSecondSeen,
+                    lastSecondSeen = episode.lastSecondSeen,
                     // AM -->
-                    episode.totalSeconds,
+                    totalSeconds = episode.totalSeconds,
                     // <-- AM
-                    episode.episodeNumber,
-                    episode.sourceOrder,
-                    episode.dateFetch,
-                    episode.dateUpload,
+                    episodeNumber = episode.episodeNumber,
+                    sourceOrder = episode.sourceOrder,
+                    dateFetch = episode.dateFetch,
+                    dateUpload = episode.dateUpload,
                     // AM -->
-                    episode.summary,
-                    episode.previewUrl,
+                    summary = episode.summary,
+                    previewUrl = episode.previewUrl,
                     // <-- AM
-                    episode.memo,
+                    memo = episode.memo,
                 )
                     .awaitAsOne()
                 episode.copy(id = episodeId)
@@ -124,9 +128,9 @@ class EpisodeRepositoryImpl(
 
     override suspend fun getEpisodeByAnimeId(animeId: Long, applyScanlatorFilter: Boolean): List<Episode> {
         return database.episodesQueries.getEpisodesByAnimeId(
-            animeId,
-            applyScanlatorFilter.toLong(),
-            ::mapEpisode,
+            animeId = animeId,
+            applyScanlatorFilter = applyScanlatorFilter.toLong(),
+            mapper = ::mapEpisode,
         ).awaitAsList()
     }
 
@@ -151,17 +155,17 @@ class EpisodeRepositoryImpl(
 
     override suspend fun getEpisodeByAnimeIdAsFlow(animeId: Long, applyScanlatorFilter: Boolean): Flow<List<Episode>> {
         return database.episodesQueries.getEpisodesByAnimeId(
-            animeId,
-            applyScanlatorFilter.toLong(),
-            ::mapEpisode,
+            animeId = animeId,
+            applyScanlatorFilter = applyScanlatorFilter.toLong(),
+            mapper = ::mapEpisode,
         ).subscribeToList()
     }
 
     override suspend fun getEpisodeByUrlAndAnimeId(url: String, animeId: Long): Episode? {
         return database.episodesQueries.getEpisodeByUrlAndAnimeId(
-            url,
-            animeId,
-            ::mapEpisode,
+            episodeUrl = url,
+            animeId = animeId,
+            mapper = ::mapEpisode,
         ).awaitAsOneOrNull()
     }
 
