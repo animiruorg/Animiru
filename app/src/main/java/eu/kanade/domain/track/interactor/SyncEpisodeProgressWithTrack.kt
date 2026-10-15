@@ -9,14 +9,14 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.episode.interactor.UpdateEpisode
 import tachiyomi.domain.episode.model.EpisodeUpdate
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 import tachiyomi.domain.track.model.Track
 import kotlin.math.max
 
 @Inject
 class SyncEpisodeProgressWithTrack(
     private val updateEpisode: UpdateEpisode,
-    private val insertTrack: InsertTrack,
+    private val upsertTrack: UpsertTrack,
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
 ) {
 
@@ -45,7 +45,7 @@ class SyncEpisodeProgressWithTrack(
         try {
             tracker.update(updatedTrack.toDbTrack())
             updateEpisode.awaitAll(episodeUpdates)
-            insertTrack.await(updatedTrack)
+            upsertTrack.await(updatedTrack)
         } catch (e: Throwable) {
             logcat(LogPriority.WARN, e)
         }

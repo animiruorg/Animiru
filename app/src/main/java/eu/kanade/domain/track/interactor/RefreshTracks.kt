@@ -10,14 +10,14 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
 import tachiyomi.domain.track.interactor.GetTracks
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 import tachiyomi.domain.track.model.Track
 
 @Inject
 class RefreshTracks(
     private val getTracks: GetTracks,
     private val trackerManager: TrackerManager,
-    private val insertTrack: InsertTrack,
+    private val upsertTrack: UpsertTrack,
     private val syncEpisodeProgressWithTrack: SyncEpisodeProgressWithTrack,
 ) {
 
@@ -47,7 +47,7 @@ class RefreshTracks(
                             if (!(skipCompleted && track.totalEpisodes == track.lastEpisodeSeen.toLong())) {
                                 // <-- AM
                                 val updatedTrack = service!!.refresh(track.toDbTrack()).toDomainTrack()!!
-                                insertTrack.await(updatedTrack)
+                                upsertTrack.await(updatedTrack)
                                 syncEpisodeProgressWithTrack.await(animeId, updatedTrack, service)
                             }
 

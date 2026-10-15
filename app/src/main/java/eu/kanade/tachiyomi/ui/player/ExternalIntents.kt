@@ -53,7 +53,7 @@ import tachiyomi.domain.history.interactor.UpsertHistory
 import tachiyomi.domain.history.model.HistoryUpdate
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.source.local.isLocal
 import java.io.File
@@ -69,7 +69,7 @@ class ExternalIntents(
     private val sourceManager: SourceManager,
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     private val getTracks: GetTracks,
-    private val insertTrack: InsertTrack,
+    private val upsertTrack: UpsertTrack,
     private val trackerManager: TrackerManager,
     private val downloadManager: DownloadManager,
     private val delayedTrackingStore: DelayedTrackingStore,
@@ -577,7 +577,7 @@ class ExternalIntents(
                             runCatching {
                                 if (context.isOnline()) {
                                     tracker.update(updatedTrack.toDbTrack(), true)
-                                    insertTrack.await(updatedTrack)
+                                    upsertTrack.await(updatedTrack)
                                 } else {
                                     delayedTrackingStore.add(track.animeId, lastEpisodeSeen = episodeNumber)
                                     DelayedTrackingUpdateJob.setupTask(context)

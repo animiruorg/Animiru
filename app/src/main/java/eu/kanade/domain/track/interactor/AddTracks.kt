@@ -20,11 +20,11 @@ import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.history.interactor.GetHistory
 import tachiyomi.domain.season.interactor.GetAnimeSeasonsByParentId
 import tachiyomi.domain.source.service.SourceManager
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 
 @Inject
 class AddTracks(
-    private val insertTrack: InsertTrack,
+    private val upsertTrack: UpsertTrack,
     private val syncEpisodeProgressWithTrack: SyncEpisodeProgressWithTrack,
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     private val trackerManager: TrackerManager,
@@ -44,7 +44,7 @@ class AddTracks(
 
             var track = item.toDomainTrack(idRequired = false) ?: return@withIOContext
 
-            insertTrack.await(track)
+            upsertTrack.await(track)
 
             // AM -->
             when (anime.fetchType) {
@@ -114,7 +114,7 @@ class AddTracks(
                             match?.let { track ->
                                 track.anime_id = anime.id
                                 (service as Tracker).bind(track)
-                                insertTrack.await(track.toDomainTrack(idRequired = false)!!)
+                                upsertTrack.await(track.toDomainTrack(idRequired = false)!!)
 
                                 when (anime.fetchType) {
                                     // AM -->

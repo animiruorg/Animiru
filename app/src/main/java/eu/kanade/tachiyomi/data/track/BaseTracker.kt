@@ -22,7 +22,7 @@ import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import tachiyomi.domain.track.model.Track as DomainTrack
@@ -39,7 +39,7 @@ abstract class BaseTracker(
 
     private val context: Context by lazy { appGraph.context }
     private val addTracks: AddTracks by lazy { appGraph.addTracks }
-    private val insertTrack: InsertTrack by lazy { appGraph.insertTrack }
+    private val upsertTrack: UpsertTrack by lazy { appGraph.upsertTrack }
 
     override val client: OkHttpClient
         get() = networkService.client
@@ -170,7 +170,7 @@ abstract class BaseTracker(
         try {
             update(track)
             track.toDomainTrack(idRequired = false)?.let {
-                insertTrack.await(it)
+                upsertTrack.await(it)
             }
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Failed to update remote track data id=$id" }

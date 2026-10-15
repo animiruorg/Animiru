@@ -23,7 +23,7 @@ import tachiyomi.domain.episode.interactor.UpdateEpisode
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 import kotlin.time.Clock
 
 @Inject
@@ -38,7 +38,7 @@ class MigrateAnimeUseCase(
     private val getCategories: GetCategories,
     private val setAnimeCategories: SetAnimeCategories,
     private val getTracks: GetTracks,
-    private val insertTrack: InsertTrack,
+    private val upsertTrack: UpsertTrack,
     private val coverCache: CoverCache,
     // AY -->
     private val backgroundCache: BackgroundCache,
@@ -118,7 +118,7 @@ class MigrateAnimeUseCase(
                 }
             }
                 .takeIf { it.isNotEmpty() }
-                ?.let { insertTrack.awaitAll(it) }
+                ?.let { upsertTrack.awaitAll(it) }
 
             // Delete downloaded
             // AY -->

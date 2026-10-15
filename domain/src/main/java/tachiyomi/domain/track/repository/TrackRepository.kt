@@ -15,9 +15,9 @@ interface TrackRepository {
 
     suspend fun delete(animeId: Long, trackerId: Long)
 
-    suspend fun insert(track: Track)
+    suspend fun upsert(track: Track)
 
-    suspend fun insertAll(tracks: List<Track>)
+    suspend fun upsertAll(tracks: List<Track>)
 
     // AM (GROUPING) -->
     suspend fun getTracks(): List<Track>

@@ -45,18 +45,18 @@ class TrackRepositoryImpl(
         )
     }
 
-    override suspend fun insert(track: Track) {
-        insertValues(track)
+    override suspend fun upsert(track: Track) {
+        upsertValues(track)
     }
 
-    override suspend fun insertAll(tracks: List<Track>) {
-        insertValues(*tracks.toTypedArray())
+    override suspend fun upsertAll(tracks: List<Track>) {
+        upsertValues(*tracks.toTypedArray())
     }
 
-    private suspend fun insertValues(vararg tracks: Track) {
+    private suspend fun upsertValues(vararg tracks: Track) {
         database.transaction {
             tracks.forEach { animeTrack ->
-                database.anime_syncQueries.insert(
+                database.anime_syncQueries.upsert(
                     animeId = animeTrack.animeId,
                     syncId = animeTrack.trackerId,
                     remoteId = animeTrack.remoteId,

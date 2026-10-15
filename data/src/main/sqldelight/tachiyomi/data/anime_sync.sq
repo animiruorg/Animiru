@@ -40,9 +40,24 @@ SELECT *
 FROM anime_sync
 WHERE anime_id = :animeId;
 
-insert:
+upsert:
 INSERT INTO anime_sync(anime_id,sync_id,remote_id,library_id,title,last_episode_seen,total_episodes,status,score,remote_url,start_date,finish_date,private)
-VALUES (:animeId,:syncId,:remoteId,:libraryId,:title,:lastEpisodeSeen,:totalEpisodes,:status,:score,:remoteUrl,:startDate,:finishDate,:private);
+VALUES (:animeId,:syncId,:remoteId,:libraryId,:title,:lastEpisodeSeen,:totalEpisodes,:status,:score,:remoteUrl,:startDate,:finishDate,:private)
+ON CONFLICT(anime_id, sync_id)
+DO UPDATE
+SET
+    remote_id = :remoteId,
+    library_id = :libraryId,
+    title = :title,
+    last_episode_seen = :lastEpisodeSeen,
+    total_episodes = :totalEpisodes,
+    status = :status,
+    score = :score,
+    remote_url = :remoteUrl,
+    start_date = :startDate,
+    finish_date = :finishDate,
+    private = :private
+WHERE anime_id = :animeId AND sync_id = :syncId;
 
 update:
 UPDATE anime_sync
