@@ -1,0 +1,9 @@
+query KitsuGetAnimeDetailsBySlug(
+  $slug: String!,
+) {
+  findAnimeBySlug(
+    slug: $slug,
+  ) {
+    ...AnimeFragment
+  }
+}
