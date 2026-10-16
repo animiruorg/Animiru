@@ -563,7 +563,11 @@ class VideoDownloader(
                         videoFile.renameTo("$filename.mkv")
                         continuation.resume(it)
                     } else {
-                        continuation.resumeWithException(Exception("Error in ffmpeg!"))
+                        continuation.resumeWithException(
+                            Exception(
+                                "ffprobe failed code=${it.returnCode} output=${it.output} logs=${it.allLogsAsString} fail=${it.failStackTrace}",
+                            ),
+                        )
                     }
                 },
                 logCallback,
@@ -646,7 +650,7 @@ class VideoDownloader(
                     } else {
                         continuation.resumeWithException(
                             Exception(
-                                "ffprobe failed rc=${it.returnCode} output=${it.output} logs=${it.allLogsAsString} fail=${it.failStackTrace}",
+                                "ffprobe failed code=${it.returnCode} output=${it.output} logs=${it.allLogsAsString} fail=${it.failStackTrace}",
                             ),
                         )
                     }
