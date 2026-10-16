@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.data.download.downloader
 
 import android.content.Context
-import androidx.core.net.toUri
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
@@ -496,7 +495,7 @@ class VideoDownloader(
         destDir.findFile("$filename.tmp")?.delete()
         val videoFile = destDir.createFile("$filename.tmp")!!
 
-        val duration = getDuration(videoInput)
+        val duration = getDuration(downloadDir, videoInput)
         download.progress = 0
 
         val ffmpegFilename = videoFile.uri.toFFmpegString(context)
@@ -595,9 +594,9 @@ class VideoDownloader(
         "-metadata:s:$type:$i \"title=${track.name}\""
     }.joinToString(" ")
 
-    private suspend fun getDuration(ffmpegInput: String): Float? {
-        val durationFile = context.createFileInCacheDir("dl_ffprobe_duration.txt")
-        val durationFilePath = durationFile.toUri().toFFmpegString(context)
+    private suspend fun getDuration(destDir: UniFile, ffmpegInput: String): Float? {
+        val durationFile = destDir.createFile("ffprobe_duration.txt")!!
+        val durationFilePath = durationFile.toFFmpegString(context)
 
         val ffprobeCommand = FFmpegKitConfig.parseArguments(
             listOf(
@@ -608,17 +607,28 @@ class VideoDownloader(
         )
 
         suspendCancellableCoroutine { continuation ->
-            val session = FFprobeKit.executeWithArgumentsAsync(ffprobeCommand) {
-                if (it.returnCode.isValueSuccess) {
-                    continuation.resume(it)
-                } else {
-                    continuation.resumeWithException(Exception(it.output))
-                }
-            }
+            val session = FFprobeKit.executeWithArgumentsAsync(
+                ffprobeCommand,
+                {
+                    if (it.returnCode.isValueSuccess) {
+                        continuation.resume(it)
+                    } else {
+                        continuation.resumeWithException(
+                            Exception(
+                                "ffprobe failed rc=${it.returnCode} output=${it.output} logs=${it.allLogsAsString} fail=${it.failStackTrace}",
+                            ),
+                        )
+                    }
+                },
+            )
             continuation.invokeOnCancellation { session.cancel() }
         }
 
-        return durationFile.bufferedReader().use(BufferedReader::readText).trim().toFloatOrNull()
+        return durationFile.openInputStream().use {
+            it.readBytes().toString(Charsets.UTF_8)
+                .trim()
+                .toFloatOrNull()
+        }
     }
 
     companion object {
