@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.data.download.downloader
 
+import android.content.Context
+import androidx.core.net.toUri
 import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -12,6 +14,7 @@ import okio.Throttler
 @Inject
 @SingleIn(AppScope::class)
 class HlsDownloader(
+    private val context: Context,
     private val downloader: HttpDownloader,
 ) {
     private class Variant(
@@ -36,7 +39,15 @@ class HlsDownloader(
         client: OkHttpClient,
         name: String,
     ): PlaylistResult {
-        val playlistContent = client.get(url, headers).body.string()
+        val playlistContent = when {
+            url.startsWith("http") -> client.get(url, headers).body.string()
+            url.startsWith("file") -> {
+                context.contentResolver.openInputStream(url.toUri())?.bufferedReader()?.use {
+                    it.readText()
+                } ?: throw Exception("Failed to read from file $url")
+            }
+            else -> throw IllegalArgumentException("Unexpected input: $url")
+        }
 
         return if (playlistContent.contains("#EXT-X-STREAM-INF")) {
             val variants = mutableListOf<Variant>()

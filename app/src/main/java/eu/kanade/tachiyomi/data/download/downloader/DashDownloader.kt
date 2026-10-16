@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.data.download.downloader
 
+import android.content.Context
+import androidx.core.net.toUri
 import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -18,6 +20,7 @@ import kotlin.math.ceil
 @Inject
 @SingleIn(AppScope::class)
 class DashDownloader(
+    private val context: Context,
     private val directDownloader: DirectDownloader,
     private val downloader: HttpDownloader,
 ) {
@@ -36,7 +39,15 @@ class DashDownloader(
         client: OkHttpClient,
         name: String,
     ): PlaylistResult {
-        val xml = client.get(url, headers).body.string()
+        val xml = when {
+            url.startsWith("http") -> client.get(url, headers).body.string()
+            url.startsWith("file") -> {
+                context.contentResolver.openInputStream(url.toUri())?.bufferedReader()?.use {
+                    it.readText()
+                } ?: throw Exception("Failed to read from file $url")
+            }
+            else -> throw IllegalArgumentException("Unexpected input: $url")
+        }
         val mpd = xml.asXml(url).selectFirst("MPD")
             ?: throw Exception("No mpd root element found")
 
