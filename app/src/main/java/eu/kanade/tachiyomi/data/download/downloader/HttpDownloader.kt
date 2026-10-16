@@ -10,6 +10,7 @@ import eu.kanade.tachiyomi.network.ProgressListener
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.newCachelessCallWithProgress
 import eu.kanade.tachiyomi.util.storage.saveTo
+import eu.kanade.tachiyomi.util.storage.size
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -81,6 +82,13 @@ class HttpDownloader {
         destDir: UniFile,
         fileName: String,
     ): UniFile {
+        val existingFile = destDir.findFile(fileName)
+        if (existingFile?.exists() == true) {
+            val fileSize = existingFile.size()
+            listener.update(fileSize, fileSize, true)
+            return existingFile
+        }
+
         return flow {
             val file = destDir.findFile("$fileName.tmp")
                 ?: destDir.createFile("$fileName.tmp")!!
