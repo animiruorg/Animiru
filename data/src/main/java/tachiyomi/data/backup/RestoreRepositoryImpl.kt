@@ -285,7 +285,7 @@ class RestoreRepositoryImpl(
                 // Update history entry
                 Pair(
                     dbHistory.episode_id,
-                    Date(max(seenAt, dbHistory.last_seen?.time ?: 0L)),
+                    Date(max(seenAt, dbHistory.seen_at?.time ?: 0L)),
                 )
             }
 

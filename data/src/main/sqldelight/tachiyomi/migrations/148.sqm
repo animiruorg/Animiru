@@ -14,6 +14,7 @@ DROP VIEW animedeletableView;
 DROP VIEW animeseasonstatsView;
 DROP VIEW animeseasonsView;
 DROP VIEW episodestatsView;
+DROP VIEW historystatsView;
 DROP VIEW historyView;
 DROP VIEW libraryView;
 DROP VIEW updatesView;
@@ -341,6 +342,43 @@ BEGIN SELECT CASE
     END;
 END;
 
+-- ---------------------------------------------------------------------------------------------------------
+-- table - history
+-- ---------------------------------------------------------------------------------------------------------
+
+-- `last_seen` is when the episode was last seen. The episode it belongs to is already unique, which leaves
+-- `history_history_episode_id_index` a prefix of that constraint.
+-- The table keeps its name, so the original is renamed aside and the new one built under
+-- the real name; renaming a table into place makes SQLite rewrite its stored definition,
+-- leaving it spelled differently from the same table on a fresh install. The views were
+-- dropped at the top of this migration, so nothing refers to the name being moved.
+ALTER TABLE history RENAME TO history_temp;
+
+CREATE TABLE history(
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
+    episode_id INTEGER NOT NULL UNIQUE,
+    seen_at INTEGER,
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(episode_id) REFERENCES episode (id)
+    ON DELETE CASCADE
+);
+
+-- Reaching the entry a row belongs to meant going through its episode; it names the entry
+-- itself now, taken from that same episode. A row whose episode is already gone cannot name
+-- one and is dropped, which is what the foreign key would do to it once it is enforced again.
+INSERT INTO history(id, anime_id, episode_id, seen_at)
+SELECT H._id, EP.anime_id, H.episode_id, H.last_seen
+FROM history_temp H
+JOIN episode EP
+ON EP.id = H.episode_id;
+
+DROP TABLE history_temp;
+
+CREATE INDEX history_anime_id_index ON history(anime_id);
+CREATE INDEX history_seen_at_index ON history(seen_at);
+
 -- The views read the columns that just changed, so they come back in their new shape
 CREATE VIEW animedeletableView AS
 SELECT
@@ -350,6 +388,14 @@ SELECT
 FROM anime AS A
 WHERE A.user_favorite_at IS NULL
 AND A.state_parent_id IS NULL;
+
+CREATE VIEW historystatsView AS
+SELECT
+    episode.anime_id,
+    max(h.seen_at) AS lastSeen
+FROM episode
+LEFT JOIN history AS h ON episode.id = h.episode_id
+GROUP BY episode.anime_id;
 
 CREATE VIEW episodestatsView AS
 SELECT
@@ -427,7 +473,7 @@ WHERE A.state_parent_id IS NOT NULL;
 
 CREATE VIEW historyView AS
 SELECT
-    history._id AS id,
+    history.id AS id,
     anime.id AS animeId,
     episode.id AS episodeId,
     -- AM -->
@@ -439,7 +485,7 @@ SELECT
     anime.user_favorite_at IS NOT NULL AS favorite,
     anime.state_cover_last_modified,
     episode.remote_episode_number AS episodeNumber,
-    history.last_seen AS seenAt,
+    history.seen_at AS seenAt,
     max_last_seen.last_seen AS maxSeenAt,
     max_last_seen.episode_id AS maxSeenAtEpisodeId
 FROM anime
@@ -448,7 +494,7 @@ ON anime.id = episode.anime_id
 JOIN history
 ON episode.id = history.episode_id
 JOIN (
-    SELECT episode.anime_id, episode.id AS episode_id, MAX(history.last_seen) AS last_seen
+    SELECT episode.anime_id, episode.id AS episode_id, MAX(history.seen_at) AS last_seen
     FROM episode JOIN history
     ON episode.id = history.episode_id
     GROUP BY episode.anime_id

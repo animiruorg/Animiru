@@ -2,7 +2,7 @@
 CREATE VIEW historystatsView AS
 SELECT
     episode.anime_id,
-    max(h.last_seen) AS lastSeen
+    max(h.seen_at) AS lastSeen
 FROM episode
 LEFT JOIN history AS h ON episode.id = h.episode_id
 GROUP BY episode.anime_id;

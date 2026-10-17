@@ -1,67 +1,62 @@
 import java.util.Date;
 
 CREATE TABLE history(
-    _id INTEGER NOT NULL PRIMARY KEY,
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
     episode_id INTEGER NOT NULL UNIQUE,
-    last_seen INTEGER AS Date,
+    seen_at INTEGER AS Date,
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE,
     FOREIGN KEY(episode_id) REFERENCES episode (id)
     ON DELETE CASCADE
 );
 
-CREATE INDEX history_history_episode_id_index ON history(episode_id);
-CREATE INDEX idx_history_last_seen ON history(last_seen);
+CREATE INDEX history_anime_id_index ON history(anime_id);
+CREATE INDEX history_seen_at_index ON history(seen_at);
 
 getHistoryByAnimeId:
 SELECT
-H._id,
+H.id,
 H.episode_id,
-H.last_seen
+H.seen_at
 FROM history H
-JOIN episode EP
-ON H.episode_id = EP.id
-WHERE EP.anime_id = :animeId AND EP.id = H.episode_id;
+WHERE H.anime_id = :animeId;
 
 getHistoryByEpisodeUrlAndAnimeId:
 SELECT
-H._id,
+H.id,
 H.episode_id,
-H.last_seen
+H.seen_at
 FROM history H
 JOIN episode EP
 ON H.episode_id = EP.id
-WHERE EP.remote_url = :episodeUrl AND EP.anime_id = :animeId AND EP.id = H.episode_id
+WHERE EP.remote_url = :episodeUrl AND EP.anime_id = :animeId
 LIMIT 1;
 
 resetHistoryById:
 UPDATE history
-SET last_seen = 0
-WHERE _id = :historyId;
+SET seen_at = 0
+WHERE id = :historyId;
 
 resetHistoryByAnimeId:
 UPDATE history
-SET last_seen = 0
-WHERE _id IN (
-    SELECT H._id
-    FROM anime A
-    INNER JOIN episode EP
-    ON A.id = EP.anime_id
-    INNER JOIN history H
-    ON EP.id = H.episode_id
-    WHERE A.id = :animeId
-);
+SET seen_at = 0
+WHERE anime_id = :animeId;
 
 removeAllHistory:
 DELETE FROM history;
 
 removeResettedHistory:
 DELETE FROM history
-WHERE last_seen = 0;
+WHERE seen_at = 0;
 
 upsert:
-INSERT INTO history(episode_id, last_seen)
-VALUES (:episodeId, :seenAt)
+INSERT INTO history(anime_id, episode_id, seen_at)
+SELECT EP.anime_id, :episodeId, :seenAt
+FROM episode EP
+WHERE EP.id = :episodeId
 ON CONFLICT(episode_id)
 DO UPDATE
 SET
-    last_seen = :seenAt
+    seen_at = :seenAt
 WHERE episode_id = :episodeId;

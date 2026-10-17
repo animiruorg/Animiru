@@ -1,6 +1,6 @@
 CREATE VIEW historyView AS
 SELECT
-    history._id AS id,
+    history.id AS id,
     anime.id AS animeId,
     episode.id AS episodeId,
     -- AM -->
@@ -12,7 +12,7 @@ SELECT
     anime.user_favorite_at IS NOT NULL AS favorite,
     anime.state_cover_last_modified,
     episode.remote_episode_number AS episodeNumber,
-    history.last_seen AS seenAt,
+    history.seen_at AS seenAt,
     max_last_seen.last_seen AS maxSeenAt,
     max_last_seen.episode_id AS maxSeenAtEpisodeId
 FROM anime
@@ -21,7 +21,7 @@ ON anime.id = episode.anime_id
 JOIN history
 ON episode.id = history.episode_id
 JOIN (
-    SELECT episode.anime_id, episode.id AS episode_id, MAX(history.last_seen) AS last_seen
+    SELECT episode.anime_id, episode.id AS episode_id, MAX(history.seen_at) AS last_seen
     FROM episode JOIN history
     ON episode.id = history.episode_id
     GROUP BY episode.anime_id
