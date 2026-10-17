@@ -1,58 +1,58 @@
 import kotlin.Boolean;
 
-CREATE TABLE anime_sync(
-    _id INTEGER NOT NULL PRIMARY KEY,
+CREATE TABLE anime_track(
+    id INTEGER NOT NULL PRIMARY KEY,
     anime_id INTEGER NOT NULL,
-    sync_id INTEGER NOT NULL,
+    tracker_id INTEGER NOT NULL,
     remote_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
     library_id INTEGER,
     title TEXT NOT NULL,
     last_episode_seen REAL NOT NULL,
     total_episodes INTEGER NOT NULL,
     status INTEGER NOT NULL,
     score REAL NOT NULL,
-    remote_url TEXT NOT NULL,
     start_date INTEGER NOT NULL,
     finish_date INTEGER NOT NULL,
-    private INTEGER AS Boolean DEFAULT 0 NOT NULL,
-    UNIQUE (anime_id, sync_id) ON CONFLICT REPLACE,
+    private INTEGER AS Boolean NOT NULL DEFAULT 0,
+    UNIQUE (anime_id, tracker_id),
     FOREIGN KEY(anime_id) REFERENCES anime (id)
     ON DELETE CASCADE
 );
 
-CREATE INDEX idx_anime_sync_anime_id ON anime_sync(anime_id);
+CREATE INDEX anime_track_tracker_id_remote_id_index ON anime_track(tracker_id, remote_id);
 
 delete:
-DELETE FROM anime_sync
-WHERE anime_id = :animeId AND sync_id = :syncId;
+DELETE FROM anime_track
+WHERE anime_id = :animeId AND tracker_id = :syncId;
 
 getTracks:
 SELECT
-    _id, anime_id, sync_id, remote_id, library_id,
+    id, anime_id, tracker_id, remote_id, library_id,
     title, last_episode_seen, total_episodes, start_date, score,
     remote_url, start_date, finish_date, private
-FROM anime_sync;
+FROM anime_track;
 
 getTrackById:
 SELECT
-    _id, anime_id, sync_id, remote_id, library_id,
+    id, anime_id, tracker_id, remote_id, library_id,
     title, last_episode_seen, total_episodes, start_date, score,
     remote_url, start_date, finish_date, private
-FROM anime_sync
-WHERE _id = :id;
+FROM anime_track
+WHERE id = :id;
 
 getTracksByAnimeId:
 SELECT
-    _id, anime_id, sync_id, remote_id, library_id,
+    id, anime_id, tracker_id, remote_id, library_id,
     title, last_episode_seen, total_episodes, start_date, score,
     remote_url, start_date, finish_date, private
-FROM anime_sync
+FROM anime_track
 WHERE anime_id = :animeId;
 
 upsert:
-INSERT INTO anime_sync(anime_id,sync_id,remote_id,library_id,title,last_episode_seen,total_episodes,status,score,remote_url,start_date,finish_date,private)
+INSERT INTO anime_track(anime_id,tracker_id,remote_id,library_id,title,last_episode_seen,total_episodes,status,score,remote_url,start_date,finish_date,private)
 VALUES (:animeId,:syncId,:remoteId,:libraryId,:title,:lastEpisodeSeen,:totalEpisodes,:status,:score,:remoteUrl,:startDate,:finishDate,:private)
-ON CONFLICT(anime_id, sync_id)
+ON CONFLICT(anime_id, tracker_id)
 DO UPDATE
 SET
     remote_id = :remoteId,
@@ -66,13 +66,13 @@ SET
     start_date = :startDate,
     finish_date = :finishDate,
     private = :private
-WHERE anime_id = :animeId AND sync_id = :syncId;
+WHERE anime_id = :animeId AND tracker_id = :syncId;
 
 update:
-UPDATE anime_sync
+UPDATE anime_track
 SET
     anime_id = coalesce(:animeId, anime_id),
-    sync_id = coalesce(:syncId, sync_id),
+    tracker_id = coalesce(:syncId, tracker_id),
     remote_id = coalesce(:mediaId, remote_id),
     library_id = coalesce(:libraryId, library_id),
     title = coalesce(:title, title),
@@ -84,4 +84,4 @@ SET
     start_date = coalesce(:startDate, start_date),
     finish_date = coalesce(:finishDate, finish_date),
     private = coalesce(:private, private)
-WHERE _id = :id;
+WHERE id = :id;

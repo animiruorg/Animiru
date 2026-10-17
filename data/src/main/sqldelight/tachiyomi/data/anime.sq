@@ -150,9 +150,9 @@ getDuplicateLibraryAnime:
 WITH
 track_dupes AS (
     SELECT DISTINCT S2.anime_id
-    FROM anime_sync S1
-    INNER JOIN anime_sync S2
-    ON S1.sync_id = S2.sync_id
+    FROM anime_track S1
+    INNER JOIN anime_track S2
+    ON S1.tracker_id = S2.tracker_id
     AND S1.remote_id = S2.remote_id
     AND S1.remote_id != 0
     AND S1.anime_id != S2.anime_id

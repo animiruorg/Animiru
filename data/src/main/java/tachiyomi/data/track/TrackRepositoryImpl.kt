@@ -21,25 +21,25 @@ class TrackRepositoryImpl(
 ) : TrackRepository {
 
     override suspend fun getTrackById(id: Long): Track? {
-        return database.anime_syncQueries.getTrackById(id, TrackMapper::mapTrack).awaitAsOneOrNull()
+        return database.anime_trackQueries.getTrackById(id, TrackMapper::mapTrack).awaitAsOneOrNull()
     }
 
     override suspend fun getTracksByAnimeId(animeId: Long): List<Track> {
-        return database.anime_syncQueries.getTracksByAnimeId(animeId, TrackMapper::mapTrack).awaitAsList()
+        return database.anime_trackQueries.getTracksByAnimeId(animeId, TrackMapper::mapTrack).awaitAsList()
     }
 
     override fun getTracksAsFlow(): Flow<List<Track>> {
-        return database.anime_syncQueries.getTracks(TrackMapper::mapTrack)
+        return database.anime_trackQueries.getTracks(TrackMapper::mapTrack)
             .subscribeToList()
     }
 
     override fun getTracksByAnimeIdAsFlow(animeId: Long): Flow<List<Track>> {
-        return database.anime_syncQueries.getTracksByAnimeId(animeId, TrackMapper::mapTrack)
+        return database.anime_trackQueries.getTracksByAnimeId(animeId, TrackMapper::mapTrack)
             .subscribeToList()
     }
 
     override suspend fun delete(animeId: Long, trackerId: Long) {
-        database.anime_syncQueries.delete(
+        database.anime_trackQueries.delete(
             animeId = animeId,
             syncId = trackerId,
         )
@@ -56,7 +56,7 @@ class TrackRepositoryImpl(
     private suspend fun upsertValues(vararg tracks: Track) {
         database.transaction {
             tracks.forEach { animeTrack ->
-                database.anime_syncQueries.upsert(
+                database.anime_trackQueries.upsert(
                     animeId = animeTrack.animeId,
                     syncId = animeTrack.trackerId,
                     remoteId = animeTrack.remoteId,
@@ -77,7 +77,7 @@ class TrackRepositoryImpl(
 
     // AM (GROUPING) -->
     override suspend fun getTracks(): List<Track> {
-        return database.anime_syncQueries.getTracks(::mapTrack)
+        return database.anime_trackQueries.getTracks(::mapTrack)
             .awaitAsList()
     }
     // <-- AM (GROUPING)

@@ -318,7 +318,7 @@ class RestoreRepositoryImpl(
         }
 
         existingTracks.forEach { track ->
-            database.anime_syncQueries.update(
+            database.anime_trackQueries.update(
                 animeId = track.animeId,
                 syncId = track.trackerId,
                 mediaId = track.remoteId,
