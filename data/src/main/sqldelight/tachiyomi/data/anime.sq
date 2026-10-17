@@ -105,9 +105,9 @@ SELECT
     user_custom_genre, user_custom_title, user_custom_status
 FROM anime
 WHERE user_favorite_at IS NULL AND id IN (
-    SELECT DISTINCT episodes.anime_id
-    FROM episodes
-    WHERE seen = 1 OR last_second_seen != 0
+    SELECT DISTINCT episode.anime_id
+    FROM episode
+    WHERE user_seen = 1 OR user_last_second_seen != 0
 );
 
 getAllAnime:
@@ -179,11 +179,11 @@ episode_counts AS (
         A.id AS anime_id,
         count(*) AS episode_count
     FROM duplicates A
-    JOIN episodes EP
+    JOIN episode EP
     ON A.id = EP.anime_id
     LEFT JOIN excluded_scanlators ES
     ON EP.anime_id = ES.anime_id
-    AND EP.scanlator = ES.scanlator
+    AND EP.remote_scanlator = ES.scanlator
     WHERE ES.scanlator IS NULL
     GROUP BY A.id
 )
@@ -275,9 +275,9 @@ AND (
     :keepSeenAnime = 0
     OR id NOT IN (
         SELECT DISTINCT anime_id
-        FROM episodes
-        WHERE seen = 1
-        OR last_second_seen != 0
+        FROM episode
+        WHERE user_seen = 1
+        OR user_last_second_seen != 0
     )
 );
 

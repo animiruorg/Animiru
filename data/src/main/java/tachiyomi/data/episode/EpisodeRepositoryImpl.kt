@@ -39,12 +39,12 @@ class EpisodeRepositoryImpl(
     ): List<Episode> {
         return database.transactionWithResult {
             if (removedIds.isNotEmpty()) {
-                database.episodesQueries.removeEpisodesWithIds(removedIds)
+                database.episodeQueries.removeEpisodesWithIds(removedIds)
             }
             val existing = added.map { it.animeId }
                 .distinct()
                 .flatMap { animeId ->
-                    database.episodesQueries
+                    database.episodeQueries
                         .getEpisodesByAnimeId(
                             animeId = animeId,
                             applyScanlatorFilter = false.toLong(),
@@ -55,7 +55,7 @@ class EpisodeRepositoryImpl(
                 }
                 .toMutableSet()
             val stored = added.filter { existing.add(it.animeId to it.url) }.map { episode ->
-                val episodeId = database.episodesQueries.insertReturningId(
+                val episodeId = database.episodeQueries.insertReturningId(
                     animeId = episode.animeId,
                     url = episode.url,
                     name = episode.name,
@@ -83,7 +83,7 @@ class EpisodeRepositoryImpl(
                 episode.copy(id = episodeId)
             }
             updated.forEach { episodeUpdate ->
-                database.episodesQueries.updateRemote(
+                database.episodeQueries.updateRemote(
                     name = episodeUpdate.name,
                     scanlator = episodeUpdate.scanlator,
                     episodeNumber = episodeUpdate.episodeNumber,
@@ -106,7 +106,7 @@ class EpisodeRepositoryImpl(
     private suspend fun partialUpdate(vararg episodeUpdates: EpisodeUpdate) {
         database.transaction {
             episodeUpdates.forEach { episodeUpdate ->
-                database.episodesQueries.update(
+                database.episodeQueries.update(
                     seen = episodeUpdate.seen,
                     bookmark = episodeUpdate.bookmark,
                     // AY -->
@@ -127,7 +127,7 @@ class EpisodeRepositoryImpl(
     }
 
     override suspend fun getEpisodeByAnimeId(animeId: Long, applyScanlatorFilter: Boolean): List<Episode> {
-        return database.episodesQueries.getEpisodesByAnimeId(
+        return database.episodeQueries.getEpisodesByAnimeId(
             animeId = animeId,
             applyScanlatorFilter = applyScanlatorFilter.toLong(),
             mapper = ::mapEpisode,
@@ -135,26 +135,26 @@ class EpisodeRepositoryImpl(
     }
 
     override suspend fun getScanlatorsByAnimeId(animeId: Long): List<String> {
-        return database.episodesQueries.getScanlatorsByAnimeId(animeId) { it.orEmpty() }.awaitAsList()
+        return database.episodeQueries.getScanlatorsByAnimeId(animeId) { it.orEmpty() }.awaitAsList()
     }
 
     override fun getScanlatorsByAnimeIdAsFlow(animeId: Long): Flow<List<String>> {
-        return database.episodesQueries.getScanlatorsByAnimeId(animeId) { it.orEmpty() }.subscribeToList()
+        return database.episodeQueries.getScanlatorsByAnimeId(animeId) { it.orEmpty() }.subscribeToList()
     }
 
     override suspend fun getBookmarkedEpisodesByAnimeId(animeId: Long): List<Episode> {
-        return database.episodesQueries.getBookmarkedEpisodesByAnimeId(
+        return database.episodeQueries.getBookmarkedEpisodesByAnimeId(
             animeId,
             ::mapEpisode,
         ).awaitAsList()
     }
 
     override suspend fun getEpisodeById(id: Long): Episode? {
-        return database.episodesQueries.getEpisodeById(id, ::mapEpisode).awaitAsOneOrNull()
+        return database.episodeQueries.getEpisodeById(id, ::mapEpisode).awaitAsOneOrNull()
     }
 
     override suspend fun getEpisodeByAnimeIdAsFlow(animeId: Long, applyScanlatorFilter: Boolean): Flow<List<Episode>> {
-        return database.episodesQueries.getEpisodesByAnimeId(
+        return database.episodeQueries.getEpisodesByAnimeId(
             animeId = animeId,
             applyScanlatorFilter = applyScanlatorFilter.toLong(),
             mapper = ::mapEpisode,
@@ -162,7 +162,7 @@ class EpisodeRepositoryImpl(
     }
 
     override suspend fun getEpisodeByUrlAndAnimeId(url: String, animeId: Long): Episode? {
-        return database.episodesQueries.getEpisodeByUrlAndAnimeId(
+        return database.episodeQueries.getEpisodeByUrlAndAnimeId(
             episodeUrl = url,
             animeId = animeId,
             mapper = ::mapEpisode,

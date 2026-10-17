@@ -49,8 +49,8 @@ object DatabaseBindings {
                 user_custom_genreAdapter = StringListColumnAdapter,
                 // <-- AM
             ),
-            episodesAdapter = Episodes.Adapter(
-                memoAdapter = MemoColumnAdapter,
+            episodeAdapter = Episode.Adapter(
+                remote_memoAdapter = MemoColumnAdapter,
             ),
         )
     }

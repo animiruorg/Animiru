@@ -5,34 +5,34 @@ SELECT
     anime.user_custom_title AS customAnimeTitle,
     -- <-- AM
     anime.remote_title AS animeTitle,
-    episodes._id AS episodeId,
-    episodes.name AS episodeName,
-    episodes.scanlator,
-    episodes.url AS episodeUrl,
-    episodes.seen,
-    episodes.bookmark,
+    episode.id AS episodeId,
+    episode.remote_name AS episodeName,
+    episode.remote_scanlator AS scanlator,
+    episode.remote_url AS episodeUrl,
+    episode.user_seen AS seen,
+    episode.user_bookmark AS bookmark,
     -- AY -->
-    episodes.fillermark,
+    episode.remote_fillermark AS fillermark,
     -- <-- AY
-    episodes.last_second_seen,
+    episode.user_last_second_seen AS last_second_seen,
     -- AY -->
-    episodes.total_seconds AS totalSeconds,
+    episode.state_total_seconds AS totalSeconds,
     -- <-- AY
     anime.source_id AS source,
     anime.user_favorite_at IS NOT NULL AS favorite,
     anime.remote_cover AS thumbnailUrl,
     anime.state_cover_last_modified AS coverLastModified,
-    episodes.date_upload AS dateUpload,
-    episodes.date_fetch AS datefetch,
+    episode.remote_date_upload AS dateUpload,
+    episode.state_date_fetch AS datefetch,
     excluded_scanlators.scanlator AS excludedScanlator
-FROM anime JOIN episodes
-ON anime.id = episodes.anime_id
+FROM anime JOIN episode
+ON anime.id = episode.anime_id
 LEFT JOIN excluded_scanlators
 ON anime.id = excluded_scanlators.anime_id
-AND episodes.scanlator = excluded_scanlators.scanlator
+AND episode.remote_scanlator = excluded_scanlators.scanlator
 WHERE user_favorite_at IS NOT NULL
-AND date_fetch > user_favorite_at
-ORDER BY date_fetch DESC;
+AND state_date_fetch > user_favorite_at
+ORDER BY state_date_fetch DESC;
 
 getRecentUpdates:
 SELECT

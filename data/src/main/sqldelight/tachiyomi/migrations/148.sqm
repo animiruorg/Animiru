@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonObject;
 DROP VIEW animedeletableView;
 DROP VIEW animeseasonstatsView;
 DROP VIEW animeseasonsView;
+DROP VIEW episodestatsView;
 DROP VIEW historyView;
 DROP VIEW libraryView;
 DROP VIEW updatesView;
@@ -171,6 +172,137 @@ CREATE INDEX anime_user_favorite_at_index ON anime(user_favorite_at) WHERE user_
 CREATE INDEX anime_parent_id_index ON anime(state_parent_id);
 CREATE INDEX anime_fetch_type_index ON anime(remote_fetch_type);
 
+-- ---------------------------------------------------------------------------------------------------------
+-- table - episode
+-- ---------------------------------------------------------------------------------------------------------
+
+-- The entries that merged in the previous group brought their episodes with them
+UPDATE episodes
+SET anime_id = (SELECT keep_id FROM duplicate_animes WHERE _id = episodes.anime_id)
+WHERE anime_id IN (SELECT _id FROM duplicate_animes WHERE _id != keep_id);
+
+-- Moving the episodes over brings rows for the same episode together, and duplicates like those are
+-- what issue https://github.com/mihonapp/mihon/issues/647 is about in the first place. The one with
+-- watching history is kept, the oldest otherwise, and the seen state and history of the others are
+-- merged into it.
+CREATE TEMP TABLE duplicate_episodes AS
+SELECT
+    _id,
+    first_value(_id) OVER (PARTITION BY anime_id, url ORDER BY has_history DESC, _id ASC) AS keep_id
+FROM (
+    SELECT
+        _id,
+        anime_id,
+        url,
+        EXISTS(SELECT 1 FROM history WHERE history.episode_id = chapters._id) AS has_history
+    FROM episodes
+    WHERE (anime_id, url) IN (
+        SELECT anime_id, url
+        FROM episodes
+        GROUP BY anime_id, url
+        HAVING count(*) > 1
+    )
+);
+
+UPDATE episodes
+SET seen = merged.seen,
+    bookmark = merged.bookmark,
+    fillermark = merged.fillermark,
+    last_second_seen = merged.last_second_seen,
+    date_fetch = merged.date_fetch,
+    date_upload = merged.date_upload,
+    thumbnail_last_modified_at = merged.thumbnail_last_modified_at,
+    total_seconds = merged.total_seconds
+FROM (
+    SELECT
+        D.keep_id,
+        max(EP.seen) AS seen,
+        max(EP.bookmark) AS bookmark,
+        max(EP.fillermark) AS fillermark,
+        max(EP.last_second_seen) AS last_second_seen,
+        -- 0 means the fetch date was never recorded rather than "the beginning of time", so it only
+        -- wins when no copy recorded one. Updates only lists episodes fetched after the entry joined
+        -- the library, so letting a 0 through would hide the merged episode from it.
+        coalesce(min(nullif(EP.date_fetch, 0)), 0) AS date_fetch,
+        max(EP.date_upload) AS date_upload,
+        max(EP.thumbnail_last_modified_at) AS thumbnail_last_modified_at,
+        max(EP.total_seconds) AS total_seconds
+    FROM duplicate_episodes D
+    JOIN episodes EP
+    ON EP._id = D._id
+    GROUP BY D.keep_id
+) AS merged
+WHERE episodes._id = merged.keep_id;
+
+-- The kept episode has a history entry whenever any of its duplicates has one
+UPDATE history
+SET last_seen = merged.last_seen
+FROM (
+    SELECT
+        D.keep_id,
+        max(H.last_seen) AS last_seen
+    FROM duplicate_episodes D
+    JOIN history H
+    ON H.episode_id = D._id
+    GROUP BY D.keep_id
+) AS merged
+WHERE history.episode_id = merged.keep_id;
+
+-- Foreign keys are off during migrations, so the history of a discarded episode goes explicitly
+DELETE FROM history
+WHERE episode_id IN (SELECT _id FROM duplicate_episodes WHERE _id != keep_id);
+
+DELETE FROM episodes
+WHERE _id IN (SELECT _id FROM duplicate_episodes WHERE _id != keep_id);
+
+DROP TABLE duplicate_episodes;
+
+CREATE TABLE episode(
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
+    remote_name TEXT NOT NULL,
+    remote_scanlator TEXT,
+    remote_episode_number REAL NOT NULL,
+    remote_date_upload INTEGER NOT NULL,
+    remote_order INTEGER NOT NULL,
+    -- AM -->
+    remote_fillermark INTEGER AS Boolean NOT NULL,
+    remote_summary TEXT,
+    remote_preview_url TEXT,
+    -- <-- AM
+    remote_memo BLOB AS JsonObject NOT NULL DEFAULT '{}',
+    user_seen INTEGER AS Boolean NOT NULL,
+    user_bookmark INTEGER AS Boolean NOT NULL,
+    user_last_second_seen INTEGER NOT NULL,
+    state_date_fetch INTEGER NOT NULL,
+    -- AM -->
+    state_thumbnail_last_modified_at INTEGER NOT NULL DEFAULT 0,
+    state_total_seconds INTEGER NOT NULL,
+    -- <-- AM
+    UNIQUE(anime_id, remote_url),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+INSERT INTO episode(
+    id, anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    remote_date_upload, remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, state_thumbnail_last_modified_at, state_total_seconds
+)
+SELECT
+    _id, anime_id, url, name, scanlator, episode_number,
+    date_upload, source_order, fillermark, summary,
+    preview_url, memo, seen, bookmark, last_second_seen,
+    date_fetch, thumbnail_last_modified_at, total_seconds
+FROM episodes;
+
+DROP TABLE episodes;
+
+CREATE INDEX episode_state_date_fetch_index ON episode(state_date_fetch);
+CREATE INDEX episode_unseen_state_date_fetch ON episode(state_date_fetch) WHERE user_seen = 0;
+
 -- The views read the columns that just changed, so they come back in their new shape
 CREATE VIEW animedeletableView AS
 SELECT
@@ -180,6 +312,22 @@ SELECT
 FROM anime AS A
 WHERE A.user_favorite_at IS NULL
 AND A.state_parent_id IS NULL;
+
+CREATE VIEW episodestatsView AS
+SELECT
+    episode.anime_id,
+    count(*) AS total,
+    sum(user_seen) AS seenCount,
+    coalesce(max(episode.remote_date_upload), 0) AS latestUpload,
+    coalesce(max(episode.state_date_fetch), 0) AS fetchedAt,
+    sum(episode.user_bookmark) AS bookmarkCount,
+    sum(episode.remote_fillermark) AS fillermarkCount
+FROM episode
+LEFT JOIN excluded_scanlators
+    ON episode.anime_id = excluded_scanlators.anime_id
+    AND episode.remote_scanlator = excluded_scanlators.scanlator
+WHERE excluded_scanlators.scanlator IS NULL
+GROUP BY episode.anime_id;
 
 CREATE VIEW animeseasonstatsView AS
 SELECT
@@ -243,7 +391,7 @@ CREATE VIEW historyView AS
 SELECT
     history._id AS id,
     anime.id AS animeId,
-    episodes._id AS episodeId,
+    episode.id AS episodeId,
     -- AM -->
     anime.user_custom_title AS custom_title,
     -- <-- AM
@@ -252,22 +400,22 @@ SELECT
     anime.source_id AS source,
     anime.user_favorite_at IS NOT NULL AS favorite,
     anime.state_cover_last_modified,
-    episodes.episode_number AS episodeNumber,
+    episode.remote_episode_number AS episodeNumber,
     history.last_seen AS seenAt,
     max_last_seen.last_seen AS maxSeenAt,
     max_last_seen.episode_id AS maxSeenAtEpisodeId
 FROM anime
-JOIN episodes
-ON anime.id = episodes.anime_id
+JOIN episode
+ON anime.id = episode.anime_id
 JOIN history
-ON episodes._id = history.episode_id
+ON episode.id = history.episode_id
 JOIN (
-    SELECT episodes.anime_id,episodes._id AS episode_id, MAX(history.last_seen) AS last_seen
-    FROM episodes JOIN history
-    ON episodes._id = history.episode_id
-    GROUP BY episodes.anime_id
+    SELECT episode.anime_id, episode.id AS episode_id, MAX(history.last_seen) AS last_seen
+    FROM episode JOIN history
+    ON episode.id = history.episode_id
+    GROUP BY episode.anime_id
 ) AS max_last_seen
-ON episodes.anime_id = max_last_seen.anime_id;
+ON episode.anime_id = max_last_seen.anime_id;
 
 CREATE VIEW libraryView AS
 SELECT
@@ -328,31 +476,32 @@ SELECT
     anime.user_custom_title AS customAnimeTitle,
     -- <-- AM
     anime.remote_title AS animeTitle,
-    episodes._id AS episodeId,
-    episodes.name AS episodeName,
-    episodes.scanlator,
-    episodes.url AS episodeUrl,
-    episodes.seen,
-    episodes.bookmark,
+    episode.id AS episodeId,
+    episode.remote_name AS episodeName,
+    episode.remote_scanlator AS scanlator,
+    episode.remote_url AS episodeUrl,
+    episode.user_seen AS seen,
+    episode.user_bookmark AS bookmark,
     -- AY -->
-    episodes.fillermark,
+    episode.remote_fillermark AS fillermark,
     -- <-- AY
-    episodes.last_second_seen,
+    episode.user_last_second_seen AS last_second_seen,
     -- AY -->
-    episodes.total_seconds AS totalSeconds,
+    episode.state_total_seconds AS totalSeconds,
     -- <-- AY
     anime.source_id AS source,
     anime.user_favorite_at IS NOT NULL AS favorite,
     anime.remote_cover AS thumbnailUrl,
     anime.state_cover_last_modified AS coverLastModified,
-    episodes.date_upload AS dateUpload,
-    episodes.date_fetch AS datefetch,
+    episode.remote_date_upload AS dateUpload,
+    episode.state_date_fetch AS datefetch,
     excluded_scanlators.scanlator AS excludedScanlator
-FROM anime JOIN episodes
-ON anime.id = episodes.anime_id
+FROM anime JOIN episode
+ON anime.id = episode.anime_id
 LEFT JOIN excluded_scanlators
 ON anime.id = excluded_scanlators.anime_id
-AND episodes.scanlator = excluded_scanlators.scanlator
+AND episode.remote_scanlator = excluded_scanlators.scanlator
 WHERE user_favorite_at IS NOT NULL
-AND date_fetch > user_favorite_at
-ORDER BY date_fetch DESC;
+AND state_date_fetch > user_favorite_at
+ORDER BY state_date_fetch DESC;
+

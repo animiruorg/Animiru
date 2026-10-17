@@ -219,7 +219,7 @@ class RestoreRepositoryImpl(
             .partition { it.id > 0 }
 
         newEpisodes.forEach { episode ->
-            database.episodesQueries.insert(
+            database.episodeQueries.insert(
                 animeId = episode.animeId,
                 url = episode.url,
                 name = episode.name,
@@ -245,7 +245,7 @@ class RestoreRepositoryImpl(
             )
         }
         existingEpisodes.forEach { episode ->
-            database.episodesQueries.updateFromBackup(
+            database.episodeQueries.updateFromBackup(
                 seen = episode.seen,
                 bookmark = episode.bookmark,
                 // AM -->
@@ -273,13 +273,13 @@ class RestoreRepositoryImpl(
                     .awaitAsOneOrNull()
 
                 if (dbHistory == null) {
-                    val episode = database.episodesQueries
+                    val episode = database.episodeQueries
                         .getEpisodeByUrlAndAnimeId(episodeUrl, anime.id)
                         .awaitAsOneOrNull()
                         // Episode doesn't exist; skip
                         ?: return@mapNotNull null
                     // New history entry
-                    return@mapNotNull Pair(episode._id, Date(seenAt))
+                    return@mapNotNull Pair(episode.id, Date(seenAt))
                 }
 
                 // Update history entry

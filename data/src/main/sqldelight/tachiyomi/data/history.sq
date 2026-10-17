@@ -4,7 +4,7 @@ CREATE TABLE history(
     _id INTEGER NOT NULL PRIMARY KEY,
     episode_id INTEGER NOT NULL UNIQUE,
     last_seen INTEGER AS Date,
-    FOREIGN KEY(episode_id) REFERENCES episodes (_id)
+    FOREIGN KEY(episode_id) REFERENCES episode (id)
     ON DELETE CASCADE
 );
 
@@ -17,9 +17,9 @@ H._id,
 H.episode_id,
 H.last_seen
 FROM history H
-JOIN episodes EP
-ON H.episode_id = EP._id
-WHERE EP.anime_id = :animeId AND EP._id = H.episode_id;
+JOIN episode EP
+ON H.episode_id = EP.id
+WHERE EP.anime_id = :animeId AND EP.id = H.episode_id;
 
 getHistoryByEpisodeUrlAndAnimeId:
 SELECT
@@ -27,9 +27,9 @@ H._id,
 H.episode_id,
 H.last_seen
 FROM history H
-JOIN episodes EP
-ON H.episode_id = EP._id
-WHERE EP.url = :episodeUrl AND EP.anime_id = :animeId AND EP._id = H.episode_id
+JOIN episode EP
+ON H.episode_id = EP.id
+WHERE EP.remote_url = :episodeUrl AND EP.anime_id = :animeId AND EP.id = H.episode_id
 LIMIT 1;
 
 resetHistoryById:
@@ -43,10 +43,10 @@ SET last_seen = 0
 WHERE _id IN (
     SELECT H._id
     FROM anime A
-    INNER JOIN episodes EP
+    INNER JOIN episode EP
     ON A.id = EP.anime_id
     INNER JOIN history H
-    ON EP._id = H.episode_id
+    ON EP.id = H.episode_id
     WHERE A.id = :animeId
 );
 
