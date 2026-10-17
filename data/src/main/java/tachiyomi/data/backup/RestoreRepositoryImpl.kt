@@ -219,43 +219,43 @@ class RestoreRepositoryImpl(
             .partition { it.id > 0 }
 
         newEpisodes.forEach { episode ->
-            database.episodeQueries.insert(
+            database.episodeQueries.insertReturningId(
                 animeId = episode.animeId,
-                url = episode.url,
-                name = episode.name,
-                scanlator = episode.scanlator,
-                seen = episode.seen,
-                bookmark = episode.bookmark,
+                remoteUrl = episode.url,
+                remoteName = episode.name,
+                remoteScanlator = episode.scanlator,
+                userSeen = episode.seen,
+                userBookmark = episode.bookmark,
                 // AM -->
-                fillermark = episode.fillermark,
+                remoteFillermark = episode.fillermark,
                 // <-- AM
-                lastSecondSeen = episode.lastSecondSeen,
+                userLastSecondSeen = episode.lastSecondSeen,
                 // AM -->
-                totalSeconds = episode.totalSeconds,
+                stateTotalSeconds = episode.totalSeconds,
                 // <-- AM
-                episodeNumber = episode.episodeNumber,
-                sourceOrder = episode.sourceOrder,
-                dateFetch = episode.dateFetch,
-                dateUpload = episode.dateUpload,
+                remoteEpisodeNumber = episode.episodeNumber,
+                remoteOrder = episode.sourceOrder,
+                stateDateFetch = episode.dateFetch,
+                remoteDateUpload = episode.dateUpload,
                 // AM -->
-                summary = episode.summary,
-                previewUrl = episode.previewUrl,
+                remoteSummary = episode.summary,
+                remotePreviewUrl = episode.previewUrl,
                 // <-- AM
-                memo = episode.memo,
+                remoteMemo = episode.memo,
             )
         }
         existingEpisodes.forEach { episode ->
             database.episodeQueries.updateFromBackup(
-                seen = episode.seen,
-                bookmark = episode.bookmark,
+                userSeen = episode.seen,
+                userBookmark = episode.bookmark,
                 // AM -->
-                fillermark = episode.fillermark,
-                totalSeconds = episode.totalSeconds,
-                thumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
+                remoteFillermark = episode.fillermark,
+                stateTotalSeconds = episode.totalSeconds,
+                stateThumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
                 // <-- AM
-                lastSecondSeen = episode.lastSecondSeen,
-                episodeId = episode.id,
-                memo = episode.memo,
+                userLastSecondSeen = episode.lastSecondSeen,
+                id = episode.id,
+                remoteMemo = episode.memo,
             )
         }
     }
@@ -274,7 +274,7 @@ class RestoreRepositoryImpl(
 
                 if (dbHistory == null) {
                     val episode = database.episodeQueries
-                        .getEpisodeByUrlAndAnimeId(episodeUrl, anime.id)
+                        .getEpisodeByUrlAndAnimeId(animeId = anime.id, remoteUrl = episodeUrl)
                         .awaitAsOneOrNull()
                         // Episode doesn't exist; skip
                         ?: return@mapNotNull null

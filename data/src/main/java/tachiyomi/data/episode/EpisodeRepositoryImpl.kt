@@ -57,45 +57,45 @@ class EpisodeRepositoryImpl(
             val stored = added.filter { existing.add(it.animeId to it.url) }.map { episode ->
                 val episodeId = database.episodeQueries.insertReturningId(
                     animeId = episode.animeId,
-                    url = episode.url,
-                    name = episode.name,
-                    scanlator = episode.scanlator,
-                    seen = episode.seen,
-                    bookmark = episode.bookmark,
+                    remoteUrl = episode.url,
+                    remoteName = episode.name,
+                    remoteScanlator = episode.scanlator,
+                    userSeen = episode.seen,
+                    userBookmark = episode.bookmark,
                     // AM -->
-                    fillermark = episode.fillermark,
+                    remoteFillermark = episode.fillermark,
                     // <-- AM
-                    lastSecondSeen = episode.lastSecondSeen,
+                    userLastSecondSeen = episode.lastSecondSeen,
                     // AM -->
-                    totalSeconds = episode.totalSeconds,
+                    stateTotalSeconds = episode.totalSeconds,
                     // <-- AM
-                    episodeNumber = episode.episodeNumber,
-                    sourceOrder = episode.sourceOrder,
-                    dateFetch = episode.dateFetch,
-                    dateUpload = episode.dateUpload,
+                    remoteEpisodeNumber = episode.episodeNumber,
+                    remoteOrder = episode.sourceOrder,
+                    stateDateFetch = episode.dateFetch,
+                    remoteDateUpload = episode.dateUpload,
                     // AM -->
-                    summary = episode.summary,
-                    previewUrl = episode.previewUrl,
+                    remoteSummary = episode.summary,
+                    remotePreviewUrl = episode.previewUrl,
                     // <-- AM
-                    memo = episode.memo,
+                    remoteMemo = episode.memo,
                 )
                     .awaitAsOne()
                 episode.copy(id = episodeId)
             }
             updated.forEach { episodeUpdate ->
                 database.episodeQueries.updateRemote(
-                    name = episodeUpdate.name,
-                    scanlator = episodeUpdate.scanlator,
-                    episodeNumber = episodeUpdate.episodeNumber,
-                    sourceOrder = episodeUpdate.sourceOrder,
-                    dateUpload = episodeUpdate.dateUpload,
-                    episodeId = episodeUpdate.id,
-                    memo = episodeUpdate.memo,
+                    remoteName = episodeUpdate.name,
+                    remoteScanlator = episodeUpdate.scanlator,
+                    remoteEpisodeNumber = episodeUpdate.episodeNumber,
+                    remoteOrder = episodeUpdate.sourceOrder,
+                    remoteDateUpload = episodeUpdate.dateUpload,
+                    id = episodeUpdate.id,
+                    remoteMemo = episodeUpdate.memo,
                     // AM -->
-                    fillermark = episodeUpdate.fillerMark,
-                    summary = episodeUpdate.summary,
-                    previewUrl = episodeUpdate.previewUrl,
-                    thumbnailLastModifiedAt = episodeUpdate.thumbnailLastModified,
+                    remoteFillermark = episodeUpdate.fillerMark,
+                    remoteSummary = episodeUpdate.summary,
+                    remotePreviewUrl = episodeUpdate.previewUrl,
+                    stateThumbnailLastModifiedAt = episodeUpdate.thumbnailLastModified,
                     // <-- AM
                 )
             }
@@ -107,19 +107,19 @@ class EpisodeRepositoryImpl(
         database.transaction {
             episodeUpdates.forEach { episodeUpdate ->
                 database.episodeQueries.update(
-                    seen = episodeUpdate.seen,
-                    bookmark = episodeUpdate.bookmark,
+                    userSeen = episodeUpdate.seen,
+                    userBookmark = episodeUpdate.bookmark,
                     // AY -->
-                    fillermark = episodeUpdate.fillermark,
+                    remoteFillermark = episodeUpdate.fillermark,
                     // <-- AY
-                    lastSecondSeen = episodeUpdate.lastSecondSeen,
+                    userLastSecondSeen = episodeUpdate.lastSecondSeen,
                     // AY -->
-                    totalSeconds = episodeUpdate.totalSeconds,
+                    stateTotalSeconds = episodeUpdate.totalSeconds,
                     // <-- AY
-                    dateFetch = episodeUpdate.dateFetch,
-                    episodeId = episodeUpdate.id,
+                    stateDateFetch = episodeUpdate.dateFetch,
+                    id = episodeUpdate.id,
                     // AM -->
-                    thumbnailLastModifiedAt = episodeUpdate.thumbnailLastModifiedAt,
+                    stateThumbnailLastModifiedAt = episodeUpdate.thumbnailLastModifiedAt,
                     // <-- AM
                 )
             }
@@ -163,66 +163,61 @@ class EpisodeRepositoryImpl(
 
     override suspend fun getEpisodeByUrlAndAnimeId(url: String, animeId: Long): Episode? {
         return database.episodeQueries.getEpisodeByUrlAndAnimeId(
-            episodeUrl = url,
             animeId = animeId,
+            remoteUrl = url,
             mapper = ::mapEpisode,
         ).awaitAsOneOrNull()
     }
 
-    @Suppress("UNUSED_PARAMETER")
     private fun mapEpisode(
         id: Long,
         animeId: Long,
-        url: String,
-        name: String,
-        scanlator: String?,
-        seen: Boolean,
-        bookmark: Boolean,
-        // AY -->
-        fillermark: Boolean,
-        // <-- AY
-        lastSecondSeen: Long,
-        // AY -->
-        totalSeconds: Long,
-        // <-- AY
-        episodeNumber: Double,
-        sourceOrder: Long,
-        dateFetch: Long,
-        dateUpload: Long,
-        // AY -->
-        summary: String?,
-        previewUrl: String?,
-        // <-- AY
-        memo: JsonObject,
+        remoteUrl: String,
+        remoteName: String,
+        remoteScanlator: String?,
+        remoteEpisodeNumber: Double,
+        remoteDateUpload: Long,
+        remoteOrder: Long,
         // AM -->
-        thumbnailLastModifiedAt: Long,
+        remoteFillermark: Boolean,
+        remoteSummary: String?,
+        remotePreviewUrl: String?,
+        // <-- AM
+        remoteMemo: JsonObject,
+        userSeen: Boolean,
+        userBookmark: Boolean,
+        userLastSecondSeen: Long,
+        stateDateFetch: Long,
+        // AM -->
+        stateThumbnailLastModifiedAt: Long,
+        stateTotalSeconds: Long,
         // <-- AM
     ): Episode = Episode(
         id = id,
         animeId = animeId,
-        seen = seen,
-        bookmark = bookmark,
+        seen = userSeen,
+        bookmark = userBookmark,
         // AY -->
-        fillermark = fillermark,
+        fillermark = remoteFillermark,
         // <-- AY
-        lastSecondSeen = lastSecondSeen,
+        lastSecondSeen = userLastSecondSeen,
         // AY -->
-        totalSeconds = totalSeconds,
+        totalSeconds = stateTotalSeconds,
         // <-- AY
-        dateFetch = dateFetch,
-        sourceOrder = sourceOrder,
-        url = url,
-        name = name,
-        dateUpload = dateUpload,
-        episodeNumber = episodeNumber,
-        scanlator = scanlator,
+        dateFetch = stateDateFetch,
+        sourceOrder = remoteOrder,
+        url = remoteUrl,
+        name = remoteName,
+        dateUpload = remoteDateUpload,
+        episodeNumber = remoteEpisodeNumber,
+        scanlator = remoteScanlator,
         // AY -->
-        summary = summary,
-        previewUrl = previewUrl,
+        summary = remoteSummary,
+        previewUrl = remotePreviewUrl,
         // <-- AY
-        memo = memo,
+        memo = remoteMemo,
         // AM -->
-        thumbnailLastModifiedAt = thumbnailLastModifiedAt,
+        thumbnailLastModifiedAt = stateThumbnailLastModifiedAt,
         // <-- AM
     )
 }
