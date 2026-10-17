@@ -156,7 +156,11 @@ class AnimeRepositoryImpl(
             excludedScanlators.minus(current).forEach { scanlator ->
                 database.excluded_scanlatorQueries.insert(animeId, scanlator)
             }
-            database.excluded_scanlatorQueries.remove(animeId, current.minus(excludedScanlators))
+            val toRemove = current.minus(excludedScanlators)
+            // An empty delete still tells every episoide query to run again
+            if (toRemove.isNotEmpty()) {
+                database.excluded_scanlatorQueries.remove(animeId, toRemove)
+            }
         }
     }
 
