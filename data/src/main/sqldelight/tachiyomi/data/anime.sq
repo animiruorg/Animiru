@@ -181,7 +181,7 @@ episode_counts AS (
     FROM duplicates A
     JOIN episode EP
     ON A.id = EP.anime_id
-    LEFT JOIN excluded_scanlators ES
+    LEFT JOIN excluded_scanlator ES
     ON EP.anime_id = ES.anime_id
     AND EP.remote_scanlator = ES.scanlator
     WHERE ES.scanlator IS NULL

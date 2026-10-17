@@ -24,12 +24,12 @@ SELECT
     anime.state_cover_last_modified AS coverLastModified,
     episode.remote_date_upload AS dateUpload,
     episode.state_date_fetch AS datefetch,
-    excluded_scanlators.scanlator AS excludedScanlator
+    excluded_scanlator.scanlator AS excludedScanlator
 FROM anime JOIN episode
 ON anime.id = episode.anime_id
-LEFT JOIN excluded_scanlators
-ON anime.id = excluded_scanlators.anime_id
-AND episode.remote_scanlator = excluded_scanlators.scanlator
+LEFT JOIN excluded_scanlator
+ON anime.id = excluded_scanlator.anime_id
+AND episode.remote_scanlator = excluded_scanlator.scanlator
 WHERE user_favorite_at IS NOT NULL
 AND state_date_fetch > user_favorite_at
 ORDER BY state_date_fetch DESC;

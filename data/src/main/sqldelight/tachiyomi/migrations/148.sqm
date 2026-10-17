@@ -379,6 +379,28 @@ DROP TABLE history_temp;
 CREATE INDEX history_anime_id_index ON history(anime_id);
 CREATE INDEX history_seen_at_index ON history(seen_at);
 
+-- ---------------------------------------------------------------------------------------------------------
+-- table - excluded_scanlator
+-- ---------------------------------------------------------------------------------------------------------
+
+CREATE TABLE excluded_scanlator(
+    anime_id INTEGER NOT NULL,
+    scanlator TEXT NOT NULL,
+    UNIQUE (anime_id, scanlator),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+-- Excluding a scanlator twice excludes it once, and merged entries brought their exclusions along, so
+-- the copies collapse. `excluded_scanlators_anime_id_index` is a prefix of the new constraint.
+INSERT INTO excluded_scanlator(anime_id, scanlator)
+SELECT DISTINCT coalesce(D.keep_id, ES.anime_id), ES.scanlator
+FROM excluded_scanlators ES
+LEFT JOIN duplicate_animes D
+ON D._id = ES.anime_id;
+
+DROP TABLE excluded_scanlators;
+
 -- The views read the columns that just changed, so they come back in their new shape
 CREATE VIEW animedeletableView AS
 SELECT
@@ -407,10 +429,10 @@ SELECT
     sum(episode.user_bookmark) AS bookmarkCount,
     sum(episode.remote_fillermark) AS fillermarkCount
 FROM episode
-LEFT JOIN excluded_scanlators
-    ON episode.anime_id = excluded_scanlators.anime_id
-    AND episode.remote_scanlator = excluded_scanlators.scanlator
-WHERE excluded_scanlators.scanlator IS NULL
+LEFT JOIN excluded_scanlator
+    ON episode.anime_id = excluded_scanlator.anime_id
+    AND episode.remote_scanlator = excluded_scanlator.scanlator
+WHERE excluded_scanlator.scanlator IS NULL
 GROUP BY episode.anime_id;
 
 CREATE VIEW animeseasonstatsView AS
@@ -579,12 +601,12 @@ SELECT
     anime.state_cover_last_modified AS coverLastModified,
     episode.remote_date_upload AS dateUpload,
     episode.state_date_fetch AS datefetch,
-    excluded_scanlators.scanlator AS excludedScanlator
+    excluded_scanlator.scanlator AS excludedScanlator
 FROM anime JOIN episode
 ON anime.id = episode.anime_id
-LEFT JOIN excluded_scanlators
-ON anime.id = excluded_scanlators.anime_id
-AND episode.remote_scanlator = excluded_scanlators.scanlator
+LEFT JOIN excluded_scanlator
+ON anime.id = excluded_scanlator.anime_id
+AND episode.remote_scanlator = excluded_scanlator.scanlator
 WHERE user_favorite_at IS NOT NULL
 AND state_date_fetch > user_favorite_at
 ORDER BY state_date_fetch DESC;

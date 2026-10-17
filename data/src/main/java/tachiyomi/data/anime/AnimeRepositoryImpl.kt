@@ -134,14 +134,14 @@ class AnimeRepositoryImpl(
     }
 
     override suspend fun getExcludedScanlators(animeId: Long): Set<String> {
-        return database.excluded_scanlatorsQueries
+        return database.excluded_scanlatorQueries
             .getExcludedScanlatorsByAnimeId(animeId)
             .awaitAsList()
             .toSet()
     }
 
     override fun getExcludedScanlatorsAsFlow(animeId: Long): Flow<Set<String>> {
-        return database.excluded_scanlatorsQueries
+        return database.excluded_scanlatorQueries
             .getExcludedScanlatorsByAnimeId(animeId)
             .subscribeToList()
             .map { it.toSet() }
@@ -149,14 +149,14 @@ class AnimeRepositoryImpl(
 
     override suspend fun setExcludedScanlators(animeId: Long, excludedScanlators: Set<String>) {
         database.transaction {
-            val current = database.excluded_scanlatorsQueries
+            val current = database.excluded_scanlatorQueries
                 .getExcludedScanlatorsByAnimeId(animeId)
                 .awaitAsList()
                 .toSet()
             excludedScanlators.minus(current).forEach { scanlator ->
-                database.excluded_scanlatorsQueries.insert(animeId, scanlator)
+                database.excluded_scanlatorQueries.insert(animeId, scanlator)
             }
-            database.excluded_scanlatorsQueries.remove(animeId, current.minus(excludedScanlators))
+            database.excluded_scanlatorQueries.remove(animeId, current.minus(excludedScanlators))
         }
     }
 

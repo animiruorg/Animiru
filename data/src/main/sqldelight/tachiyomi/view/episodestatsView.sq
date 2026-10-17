@@ -9,9 +9,9 @@ SELECT
     sum(episode.user_bookmark) AS bookmarkCount,
     sum(episode.remote_fillermark) AS fillermarkCount
 FROM episode
-LEFT JOIN excluded_scanlators
-    ON episode.anime_id = excluded_scanlators.anime_id
-    AND episode.remote_scanlator = excluded_scanlators.scanlator
-WHERE excluded_scanlators.scanlator IS NULL
+LEFT JOIN excluded_scanlator
+    ON episode.anime_id = excluded_scanlator.anime_id
+    AND episode.remote_scanlator = excluded_scanlator.scanlator
+WHERE excluded_scanlator.scanlator IS NULL
 GROUP BY episode.anime_id;
 -- <-- AY

@@ -50,7 +50,7 @@ SELECT
     EP.state_date_fetch, EP.remote_date_upload, EP.remote_summary, EP.remote_preview_url,
     EP.remote_memo, EP.state_thumbnail_last_modified_at
 FROM episode EP
-LEFT JOIN excluded_scanlators ES
+LEFT JOIN excluded_scanlator ES
 ON EP.anime_id = ES.anime_id
 AND EP.remote_scanlator = ES.scanlator
 WHERE EP.anime_id = :animeId
