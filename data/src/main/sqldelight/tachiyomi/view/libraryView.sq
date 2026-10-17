@@ -42,6 +42,7 @@ ON A.id = HS.anime_id
 LEFT JOIN (
     SELECT anime_id, group_concat(category_id) AS categories
     FROM anime_category
+    WHERE anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
     GROUP BY anime_id
 ) AS AC
 ON AC.anime_id = A.id

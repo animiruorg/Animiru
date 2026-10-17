@@ -567,6 +567,7 @@ LEFT JOIN excluded_scanlator
     ON episode.anime_id = excluded_scanlator.anime_id
     AND episode.remote_scanlator = excluded_scanlator.scanlator
 WHERE excluded_scanlator.scanlator IS NULL
+AND episode.anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
 GROUP BY episode.anime_id;
 
 CREATE VIEW animeseasonstatsView AS
@@ -625,7 +626,8 @@ LEFT JOIN historystatsView AS HS
 ON A.id = HS.anime_id
 LEFT JOIN animeseasonstatsView AS ASS
 ON A.id = ASS.state_parent_id
-WHERE A.state_parent_id IS NOT NULL;
+WHERE A.state_parent_id IS NOT NULL
+AND A.state_parent_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL);
 
 CREATE VIEW historyView AS
 SELECT
@@ -701,6 +703,7 @@ ON A.id = HS.anime_id
 LEFT JOIN (
     SELECT anime_id, group_concat(category_id) AS categories
     FROM anime_category
+    WHERE anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
     GROUP BY anime_id
 ) AS AC
 ON AC.anime_id = A.id
