@@ -47,7 +47,7 @@ class SourceRepositoryImpl(
     }
 
     override fun getSourcesWithFavoriteCount(): Flow<List<Pair<DomainSource, Long>>> {
-        val sourceIdWithFavoriteCountFlow = database.animesQueries
+        val sourceIdWithFavoriteCountFlow = database.animeQueries
             .getSourceIdWithFavoriteCount()
             .subscribeToList()
 

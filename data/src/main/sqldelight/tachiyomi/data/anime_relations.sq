@@ -6,9 +6,9 @@ CREATE TABLE anime_relations(
     sort_order INTEGER NOT NULL,
     last_fetched_at INTEGER NOT NULL,
     PRIMARY KEY(anime_id, related_anime_id, name),
-    FOREIGN KEY(anime_id) REFERENCES animes (_id)
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
     ON DELETE CASCADE,
-    FOREIGN KEY(related_anime_id) REFERENCES animes (_id)
+    FOREIGN KEY(related_anime_id) REFERENCES anime (id)
     ON DELETE CASCADE
 );
 
@@ -17,17 +17,17 @@ CREATE INDEX anime_relations_related_anime_id_index ON anime_relations(related_a
 
 getRelatedAnimeByAnimeId:
 SELECT
-    A._id, A.source, A.url, A.artist, A.author, A.description, A.genre, A.title,
-    A.status, A.thumbnail_url, A.last_update, A.next_update, A.initialized,
-    A.viewer, A.episode_flags, A.cover_last_modified, A.update_strategy,
-    A.calculate_interval, A.notes, A.fetch_type, A.parent_id, A.season_flags,
-    A.season_number, A.season_source_order, A.background_last_modified,
-    A.memo, A.favorite_at, A.custom_artist, A.custom_author,
-    A.custom_description, A.custom_genre, A.custom_title, A.custom_status,
+    A.id, A.source_id, A.remote_url, A.remote_artist, A.remote_author, A.remote_description, A.remote_genre, A.remote_title,
+    A.remote_status, A.remote_cover, A.state_episode_last_update, A.state_episode_next_update, A.state_initialized,
+    A.user_player_flags, A.user_episode_flags, A.state_cover_last_modified, A.remote_update_strategy,
+    A.state_episode_fetch_interval, A.user_notes, A.remote_fetch_type, A.state_parent_id, A.user_season_flags,
+    A.remote_season_number, A.remote_season_source_order, A.remote_background, A.state_background_last_modified,
+    A.remote_memo, A.user_favorite_at, A.user_custom_artist, A.user_custom_author, A.user_custom_description,
+    A.user_custom_genre, A.user_custom_title, A.user_custom_status,
     R.name
 FROM anime_relations AS R
-JOIN animes AS A
-ON A._id = R.related_anime_id
+JOIN anime AS A
+ON A.id = R.related_anime_id
 WHERE R.anime_id = :animeId
 ORDER BY R.sort_order ASC;
 

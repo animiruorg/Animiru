@@ -1,14 +1,14 @@
 -- AY -->
 CREATE VIEW animedeletableView AS
 SELECT
-    A._id,
-    A.source,
-    A.fetch_type
-FROM animes AS A
-WHERE A.favorite_at IS NULL
-AND A.parent_id IS NULL;
+    A.id,
+    A.source_id,
+    A.remote_fetch_type
+FROM anime AS A
+WHERE A.user_favorite_at IS NULL
+AND A.state_parent_id IS NULL;
 
 getDeletableParentAnime:
-SELECT _id, source, fetch_type
+SELECT id, source_id, remote_fetch_type
 FROM animedeletableView;
 -- <-- AY

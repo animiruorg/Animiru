@@ -1,10 +1,10 @@
 CREATE VIEW updatesView AS
 SELECT
-    animes._id AS animeId,
+    anime.id AS animeId,
     -- AM -->
-    animes.custom_title AS customAnimeTitle,
+    anime.user_custom_title AS customAnimeTitle,
     -- <-- AM
-    animes.title AS animeTitle,
+    anime.remote_title AS animeTitle,
     episodes._id AS episodeId,
     episodes.name AS episodeName,
     episodes.scanlator,
@@ -18,25 +18,25 @@ SELECT
     -- AY -->
     episodes.total_seconds AS totalSeconds,
     -- <-- AY
-    animes.source,
-    animes.favorite_at IS NOT NULL AS favorite,
-    animes.thumbnail_url AS thumbnailUrl,
-    animes.cover_last_modified AS coverLastModified,
+    anime.source_id AS source,
+    anime.user_favorite_at IS NOT NULL AS favorite,
+    anime.remote_cover AS thumbnailUrl,
+    anime.state_cover_last_modified AS coverLastModified,
     episodes.date_upload AS dateUpload,
     episodes.date_fetch AS datefetch,
     excluded_scanlators.scanlator AS excludedScanlator
-FROM animes JOIN episodes
-ON animes._id = episodes.anime_id
+FROM anime JOIN episodes
+ON anime.id = episodes.anime_id
 LEFT JOIN excluded_scanlators
-ON animes._id = excluded_scanlators.anime_id
+ON anime.id = excluded_scanlators.anime_id
 AND episodes.scanlator = excluded_scanlators.scanlator
-WHERE favorite_at IS NOT NULL
-AND date_fetch > favorite_at
+WHERE user_favorite_at IS NOT NULL
+AND date_fetch > user_favorite_at
 ORDER BY date_fetch DESC;
 
 getRecentUpdates:
 SELECT
-    animeId, customAnimeTitle, animeId, episodeId, episodeName,
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
     scanlator, episodeUrl, seen, bookmark, fillermark,
     last_second_seen, totalSeconds, source, favorite,
     thumbnailUrl, coverLastModified, dateUpload, datefetch,
@@ -48,7 +48,7 @@ LIMIT :limit;
 
 getRecentUpdatesWithFilters:
 SELECT
-    animeId, customAnimeTitle, animeId, episodeId, episodeName,
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
     scanlator, episodeUrl, seen, bookmark, fillermark,
     last_second_seen, totalSeconds, source, favorite,
     thumbnailUrl, coverLastModified, dateUpload, datefetch,
@@ -99,7 +99,7 @@ LIMIT :limit;
 
 getUpdatesBySeenStatus:
 SELECT
-    animeId, customAnimeTitle, animeId, episodeId, episodeName,
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
     scanlator, episodeUrl, seen, bookmark, fillermark,
     last_second_seen, totalSeconds, source, favorite,
     thumbnailUrl, coverLastModified, dateUpload, datefetch,

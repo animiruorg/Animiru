@@ -1,23 +1,23 @@
 CREATE VIEW historyView AS
 SELECT
     history._id AS id,
-    animes._id AS animeId,
+    anime.id AS animeId,
     episodes._id AS episodeId,
     -- AM -->
-    animes.custom_title,
+    anime.user_custom_title AS custom_title,
     -- <-- AM
-    animes.title,
-    animes.thumbnail_url AS thumbnailUrl,
-    animes.source,
-    animes.favorite_at IS NOT NULL AS favorite,
-    animes.cover_last_modified,
+    anime.remote_title AS title,
+    anime.remote_cover AS thumbnailUrl,
+    anime.source_id AS source,
+    anime.user_favorite_at IS NOT NULL AS favorite,
+    anime.state_cover_last_modified,
     episodes.episode_number AS episodeNumber,
     history.last_seen AS seenAt,
     max_last_seen.last_seen AS maxSeenAt,
     max_last_seen.episode_id AS maxSeenAtEpisodeId
-FROM animes
+FROM anime
 JOIN episodes
-ON animes._id = episodes.anime_id
+ON anime.id = episodes.anime_id
 JOIN history
 ON episodes._id = history.episode_id
 JOIN (
@@ -38,7 +38,7 @@ title,
 thumbnailUrl,
 source,
 favorite,
-cover_last_modified,
+state_cover_last_modified,
 episodeNumber,
 seenAt
 FROM historyView
@@ -57,7 +57,7 @@ title,
 thumbnailUrl,
 source,
 favorite,
-cover_last_modified,
+state_cover_last_modified,
 episodeNumber,
 seenAt
 FROM historyView

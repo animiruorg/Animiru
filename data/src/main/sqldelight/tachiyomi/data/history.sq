@@ -42,12 +42,12 @@ UPDATE history
 SET last_seen = 0
 WHERE _id IN (
     SELECT H._id
-    FROM animes A
+    FROM anime A
     INNER JOIN episodes EP
-    ON A._id = EP.anime_id
+    ON A.id = EP.anime_id
     INNER JOIN history H
     ON EP._id = H.episode_id
-    WHERE A._id = :animeId
+    WHERE A.id = :animeId
 );
 
 removeAllHistory:

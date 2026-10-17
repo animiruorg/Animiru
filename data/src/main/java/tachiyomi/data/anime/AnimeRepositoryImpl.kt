@@ -38,15 +38,15 @@ class AnimeRepositoryImpl(
 ) : AnimeRepository {
 
     override suspend fun getAnimeById(id: Long): Anime {
-        return database.animesQueries.getAnimeById(id, AnimeMapper::mapAnime).awaitAsOne()
+        return database.animeQueries.getAnimeById(id, AnimeMapper::mapAnime).awaitAsOne()
     }
 
     override fun getAnimeByIdAsFlow(id: Long): Flow<Anime> {
-        return database.animesQueries.getAnimeById(id, AnimeMapper::mapAnime).subscribeToOne()
+        return database.animeQueries.getAnimeById(id, AnimeMapper::mapAnime).subscribeToOne()
     }
 
     override suspend fun getAnimeByUrlAndSourceId(url: String, sourceId: Long): Anime? {
-        return database.animesQueries.getAnimeByUrlAndSource(
+        return database.animeQueries.getAnimeByUrlAndSource(
             url = url,
             source = sourceId,
             mapper = AnimeMapper::mapAnime,
@@ -54,7 +54,7 @@ class AnimeRepositoryImpl(
     }
 
     override fun getAnimeByUrlAndSourceIdAsFlow(url: String, sourceId: Long): Flow<Anime?> {
-        return database.animesQueries.getAnimeByUrlAndSource(
+        return database.animeQueries.getAnimeByUrlAndSource(
             url = url,
             source = sourceId,
             mapper = AnimeMapper::mapAnime,
@@ -62,11 +62,11 @@ class AnimeRepositoryImpl(
     }
 
     override suspend fun getFavorites(): List<Anime> {
-        return database.animesQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
     }
 
     override suspend fun getSeenAnimeNotInLibrary(): List<Anime> {
-        return database.animesQueries.getSeenAnimeNotInLibrary(AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getSeenAnimeNotInLibrary(AnimeMapper::mapAnime).awaitAsList()
     }
 
     override suspend fun getLibraryAnime(): List<LibraryAnime> {
@@ -78,11 +78,11 @@ class AnimeRepositoryImpl(
     }
 
     override fun getFavoritesBySourceId(sourceId: Long): Flow<List<Anime>> {
-        return database.animesQueries.getFavoriteBySourceId(sourceId, AnimeMapper::mapAnime).subscribeToList()
+        return database.animeQueries.getFavoriteBySourceId(sourceId, AnimeMapper::mapAnime).subscribeToList()
     }
 
     override suspend fun getDuplicateLibraryAnime(id: Long, title: String): List<AnimeWithEpisodeCount> {
-        return database.animesQueries.getDuplicateLibraryAnime(
+        return database.animeQueries.getDuplicateLibraryAnime(
             id = id,
             title = title,
             mapper = AnimeMapper::mapAnimeWithEpisodeCount,
@@ -97,7 +97,7 @@ class AnimeRepositoryImpl(
         val timeZone = TimeZone.currentSystemDefault()
         val epochMillis =
             Clock.System.now().toLocalDateTime(timeZone).date.atStartOfDayIn(timeZone).toEpochMilliseconds()
-        return database.animesQueries
+        return database.animeQueries
             .getUpcomingAnime(
                 startOfDay = epochMillis,
                 statuses = statuses,
@@ -112,7 +112,7 @@ class AnimeRepositoryImpl(
 
     override suspend fun resetViewerFlags(): Boolean {
         return try {
-            database.animesQueries.resetViewerFlags()
+            database.animeQueries.resetViewerFlags()
             true
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
@@ -121,7 +121,7 @@ class AnimeRepositoryImpl(
     }
 
     override suspend fun deleteNonLibraryAnime(sourceIds: List<Long>, keepSeenAnime: Boolean) {
-        database.animesQueries.deleteAnimesNotInLibraryByAnimeIds(sourceIds, keepSeenAnime.toLong())
+        database.animeQueries.deleteNonLibraryAnimeByAnimeIds(sourceIds, keepSeenAnime.toLong())
     }
 
     override suspend fun setAnimeCategories(animeId: Long, categoryIds: List<Long>) {
@@ -188,13 +188,13 @@ class AnimeRepositoryImpl(
     ): List<Anime> {
         return database.transactionWithResult {
             if (removedIds.isNotEmpty()) {
-                database.animesQueries.removeParentIdByIds(removedIds)
+                database.animeQueries.removeParentIdByIds(removedIds)
             }
             val existing = added.map { it.id to it.url }
                 .distinct()
                 .toMutableSet()
             val stored = added.filter { existing.add(it.id to it.url) }.map { season ->
-                val animeId = database.animesQueries.insertReturningId(
+                val animeId = database.animeQueries.insertReturningId(
                     source = season.source,
                     url = season.url,
                     artist = season.artist,
@@ -227,7 +227,7 @@ class AnimeRepositoryImpl(
                 season.copy(id = animeId)
             }
             updated.forEach { seasonUpdate ->
-                database.animesQueries.updateRemote(
+                database.animeQueries.updateRemote(
                     artist = seasonUpdate.artist,
                     author = seasonUpdate.author,
                     description = seasonUpdate.description,
@@ -255,7 +255,7 @@ class AnimeRepositoryImpl(
     override suspend fun insertNetworkAnime(anime: List<Anime>): List<Anime> {
         return database.transactionWithResult {
             anime.map {
-                database.animesQueries.insertNetworkAnime(
+                database.animeQueries.insertNetworkAnime(
                     source = it.source,
                     url = it.url,
                     artist = it.artist,
@@ -312,7 +312,7 @@ class AnimeRepositoryImpl(
 
     override suspend fun removeParentIdByIds(animeIds: List<Long>) {
         try {
-            database.animesQueries.removeParentIdByIds(animeIds)
+            database.animeQueries.removeParentIdByIds(animeIds)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
         }
@@ -324,13 +324,13 @@ class AnimeRepositoryImpl(
     }
 
     override suspend fun getChildrenByParentId(parentId: Long): List<Anime> {
-        return database.animesQueries.getChildrenByParentId(parentId, AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getChildrenByParentId(parentId, AnimeMapper::mapAnime).awaitAsList()
     }
     // <-- AY
 
     override suspend fun updateRemote(update: AnimeRemoteUpdate): Boolean {
         return try {
-            database.animesQueries.updateRemote(
+            database.animeQueries.updateRemote(
                 artist = update.artist,
                 author = update.author,
                 description = update.description,
@@ -362,7 +362,7 @@ class AnimeRepositoryImpl(
         database.transaction {
             animeUpdates.forEach { value ->
                 with(value) {
-                    database.animesQueries.update(
+                    database.animeQueries.update(
                         favoriteAtSet = isSet(::favoriteAt),
                         favoriteAt = favoriteAt,
                         lastUpdate = lastUpdate,
@@ -385,15 +385,15 @@ class AnimeRepositoryImpl(
 
     // AM -->
     override suspend fun getAllAnime(): List<Anime> {
-        return database.animesQueries.getAllAnime(AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getAllAnime(AnimeMapper::mapAnime).awaitAsList()
     }
 
     override suspend fun getAllAnimeThatNeedsSync(): List<Anime> {
-        return database.animesQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
     }
 
     override suspend fun updateAnime(anime: Anime) {
-        database.animesQueries.updateFromBackup(
+        database.animeQueries.updateFromBackup(
             artist = anime.artist,
             author = anime.author,
             description = anime.description,
@@ -426,7 +426,7 @@ class AnimeRepositoryImpl(
 
     // AM -->
     override suspend fun updateCustomInfo(customInfo: AnimeCustomUpdate) {
-        database.animesQueries.updateCustomInformation(
+        database.animeQueries.updateCustomInformation(
             customArtist = customInfo.customArtist,
             customAuthor = customInfo.customAuthor,
             customDescription = customInfo.customDescription,
@@ -440,7 +440,7 @@ class AnimeRepositoryImpl(
     override suspend fun updateCustomInfoAll(customInfos: List<AnimeCustomUpdate>) {
         database.transaction {
             customInfos.forEach { customInfo ->
-                database.animesQueries.updateCustomInformation(
+                database.animeQueries.updateCustomInformation(
                     customArtist = customInfo.customArtist,
                     customAuthor = customInfo.customAuthor,
                     customDescription = customInfo.customDescription,

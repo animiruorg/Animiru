@@ -38,15 +38,15 @@ object DatabaseBindings {
             historyAdapter = History.Adapter(
                 last_seenAdapter = DateColumnAdapter,
             ),
-            animesAdapter = Animes.Adapter(
-                genreAdapter = StringListColumnAdapter,
-                update_strategyAdapter = UpdateStrategyColumnAdapter,
+            animeAdapter = Anime.Adapter(
+                remote_genreAdapter = StringListColumnAdapter,
+                remote_update_strategyAdapter = UpdateStrategyColumnAdapter,
                 // AY -->
-                fetch_typeAdapter = FetchTypeColumnAdapter,
+                remote_fetch_typeAdapter = FetchTypeColumnAdapter,
                 // <-- AY
-                memoAdapter = MemoColumnAdapter,
+                remote_memoAdapter = MemoColumnAdapter,
                 // AM -->
-                custom_genreAdapter = StringListColumnAdapter,
+                user_custom_genreAdapter = StringListColumnAdapter,
                 // <-- AM
             ),
             episodesAdapter = Episodes.Adapter(

@@ -1,7 +1,7 @@
 CREATE TABLE excluded_scanlators(
     anime_id INTEGER NOT NULL,
     scanlator TEXT NOT NULL,
-    FOREIGN KEY(anime_id) REFERENCES animes (_id)
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
     ON DELETE CASCADE
 );
 

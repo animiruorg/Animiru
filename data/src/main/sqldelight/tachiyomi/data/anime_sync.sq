@@ -16,7 +16,7 @@ CREATE TABLE anime_sync(
     finish_date INTEGER NOT NULL,
     private INTEGER AS Boolean DEFAULT 0 NOT NULL,
     UNIQUE (anime_id, sync_id) ON CONFLICT REPLACE,
-    FOREIGN KEY(anime_id) REFERENCES animes (_id)
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
     ON DELETE CASCADE
 );
 
