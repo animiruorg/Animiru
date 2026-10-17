@@ -195,7 +195,7 @@ FROM (
         _id,
         anime_id,
         url,
-        EXISTS(SELECT 1 FROM history WHERE history.episode_id = chapters._id) AS has_history
+        EXISTS(SELECT 1 FROM history WHERE history.episode_id = episodes._id) AS has_history
     FROM episodes
     WHERE (anime_id, url) IN (
         SELECT anime_id, url
@@ -362,7 +362,7 @@ CREATE TABLE anime_category(
 -- it was removed. The same pair can appear twice by now, and membership carries nothing else, so the copies
 -- simply collapse.
 INSERT INTO anime_category(anime_id, category_id)
-SELECT DISTINCT coalesce(D.keep_id, AC.anime_id), CC.category_id
+SELECT DISTINCT coalesce(D.keep_id, AC.anime_id), AC.category_id
 FROM animes_categories AC
 LEFT JOIN duplicate_animes D
 ON D._id = AC.anime_id
