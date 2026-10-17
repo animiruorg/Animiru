@@ -2,7 +2,7 @@ CREATE TABLE animes_categories(
     _id INTEGER NOT NULL PRIMARY KEY,
     anime_id INTEGER NOT NULL,
     category_id INTEGER NOT NULL,
-    FOREIGN KEY(category_id) REFERENCES categories (_id)
+    FOREIGN KEY(category_id) REFERENCES category (id)
     ON DELETE CASCADE,
     FOREIGN KEY(anime_id) REFERENCES anime (id)
     ON DELETE CASCADE

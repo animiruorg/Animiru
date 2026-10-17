@@ -1,0 +1,122 @@
+CREATE TABLE category(
+    id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    `order` INTEGER NOT NULL UNIQUE,
+    flags INTEGER NOT NULL,
+    -- AM -->
+    hidden INTEGER NOT NULL DEFAULT 0
+    -- <-- AM
+);
+
+-- Insert system category
+INSERT OR IGNORE INTO category(id, name, `order`, flags) VALUES (0, "", -1, 0);
+-- Disallow deletion of default category
+CREATE TRIGGER IF NOT EXISTS system_category_delete_trigger BEFORE DELETE
+ON category
+BEGIN SELECT CASE
+    WHEN old.id <= 0 THEN
+        RAISE(ABORT, "System category can't be deleted")
+    END;
+END;
+
+getCategory:
+SELECT id, name, `order`, flags, hidden
+FROM category
+WHERE id = :id
+LIMIT 1;
+
+getCategories:
+SELECT
+id,
+name,
+`order`,
+flags,
+-- AY -->
+hidden
+-- <-- AY
+FROM category
+ORDER BY `order`;
+
+-- AY -->
+getVisibleCategories:
+SELECT
+id,
+name,
+`order`,
+flags,
+hidden
+FROM category
+WHERE hidden = 0
+ORDER BY `order`;
+-- <-- AY
+
+getCategoriesByAnimeId:
+SELECT
+C.id,
+C.name,
+C.`order`,
+C.flags,
+-- AY -->
+C.hidden
+-- <-- AY
+FROM category C
+JOIN animes_categories AC
+ON C.id = AC.category_id
+WHERE AC.anime_id = :animeId
+ORDER BY C.`order`;
+
+-- AY -->
+getVisibleCategoriesByAnimeId:
+SELECT
+C.id,
+C.name,
+C.`order`,
+C.flags,
+C.hidden
+FROM category C
+JOIN animes_categories AC
+ON C.id = AC.category_id
+WHERE AC.anime_id = :animeId AND C.hidden = 0
+ORDER BY C.`order`;
+-- <-- AY
+
+insert:
+INSERT INTO category(name, `order`, flags)
+SELECT :name, coalesce(max(`order`), -1) + 1, :flags
+FROM category;
+
+delete:
+DELETE FROM category
+WHERE id = :categoryId;
+
+updateName:
+UPDATE category
+SET name = :name
+WHERE id = :categoryId;
+
+-- AY -->
+updateHidden:
+UPDATE category
+SET hidden = :hidden
+WHERE id = :categoryId;
+-- <-- AY
+
+getUserCategoryIds:
+SELECT id
+FROM category
+WHERE id > 0
+ORDER BY `order`;
+
+updateOrder:
+UPDATE category
+SET `order` = :order
+WHERE id = :categoryId;
+
+updateFlags:
+UPDATE category
+SET flags = :flags
+WHERE id = :categoryId;
+
+updateAllFlags:
+UPDATE category SET
+flags = coalesce(:flags, flags);

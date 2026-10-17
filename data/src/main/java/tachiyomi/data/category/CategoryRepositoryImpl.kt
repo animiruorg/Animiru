@@ -21,45 +21,45 @@ class CategoryRepositoryImpl(
 ) : CategoryRepository {
 
     override suspend fun get(id: Long): Category? {
-        return database.categoriesQueries.getCategory(id, ::mapCategory).awaitAsOneOrNull()
+        return database.categoryQueries.getCategory(id, ::mapCategory).awaitAsOneOrNull()
     }
 
     override suspend fun getAll(): List<Category> {
-        return database.categoriesQueries.getCategories(::mapCategory).awaitAsList()
+        return database.categoryQueries.getCategories(::mapCategory).awaitAsList()
     }
 
     override fun getAllAsFlow(): Flow<List<Category>> {
-        return database.categoriesQueries.getCategories(::mapCategory).subscribeToList()
+        return database.categoryQueries.getCategories(::mapCategory).subscribeToList()
     }
 
     override suspend fun getCategoriesByAnimeId(animeId: Long): List<Category> {
-        return database.categoriesQueries.getCategoriesByAnimeId(animeId, ::mapCategory).awaitAsList()
+        return database.categoryQueries.getCategoriesByAnimeId(animeId, ::mapCategory).awaitAsList()
     }
 
     override fun getCategoriesByAnimeIdAsFlow(animeId: Long): Flow<List<Category>> {
-        return database.categoriesQueries.getCategoriesByAnimeId(animeId, ::mapCategory).subscribeToList()
+        return database.categoryQueries.getCategoriesByAnimeId(animeId, ::mapCategory).subscribeToList()
     }
 
     // AY -->
     override suspend fun getAllVisible(): List<Category> {
-        return database.categoriesQueries.getVisibleCategories(::mapCategory).awaitAsList()
+        return database.categoryQueries.getVisibleCategories(::mapCategory).awaitAsList()
     }
 
     override fun getAllVisibleAsFlow(): Flow<List<Category>> {
-        return database.categoriesQueries.getVisibleCategories(::mapCategory).subscribeToList()
+        return database.categoryQueries.getVisibleCategories(::mapCategory).subscribeToList()
     }
 
     override suspend fun getVisibleCategoriesByAnimeId(animeId: Long): List<Category> {
-        return database.categoriesQueries.getVisibleCategoriesByAnimeId(animeId, ::mapCategory).awaitAsList()
+        return database.categoryQueries.getVisibleCategoriesByAnimeId(animeId, ::mapCategory).awaitAsList()
     }
 
     override fun getVisibleCategoriesByAnimeIdAsFlow(animeId: Long): Flow<List<Category>> {
-        return database.categoriesQueries.getVisibleCategoriesByAnimeId(animeId, ::mapCategory).subscribeToList()
+        return database.categoryQueries.getVisibleCategoriesByAnimeId(animeId, ::mapCategory).subscribeToList()
     }
     // <-- AY
 
     override suspend fun insert(category: NewCategory) {
-        database.categoriesQueries.insert(name = category.name, flags = category.flags)
+        database.categoryQueries.insert(name = category.name, flags = category.flags)
     }
 
     override suspend fun insertAll(categories: List<NewCategory>) {
@@ -69,38 +69,38 @@ class CategoryRepositoryImpl(
     }
 
     override suspend fun updateName(categoryId: Long, name: String) {
-        database.categoriesQueries.updateName(name = name, categoryId = categoryId)
+        database.categoryQueries.updateName(name = name, categoryId = categoryId)
     }
 
     override suspend fun updateFlags(categoryId: Long, flags: Long) {
-        database.categoriesQueries.updateFlags(flags = flags, categoryId = categoryId)
+        database.categoryQueries.updateFlags(flags = flags, categoryId = categoryId)
     }
 
     // AY -->
     override suspend fun updateHidden(categoryId: Long, hidden: Boolean) {
-        database.categoriesQueries.updateHidden(hidden = if (hidden) 1 else 0, categoryId = categoryId)
+        database.categoryQueries.updateHidden(hidden = if (hidden) 1 else 0, categoryId = categoryId)
     }
     // <-- AY
 
     override suspend fun updateAllFlags(flags: Long?) {
-        database.categoriesQueries.updateAllFlags(flags = flags)
+        database.categoryQueries.updateAllFlags(flags = flags)
     }
 
     override suspend fun updateAllOrders(orderedIds: List<Long>) {
         database.transaction {
-            val current = database.categoriesQueries.getUserCategoryIds().awaitAsList()
+            val current = database.categoryQueries.getUserCategoryIds().awaitAsList()
             val ids = orderedIds.filter { it in current } + current.filterNot { it in orderedIds }
             ids.forEachIndexed { index, categoryId ->
-                database.categoriesQueries.updateOrder(order = -index - 2L, categoryId = categoryId)
+                database.categoryQueries.updateOrder(order = -index - 2L, categoryId = categoryId)
             }
             ids.forEachIndexed { index, categoryId ->
-                database.categoriesQueries.updateOrder(order = index.toLong(), categoryId = categoryId)
+                database.categoryQueries.updateOrder(order = index.toLong(), categoryId = categoryId)
             }
         }
     }
 
     override suspend fun delete(categoryId: Long) {
-        database.categoriesQueries.delete(categoryId = categoryId)
+        database.categoryQueries.delete(categoryId = categoryId)
     }
 
     private fun mapCategory(

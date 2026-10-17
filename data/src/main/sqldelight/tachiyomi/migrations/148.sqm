@@ -303,6 +303,44 @@ DROP TABLE episodes;
 CREATE INDEX episode_state_date_fetch_index ON episode(state_date_fetch);
 CREATE INDEX episode_unseen_state_date_fetch ON episode(state_date_fetch) WHERE user_seen = 0;
 
+-- ---------------------------------------------------------------------------------------------------------
+-- table - category
+-- ---------------------------------------------------------------------------------------------------------
+
+CREATE TABLE category(
+    id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    `order` INTEGER NOT NULL UNIQUE,
+    flags INTEGER NOT NULL,
+    hidden INTEGER NOT NULL DEFAULT 0
+);
+
+-- `sort` was never unique, and reordering wrote colliding values often enough that it cannot simply be
+-- copied under the new constraint. The rows keep the order they were displayed in and are renumbered from
+-- 0, with ties broken by id. The system category is pinned to -1 rather than renumbered, because it is
+-- identified by id 0 everywhere else and sorts ahead of the categories the user made.
+INSERT INTO category(id, name, `order`, flags)
+SELECT
+    _id,
+    name,
+    CASE
+        WHEN _id <= 0 THEN -1
+        ELSE row_number() OVER (PARTITION BY (_id <= 0) ORDER BY sort, _id) - 1
+    END,
+    flags
+FROM categories;
+
+-- Dropping the table takes `system_category_delete_trigger` with it
+DROP TABLE categories;
+
+CREATE TRIGGER IF NOT EXISTS system_category_delete_trigger BEFORE DELETE
+ON category
+BEGIN SELECT CASE
+    WHEN old.id <= 0 THEN
+        RAISE(ABORT, "System category can't be deleted")
+    END;
+END;
+
 -- The views read the columns that just changed, so they come back in their new shape
 CREATE VIEW animedeletableView AS
 SELECT
