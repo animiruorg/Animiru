@@ -264,27 +264,29 @@ class RestoreRepositoryImpl(
         this.copy(id = 0L, animeId = 0L, dateFetch = 0L, dateUpload = 0L, thumbnailLastModifiedAt = 0L)
 
     private suspend fun restoreHistory(anime: Anime, restoredHistory: List<RestoredHistory>) {
+        if (restoredHistory.isEmpty()) return
+        val episodeIdsByUrl = episodeRepository.getEpisodeByAnimeId(anime.id).associate { it.url to it.id }
+        val dbHistoryByEpisodeId = database.historyQueries
+            .getHistoryByAnimeId(anime.id)
+            .awaitAsList()
+            .associateBy { it.episode_id }
+
         val toUpdate = restoredHistory
-            .groupBy { it.episodeUrl }
-            .mapNotNull { (episodeUrl, copies) ->
+            // Episode doesn't exist; skip
+            .filter { it.episodeUrl in episodeIdsByUrl }
+            // A backup of a library that still had duplicate episodes carries a history entry for
+            // each copy; they are one episode now, read as late as any copy and for as long as all
+            .groupBy { episodeIdsByUrl.getValue(it.episodeUrl) }
+            .map { (episodeId, copies) ->
                 val seenAt = copies.maxOf { it.seenAt?.time ?: 0L }
-                val dbHistory = database.historyQueries
-                    .getHistoryByEpisodeUrlAndAnimeId(episodeUrl, anime.id)
-                    .awaitAsOneOrNull()
 
-                if (dbHistory == null) {
-                    val episode = database.episodeQueries
-                        .getEpisodeByUrlAndAnimeId(animeId = anime.id, remoteUrl = episodeUrl)
-                        .awaitAsOneOrNull()
-                        // Episode doesn't exist; skip
-                        ?: return@mapNotNull null
-                    // New history entry
-                    return@mapNotNull Pair(episode.id, Date(seenAt))
-                }
+                val dbHistory = dbHistoryByEpisodeId[episodeId]
+                    ?: return@map Pair(episodeId, Date(seenAt))
 
-                // Update history entry
+                // Update history entry. 0 is kept rather than written as NULL, since it marks history
+                // the user removed.
                 Pair(
-                    dbHistory.episode_id,
+                    episodeId,
                     Date(max(seenAt, dbHistory.seen_at?.time ?: 0L)),
                 )
             }

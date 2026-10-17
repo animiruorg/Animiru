@@ -15,28 +15,14 @@ CREATE INDEX history_anime_id_index ON history(anime_id);
 CREATE INDEX history_seen_at_index ON history(seen_at);
 
 getHistoryByAnimeId:
-SELECT
-H.id,
-H.episode_id,
-H.seen_at
-FROM history H
-WHERE H.anime_id = :animeId;
-
-getHistoryByEpisodeUrlAndAnimeId:
-SELECT
-H.id,
-H.episode_id,
-H.seen_at
-FROM history H
-JOIN episode EP
-ON H.episode_id = EP.id
-WHERE EP.remote_url = :episodeUrl AND EP.anime_id = :animeId
-LIMIT 1;
+SELECT id, episode_id, seen_at
+FROM history
+WHERE anime_id = :animeId;
 
 resetHistoryById:
 UPDATE history
 SET seen_at = 0
-WHERE id = :historyId;
+WHERE id = :id;
 
 resetHistoryByAnimeId:
 UPDATE history
@@ -52,11 +38,8 @@ WHERE seen_at = 0;
 
 upsert:
 INSERT INTO history(anime_id, episode_id, seen_at)
-SELECT EP.anime_id, :episodeId, :seenAt
-FROM episode EP
-WHERE EP.id = :episodeId
-ON CONFLICT(episode_id)
-DO UPDATE
-SET
-    seen_at = :seenAt
-WHERE episode_id = :episodeId;
+SELECT anime_id, id, :seenAt
+FROM episode
+WHERE id = :episodeId
+ON CONFLICT(episode_id) DO UPDATE SET
+    seen_at = excluded.seen_at;

@@ -61,9 +61,11 @@ class AnimeBackupCreator(
         if (options.history) {
             val historyByAnimeId = getHistory.await(anime.id)
             if (historyByAnimeId.isNotEmpty()) {
-                val history = historyByAnimeId.map { history ->
-                    val episode = checkNotNull(episodeRepository.getEpisodeById(history.episodeId))
-                    BackupHistory(episode.url, history.seenAt?.time ?: 0L)
+                val episodeUrlsById = episodeRepository.getEpisodeByAnimeId(anime.id).associate { it.id to it.url }
+                val history = historyByAnimeId.mapNotNull { history ->
+                    // An episode removed since its history was seen takes that history with it
+                    val url = episodeUrlsById[history.episodeId] ?: return@mapNotNull null
+                    BackupHistory(url, history.seenAt?.time ?: 0L)
                 }
                 if (history.isNotEmpty()) {
                     animeObject.history = history
