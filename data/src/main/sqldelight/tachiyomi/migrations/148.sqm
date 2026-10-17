@@ -673,16 +673,16 @@ SELECT
     -- AY -->
     episode.remote_fillermark AS fillermark,
     -- <-- AY
-    episode.user_last_second_seen AS last_second_seen,
+    episode.user_last_second_seen AS lastSecondSeen,
     -- AY -->
     episode.state_total_seconds AS totalSeconds,
     -- <-- AY
-    anime.source_id AS source,
+    anime.source_id AS sourceId,
     anime.user_favorite_at IS NOT NULL AS favorite,
     anime.remote_cover AS thumbnailUrl,
     anime.state_cover_last_modified AS coverLastModified,
     episode.remote_date_upload AS dateUpload,
-    episode.state_date_fetch AS datefetch,
+    episode.state_date_fetch AS dateFetch,
     excluded_scanlator.scanlator AS excludedScanlator
 FROM anime JOIN episode
 ON anime.id = episode.anime_id

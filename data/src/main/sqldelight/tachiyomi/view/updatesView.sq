@@ -14,16 +14,16 @@ SELECT
     -- AY -->
     episode.remote_fillermark AS fillermark,
     -- <-- AY
-    episode.user_last_second_seen AS last_second_seen,
+    episode.user_last_second_seen AS lastSecondSeen,
     -- AY -->
     episode.state_total_seconds AS totalSeconds,
     -- <-- AY
-    anime.source_id AS source,
+    anime.source_id AS sourceId,
     anime.user_favorite_at IS NOT NULL AS favorite,
     anime.remote_cover AS thumbnailUrl,
     anime.state_cover_last_modified AS coverLastModified,
     episode.remote_date_upload AS dateUpload,
-    episode.state_date_fetch AS datefetch,
+    episode.state_date_fetch AS dateFetch,
     excluded_scanlator.scanlator AS excludedScanlator
 FROM anime JOIN episode
 ON anime.id = episode.anime_id
@@ -38,20 +38,20 @@ getRecentUpdates:
 SELECT
     animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
     scanlator, episodeUrl, seen, bookmark, fillermark,
-    last_second_seen, totalSeconds, source, favorite,
-    thumbnailUrl, coverLastModified, dateUpload, datefetch,
+    lastSecondSeen, totalSeconds, sourceId, favorite,
+    thumbnailUrl, coverLastModified, dateUpload, dateFetch,
     excludedScanlator
 FROM updatesView
 WHERE dateUpload > :after
-ORDER BY datefetch DESC
+ORDER BY dateFetch DESC
 LIMIT :limit;
 
 getRecentUpdatesWithFilters:
 SELECT
     animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
     scanlator, episodeUrl, seen, bookmark, fillermark,
-    last_second_seen, totalSeconds, source, favorite,
-    thumbnailUrl, coverLastModified, dateUpload, datefetch,
+    lastSecondSeen, totalSeconds, sourceId, favorite,
+    thumbnailUrl, coverLastModified, dateUpload, dateFetch,
     excludedScanlator
 FROM updatesView
 WHERE dateUpload > :after
@@ -59,8 +59,8 @@ AND (:seen IS NULL OR seen = :seen)
 -- Started means some progress but not finished, Seen means finished episode, thus:
 AND (
     :started IS NULL
-    OR (:started = 1 AND last_second_seen > 0 AND seen = 0)
-    OR (:started = 0 AND last_second_seen = 0 AND seen = 0)
+    OR (:started = 1 AND lastSecondSeen > 0 AND seen = 0)
+    OR (:started = 0 AND lastSecondSeen = 0 AND seen = 0)
 )
 AND (:bookmarked IS NULL OR bookmark = :bookmarked)
 AND (:fillermarked IS NULL OR fillermark = :fillermarked)
@@ -94,18 +94,18 @@ AND (
         )
     )
 )
-ORDER BY datefetch DESC
+ORDER BY dateFetch DESC
 LIMIT :limit;
 
 getUpdatesBySeenStatus:
 SELECT
     animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
     scanlator, episodeUrl, seen, bookmark, fillermark,
-    last_second_seen, totalSeconds, source, favorite,
-    thumbnailUrl, coverLastModified, dateUpload, datefetch,
+    lastSecondSeen, totalSeconds, sourceId, favorite,
+    thumbnailUrl, coverLastModified, dateUpload, dateFetch,
     excludedScanlator
 FROM updatesView
 WHERE seen = :seen
 AND dateUpload > :after
-ORDER BY datefetch DESC
+ORDER BY dateFetch DESC
 LIMIT :limit;
