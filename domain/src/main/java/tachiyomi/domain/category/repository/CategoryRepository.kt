@@ -38,7 +38,7 @@ interface CategoryRepository {
     suspend fun updateHidden(categoryId: Long, hidden: Boolean)
     // <-- AY
 
-    suspend fun updateAllFlags(flags: Long?)
+    suspend fun updateAllFlags(flags: Long)
 
     suspend fun updateAllOrders(orderedIds: List<Long>)
 

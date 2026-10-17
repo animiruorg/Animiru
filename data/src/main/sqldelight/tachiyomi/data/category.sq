@@ -22,43 +22,23 @@ END;
 getCategory:
 SELECT id, name, `order`, flags, hidden
 FROM category
-WHERE id = :id
-LIMIT 1;
+WHERE id = :id;
 
 getCategories:
-SELECT
-id,
-name,
-`order`,
-flags,
--- AY -->
-hidden
--- <-- AY
+SELECT id, name, `order`, flags, hidden
 FROM category
 ORDER BY `order`;
 
 -- AY -->
 getVisibleCategories:
-SELECT
-id,
-name,
-`order`,
-flags,
-hidden
+SELECT id, name, `order`, flags, hidden
 FROM category
 WHERE hidden = 0
 ORDER BY `order`;
 -- <-- AY
 
 getCategoriesByAnimeId:
-SELECT
-C.id,
-C.name,
-C.`order`,
-C.flags,
--- AY -->
-C.hidden
--- <-- AY
+SELECT C.id, C.name, C.`order`, C.flags, C.hidden
 FROM category C
 JOIN anime_category AC
 ON C.id = AC.category_id
@@ -67,12 +47,7 @@ ORDER BY C.`order`;
 
 -- AY -->
 getVisibleCategoriesByAnimeId:
-SELECT
-C.id,
-C.name,
-C.`order`,
-C.flags,
-C.hidden
+SELECT C.id, C.name, C.`order`, C.flags, C.hidden
 FROM category C
 JOIN anime_category AC
 ON C.id = AC.category_id
@@ -81,24 +56,25 @@ ORDER BY C.`order`;
 -- <-- AY
 
 insert:
+-- The position is taken inside the insert, so two categories created at once cannot claim the same one
 INSERT INTO category(name, `order`, flags)
 SELECT :name, coalesce(max(`order`), -1) + 1, :flags
 FROM category;
 
 delete:
 DELETE FROM category
-WHERE id = :categoryId;
+WHERE id = :id;
 
 updateName:
 UPDATE category
 SET name = :name
-WHERE id = :categoryId;
+WHERE id = :id;
 
 -- AY -->
 updateHidden:
 UPDATE category
 SET hidden = :hidden
-WHERE id = :categoryId;
+WHERE id = :id;
 -- <-- AY
 
 getUserCategoryIds:
@@ -110,13 +86,13 @@ ORDER BY `order`;
 updateOrder:
 UPDATE category
 SET `order` = :order
-WHERE id = :categoryId;
+WHERE id = :id;
 
 updateFlags:
 UPDATE category
 SET flags = :flags
-WHERE id = :categoryId;
+WHERE id = :id;
 
 updateAllFlags:
-UPDATE category SET
-flags = coalesce(:flags, flags);
+UPDATE category
+SET flags = :flags;
