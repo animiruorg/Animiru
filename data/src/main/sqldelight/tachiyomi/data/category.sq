@@ -60,7 +60,7 @@ C.flags,
 C.hidden
 -- <-- AY
 FROM category C
-JOIN animes_categories AC
+JOIN anime_category AC
 ON C.id = AC.category_id
 WHERE AC.anime_id = :animeId
 ORDER BY C.`order`;
@@ -74,7 +74,7 @@ C.`order`,
 C.flags,
 C.hidden
 FROM category C
-JOIN animes_categories AC
+JOIN anime_category AC
 ON C.id = AC.category_id
 WHERE AC.anime_id = :animeId AND C.hidden = 0
 ORDER BY C.`order`;

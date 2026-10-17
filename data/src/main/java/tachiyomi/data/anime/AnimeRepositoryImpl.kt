@@ -126,9 +126,9 @@ class AnimeRepositoryImpl(
 
     override suspend fun setAnimeCategories(animeId: Long, categoryIds: List<Long>) {
         database.transaction {
-            database.animes_categoriesQueries.deleteAnimeCategoryByAnimeId(animeId)
+            database.anime_categoryQueries.deleteAnimeCategoryByAnimeId(animeId)
             categoryIds.forEach { categoryId ->
-                database.animes_categoriesQueries.insert(animeId = animeId, categoryId = categoryId)
+                database.anime_categoryQueries.insert(animeId = animeId, categoryId = categoryId)
             }
         }
     }

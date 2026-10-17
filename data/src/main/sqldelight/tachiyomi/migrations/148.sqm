@@ -343,6 +343,38 @@ BEGIN SELECT CASE
 END;
 
 -- ---------------------------------------------------------------------------------------------------------
+-- table - anime_category
+-- ---------------------------------------------------------------------------------------------------------
+
+-- The surrogate key is gone: a anime belongs to a category once, and that pair is the identity of the row
+CREATE TABLE anime_category(
+    anime_id INTEGER NOT NULL,
+    category_id INTEGER NOT NULL,
+    UNIQUE(anime_id, category_id),
+    FOREIGN KEY(category_id) REFERENCES category (id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+-- Entries merged in the anime group brought their category rows with them. When the entry is in the library,
+-- only the copies in it say where it belongs; a copy outside it can still hold the categories it had before
+-- it was removed. The same pair can appear twice by now, and membership carries nothing else, so the copies
+-- simply collapse.
+INSERT INTO anime_category(anime_id, category_id)
+SELECT DISTINCT coalesce(D.keep_id, AC.anime_id), CC.category_id
+FROM animes_categories AC
+LEFT JOIN duplicate_animes D
+ON D._id = AC.anime_id
+LEFT JOIN anime K
+ON K.id = D.keep_id
+WHERE D._id IS NULL OR D.favorite OR K.user_favorite_at IS NULL;
+
+DROP TABLE animes_categories;
+
+CREATE INDEX anime_category_category_id_index ON anime_category(category_id);
+
+-- ---------------------------------------------------------------------------------------------------------
 -- table - history
 -- ---------------------------------------------------------------------------------------------------------
 
@@ -648,7 +680,7 @@ ON A.id = HS.anime_id
 -- <-- AY
 LEFT JOIN (
     SELECT anime_id, group_concat(category_id) AS categories
-    FROM animes_categories
+    FROM anime_category
     GROUP BY anime_id
 ) AS AC
 ON AC.anime_id = A.id

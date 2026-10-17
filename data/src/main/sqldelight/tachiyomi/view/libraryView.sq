@@ -41,7 +41,7 @@ ON A.id = HS.anime_id
 -- <-- AY
 LEFT JOIN (
     SELECT anime_id, group_concat(category_id) AS categories
-    FROM animes_categories
+    FROM anime_category
     GROUP BY anime_id
 ) AS AC
 ON AC.anime_id = A.id
