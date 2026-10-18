@@ -4,8 +4,10 @@ import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
+import kotlin.time.Duration.Companion.milliseconds
 
 data class Download(
     val source: AnimeHttpSource,
@@ -34,6 +36,7 @@ data class Download(
 
     @Transient
     val progressFlow = progressStateFlow.asStateFlow()
+        .debounce(50.milliseconds)
     var progress: Int
         get() = progressStateFlow.value
         set(value) {
