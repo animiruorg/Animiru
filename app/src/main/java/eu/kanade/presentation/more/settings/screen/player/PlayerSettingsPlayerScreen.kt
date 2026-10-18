@@ -155,8 +155,6 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
         val reduceMotion = playerPreferences.reduceMotion
         val hideTime = playerPreferences.playerTimeToDisappear
 
-        val panelOpacityPref = playerPreferences.panelOpacity
-        val panelOpacity by panelOpacityPref.collectAsState()
         val numberFormat = remember { NumberFormat.getPercentInstance() }
 
         return Preference.PreferenceGroup(
@@ -191,11 +189,10 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
                     title = stringResource(AYMR.strings.pref_player_time_to_disappear),
                 ),
                 Preference.PreferenceItem.SliderPreference(
-                    value = panelOpacity,
+                    preference = playerPreferences.panelOpacity,
                     valueRange = 0..100,
                     title = stringResource(AYMR.strings.pref_panel_opacity),
-                    valueString = numberFormat.format(panelOpacity / 100f),
-                    onValueChanged = { panelOpacityPref.set(it) },
+                    valueText = { numberFormat.format(it / 100f) },
                 ),
             ),
         )
