@@ -40,12 +40,6 @@ class DownloadNotifier(
         }
     }
 
-    private val errorNotificationBuilder by lazy {
-        context.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_ERROR) {
-            setAutoCancel(false)
-        }
-    }
-
     /**
      * Status of download. Used for correct notification icon.
      */
@@ -181,12 +175,14 @@ class DownloadNotifier(
      * Only works on Android 8+.
      */
     fun onWarning(reason: String, timeout: Long? = null, contentIntent: PendingIntent? = null, animeId: Long? = null) {
-        with(errorNotificationBuilder) {
+        context.notify(
+            Notifications.ID_DOWNLOAD_EPISODE_ERROR,
+            Notifications.CHANNEL_DOWNLOADER_ERROR,
+        ) {
             setContentTitle(context.stringResource(MR.strings.download_notifier_downloader_title))
             setStyle(NotificationCompat.BigTextStyle().bigText(reason))
             setSmallIcon(R.drawable.ic_warning_white_24dp)
             setAutoCancel(true)
-            clearActions()
             setContentIntent(NotificationHandler.openDownloadManagerPendingActivity(context))
             if (animeId != null) {
                 addAction(
@@ -195,11 +191,8 @@ class DownloadNotifier(
                     NotificationReceiver.openEntryPendingActivity(context, animeId),
                 )
             }
-            setProgress(0, 0, false)
             timeout?.let { setTimeoutAfter(it) }
             contentIntent?.let { setContentIntent(it) }
-
-            show(Notifications.ID_DOWNLOAD_EPISODE_ERROR)
         }
 
         // Reset download information
@@ -216,13 +209,15 @@ class DownloadNotifier(
      */
     fun onError(error: String? = null, episode: String? = null, animeTitle: String? = null, animeId: Long? = null) {
         // Create notification
-        with(errorNotificationBuilder) {
+        context.notify(
+            Notifications.ID_DOWNLOAD_EPISODE_ERROR,
+            Notifications.CHANNEL_DOWNLOADER_ERROR,
+        ) {
             setContentTitle(
                 animeTitle?.plus(": $episode") ?: context.stringResource(MR.strings.download_notifier_downloader_title),
             )
             setContentText(error ?: context.stringResource(AMMR.strings.am_download_notifier_unknown_error))
             setSmallIcon(R.drawable.ic_warning_white_24dp)
-            clearActions()
             setContentIntent(NotificationHandler.openDownloadManagerPendingActivity(context))
             if (animeId != null) {
                 addAction(
@@ -231,9 +226,6 @@ class DownloadNotifier(
                     NotificationReceiver.openEntryPendingActivity(context, animeId),
                 )
             }
-            setProgress(0, 0, false)
-
-            show(Notifications.ID_DOWNLOAD_EPISODE_ERROR)
         }
 
         // Reset download information
