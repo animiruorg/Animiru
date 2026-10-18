@@ -104,7 +104,7 @@ object PlayerSettingsTorrentScreen : SearchableSettings {
                     stringResource(AYMR.strings.pref_player_torrents_port_error)
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                enabled = torrentEnable,
+                visible = torrentEnable,
             ),
             Preference.PreferenceItem.MultiLineEditTextPreference(
                 preference = trackersPref,
@@ -120,11 +120,11 @@ object PlayerSettingsTorrentScreen : SearchableSettings {
                     TorrentServerService.stop(context)
                     true
                 },
-                enabled = torrentEnable,
+                visible = torrentEnable,
             ),
             Preference.PreferenceItem.TextPreference(
                 title = stringResource(AYMR.strings.pref_player_torrents_trackers_reset),
-                enabled = remember(torrentEnable, trackersPref) {
+                visible = remember(torrentEnable, trackersPref) {
                     torrentEnable && trackersPref.get() != trackersPref.defaultValue()
                 },
                 onClick = {
@@ -143,7 +143,7 @@ object PlayerSettingsTorrentScreen : SearchableSettings {
                     stringResource(titleRes)
                 },
                 title = stringResource(AYMR.strings.pref_player_torrents_proxy_mode),
-                enabled = torrentEnable,
+                visible = torrentEnable,
             ),
             Preference.PreferenceItem.EditTextInfoPreference(
                 preference = proxyUrlPref,
@@ -180,7 +180,7 @@ object PlayerSettingsTorrentScreen : SearchableSettings {
 
                     ""
                 },
-                enabled = torrentEnable && proxyMode != ProxyMode.None,
+                visible = torrentEnable && proxyMode != ProxyMode.None,
             ),
         )
     }

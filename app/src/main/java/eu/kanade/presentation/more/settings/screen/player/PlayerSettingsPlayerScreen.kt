@@ -163,7 +163,7 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = fullScreen,
                     title = stringResource(AYMR.strings.pref_player_fullscreen),
-                    enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P,
+                    visible = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = hideControls,
@@ -222,12 +222,12 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = enableAutoAniSkip,
                     title = stringResource(AYMR.strings.pref_enable_auto_skip_ani_skip),
-                    enabled = isIntroSkipEnabled,
+                    visible = isIntroSkipEnabled,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = enableNetflixAniSkip,
                     title = stringResource(AYMR.strings.pref_enable_netflix_style_aniskip),
-                    enabled = isIntroSkipEnabled,
+                    visible = isIntroSkipEnabled,
                 ),
                 Preference.PreferenceItem.ListPreference(
                     preference = waitingTimeAniSkip,
@@ -240,21 +240,21 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
                         10 to stringResource(AYMR.strings.pref_waiting_time_aniskip_10),
                     ),
                     title = stringResource(AYMR.strings.pref_waiting_time_aniskip),
-                    enabled = isIntroSkipEnabled,
+                    visible = isIntroSkipEnabled,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = enableAniSkip,
                     title = stringResource(AYMR.strings.pref_enable_aniskip),
-                    enabled = isIntroSkipEnabled,
+                    visible = isIntroSkipEnabled,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = disableAniSkipChapters,
                     title = stringResource(AYMR.strings.pref_disable_aniskip_chapter),
-                    enabled = isIntroSkipEnabled && isAniSkipEnabled,
+                    visible = isIntroSkipEnabled && isAniSkipEnabled,
                 ),
                 Preference.PreferenceItem.InfoPreference(
                     title = stringResource(AYMR.strings.pref_category_player_aniskip_info),
-                    enabled = isIntroSkipEnabled,
+                    visible = isIntroSkipEnabled,
                 ),
             ),
         )
@@ -279,17 +279,17 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = pipEpisodeToasts,
                     title = stringResource(AYMR.strings.pref_pip_episode_toasts),
-                    enabled = isPipEnabled,
+                    visible = isPipEnabled,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = pipOnExit,
                     title = stringResource(AYMR.strings.pref_pip_on_exit),
-                    enabled = isPipEnabled,
+                    visible = isPipEnabled,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = pipReplaceWithPrevious,
                     title = stringResource(AYMR.strings.pref_pip_replace_with_previous),
-                    enabled = isPipEnabled,
+                    visible = isPipEnabled,
                 ),
             ),
         )
@@ -323,13 +323,13 @@ object PlayerSettingsPlayerScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = castProxy,
                     title = stringResource(AMMR.strings.pref_cast_proxy),
-                    enabled = enableCastValue,
+                    visible = enableCastValue,
                 ),
                 Preference.PreferenceItem.EditTextInfoPreference(
                     preference = castProxyPort,
                     dialogSubtitle = stringResource(AMMR.strings.pref_cast_port_subtitle),
                     title = stringResource(AMMR.strings.pref_cast_port),
-                    enabled = enableCastValue && enableCastProxyValue,
+                    visible = enableCastValue && enableCastProxyValue,
                     validate = { pref ->
                         val port = pref.toIntOrNull()
                             ?: return@EditTextInfoPreference false
