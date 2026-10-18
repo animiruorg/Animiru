@@ -177,10 +177,13 @@ class DownloadProvider(
         episodeUrl: String,
         disallowNonAsciiFilenames: Boolean = libraryPreferences.disallowNonAsciiFilenames.get(),
         enableEpisodeNameHash: Boolean = libraryPreferences.enableEpisodeNameHash.get(),
+        sanitizeScanlator: Boolean = true,
     ): String {
         return buildString {
             if (!episodeScanlator.isNullOrBlank()) {
-                append(episodeScanlator + "_")
+                // A "/" in the scanlator would otherwise nest the chapter in a folder of its own
+                append(if (sanitizeScanlator) DiskUtil.buildValidFilename(episodeScanlator) else episodeScanlator)
+                append("_")
             }
 
             // Subtract 7 bytes for hash and underscore, 4 bytes for .mkv
@@ -244,6 +247,22 @@ class DownloadProvider(
                 )
             }
 
+        // Scanlators weren't sanitized for a while. One with a "/" nested its folder, so it was never found anyway.
+        val unsanitizedScanlatorEpisodeDirNames = if (episodeScanlator != null && '/' !in episodeScanlator) {
+            booleanPairPermutation.map { (disallowNonAsciiFilenames, enableChapterNameHash) ->
+                getEpisodeDirName(
+                    episodeName,
+                    episodeScanlator,
+                    episodeUrl,
+                    disallowNonAsciiFilenames,
+                    enableChapterNameHash,
+                    sanitizeScanlator = false,
+                )
+            }
+        } else {
+            emptyList()
+        }
+
         return buildSet {
             // Episode name without hash (unable to handle duplicate
             // episode names)
@@ -252,6 +271,7 @@ class DownloadProvider(
             // <-- AY
             add(episodeNameV1)
             addAll(othersEpisodeDirNames)
+            addAll(unsanitizedScanlatorEpisodeDirNames)
         }
     }
 
