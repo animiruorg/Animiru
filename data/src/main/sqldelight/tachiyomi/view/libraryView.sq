@@ -60,7 +60,6 @@ SELECT
     user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
     user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
     state_episode_fetch_interval, state_cover_last_modified, state_initialized,
-    state_parent_id, state_background_last_modified,
-    totalCount, seenCount, latestUpload, episodeFetchedAt,
-    lastSeen, bookmarkCount, fillermarkCount, categories
+    state_parent_id, state_background_last_modified, totalCount, seenCount, latestUpload,
+    episodeFetchedAt, lastSeen, bookmarkCount, fillermarkCount, categories
 FROM libraryView;
