@@ -145,6 +145,15 @@ class LibraryViewModel(
     }
         .distinctUntilChanged()
 
+    // Tracks are used by tracker filters, the tracker score sort, and tracker group by, and loading every track is slow
+    // on large libraries
+    private val tracks = combine(getVisibleCategories.subscribe(), getTrackingFiltersFlow()) { categories, trackingFilters ->
+        trackingFilters.values.any { it != TriState.DISABLED } ||
+            categories.any { it.sort.type == LibrarySort.Type.TrackerMean }
+    }
+        .distinctUntilChanged()
+        .flatMapLatest { needsTracks -> if (needsTracks) getTracksPerAnime.subscribe() else flowOf(emptyMap()) }
+
     // Shared separately so search, selection and dialog changes still reach [state] before the
     // first query result, and so returning to the tab doesn't flash empty while it restarts.
     private val library = eu.kanade.core.util.combine(
@@ -153,7 +162,7 @@ class LibraryViewModel(
         getVisibleCategories.subscribe(),
         // <-- AY
         getFavoritesFlow(),
-        combine(getTracksPerAnime.subscribe(), getTrackingFiltersFlow(), ::Pair),
+        combine(tracks, getTrackingFiltersFlow(), ::Pair),
         getLibraryItemPreferencesFlow(),
         // AM (GROUPING) -->
         combine(libraryPreferences.groupLibraryBy.changes(), libraryPreferences.sortingMode.changes(), ::Pair),
