@@ -40,6 +40,7 @@ object Notifications {
     private const val GROUP_DOWNLOADER = "group_downloader"
     const val CHANNEL_DOWNLOADER_PROGRESS = "downloader_progress_channel"
     const val ID_DOWNLOAD_EPISODE_PROGRESS = -201
+    const val ID_DOWNLOAD_EPISODE_PAUSED = -203
     const val CHANNEL_DOWNLOADER_ERROR = "downloader_error_channel"
     const val ID_DOWNLOAD_EPISODE_ERROR = -202
 
