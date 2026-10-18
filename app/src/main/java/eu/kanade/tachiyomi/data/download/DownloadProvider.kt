@@ -176,15 +176,25 @@ class DownloadProvider(
         episodeScanlator: String?,
         episodeUrl: String,
         disallowNonAsciiFilenames: Boolean = libraryPreferences.disallowNonAsciiFilenames.get(),
+        enableEpisodeNameHash: Boolean = libraryPreferences.enableEpisodeNameHash.get(),
     ): String {
-        var dirName = sanitizeEpisodeName(episodeName)
-        if (!episodeScanlator.isNullOrBlank()) {
-            dirName = episodeScanlator + "_" + dirName
+        return buildString {
+            if (!episodeScanlator.isNullOrBlank()) {
+                append(episodeScanlator + "_")
+            }
+
+            // Subtract 7 bytes for hash and underscore, 4 bytes for .mkv
+            append(
+                DiskUtil.buildValidFilename(
+                    sanitizeEpisodeName(episodeName),
+                    DiskUtil.MAX_FILE_NAME_BYTES - 11,
+                    disallowNonAsciiFilenames,
+                ),
+            )
+            if (enableEpisodeNameHash) {
+                append("_${md5(episodeUrl).take(6)}")
+            }
         }
-        // Subtract 7 bytes for hash and underscore, 4 bytes for .mkv
-        dirName = DiskUtil.buildValidFilename(dirName, DiskUtil.MAX_FILE_NAME_BYTES - 11, disallowNonAsciiFilenames)
-        dirName += "_" + md5(episodeUrl).take(6)
-        return dirName
     }
 
     /**
@@ -200,7 +210,7 @@ class DownloadProvider(
         episodeName: String,
         episodeScanlator: String?,
         episodeUrl: String,
-    ): List<String> {
+    ): Set<String> {
         // AY -->
         val oldEpisodeName = DiskUtil.buildValidFilename(
             when {
@@ -218,26 +228,30 @@ class DownloadProvider(
             },
         )
 
-        // Get the filename that would be generated if the user were
-        // using the other value for the disallow non-ASCII
-        // filenames setting. This ensures that episodes downloaded
-        // before the user changed the setting can still be found.
-        val otherEpisodeDirName =
-            getEpisodeDirName(
-                episodeName,
-                episodeScanlator,
-                episodeUrl,
-                !libraryPreferences.disallowNonAsciiFilenames.get(),
-            )
+        // Generate all possible legacy directory name variations by combining
+        // different states of non-ASCII filenames and episode name hash settings.
+        // This ensures that episodes downloaded under any past configuration
+        // combination can still be successfully found.
+        val booleanPairPermutation = listOf(false to false, false to true, true to false, true to true)
+        val othersEpisodeDirNames = booleanPairPermutation
+            .map { (disallowNonAsciiFilenames, enableEpisodeNameHash) ->
+                getEpisodeDirName(
+                    episodeName,
+                    episodeScanlator,
+                    episodeUrl,
+                    disallowNonAsciiFilenames,
+                    enableEpisodeNameHash,
+                )
+            }
 
-        return buildList(3) {
+        return buildSet {
             // Episode name without hash (unable to handle duplicate
             // episode names)
             // AY -->
             add(oldEpisodeName)
             // <-- AY
             add(episodeNameV1)
-            add(otherEpisodeDirName)
+            addAll(othersEpisodeDirNames)
         }
     }
 

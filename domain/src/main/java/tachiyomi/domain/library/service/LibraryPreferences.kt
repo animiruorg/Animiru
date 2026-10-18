@@ -384,6 +384,10 @@ class LibraryPreferences(
         "disallow_non_ascii_filenames",
         false,
     )
+    val enableEpisodeNameHash: Preference<Boolean> = preferenceStore.getBoolean(
+        "pref_enable_episode_name_hash",
+        false,
+    )
 
     // endregion
 

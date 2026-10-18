@@ -301,6 +301,11 @@ object SettingsAdvancedScreen : SearchableSettings {
                     title = stringResource(MR.strings.pref_disallow_non_ascii_filenames),
                     subtitle = stringResource(AMMR.strings.am_pref_disallow_non_ascii_filenames_details),
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = libraryPreferences.enableEpisodeNameHash,
+                    title = stringResource(AMMR.strings.am_pref_enable_episode_name_hash),
+                    subtitle = stringResource(AMMR.strings.am_pref_enable_episode_name_hash_details),
+                ),
             ),
         )
     }
