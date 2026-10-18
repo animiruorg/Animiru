@@ -140,7 +140,7 @@ class SetAnimeEpisodeFlags(
                 thumbnailSize.toLong() shl Anime.EPISODE_THUMBNAIL_SIZE_BIT_OFFSET,
                 Anime.EPISODE_THUMBNAIL_SIZE_MASK,
             )
-            // <-- AM
+        // <-- AM
         return animeRepository.updateAll(animeIds.map { AnimeUpdate(it) { episodeFlags = flags } })
     }
 

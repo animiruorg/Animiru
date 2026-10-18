@@ -559,7 +559,7 @@ class LibraryViewModel(
             ?.filterTo(mutableSetOf()) { it != 0L }
             // AM -->
             ?: getVisibleCategories.await(anime.id).mapTo(mutableSetOf()) { it.id }
-            // <-- AM
+        // <-- AM
     }
 
     suspend fun getNextUnseenEpisode(anime: Anime): Episode? {
