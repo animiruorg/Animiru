@@ -64,7 +64,6 @@ import eu.kanade.tachiyomi.source.isSourceForTorrents
 import eu.kanade.tachiyomi.ui.anime.track.TrackItem
 import eu.kanade.tachiyomi.util.AniChartApi
 import eu.kanade.tachiyomi.util.episode.getNextUnseen
-import eu.kanade.tachiyomi.util.nullIfEmpty
 import eu.kanade.tachiyomi.util.removeCovers
 import eu.kanade.tachiyomi.util.removeThumbnail
 import eu.kanade.tachiyomi.util.system.toast
@@ -75,14 +74,24 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import logcat.LogPriority
@@ -102,11 +111,9 @@ import tachiyomi.domain.anime.interactor.SetAnimeEpisodeFlags
 import tachiyomi.domain.anime.interactor.SetAnimeSeasonFlags
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeCustomUpdate
-import tachiyomi.domain.anime.model.AnimeRemoteUpdate
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.anime.model.NoSeasonsException
 import tachiyomi.domain.anime.model.applyFilter
-import tachiyomi.domain.anime.repository.AnimeRepository
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.interactor.SetAnimeCategories
 import tachiyomi.domain.category.model.Category
@@ -129,11 +136,11 @@ import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.domain.track.interactor.GetTracks
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
-import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.isLocal
 import java.util.Calendar
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.floor
+import kotlin.time.Duration.Companion.seconds
 
 @AssistedInject
 class AnimeViewModel(
@@ -176,7 +183,6 @@ class AnimeViewModel(
     private val getTracks: GetTracks,
     private val addTracks: AddTracks,
     private val setAnimeCategories: SetAnimeCategories,
-    private val animeRepository: AnimeRepository,
     // AY -->
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     private val torrentServerUtils: TorrentServerUtils,
@@ -194,9 +200,6 @@ class AnimeViewModel(
     storagePreferences: StoragePreferences,
     // <-- AM (FILE_SIZE)
 ) : ViewModel() {
-
-    val state: StateFlow<State>
-        field = MutableStateFlow<State>(State.Loading)
 
     @AssistedFactory
     @ManualViewModelAssistedFactoryKey
@@ -233,7 +236,7 @@ class AnimeViewModel(
         LibraryPreferences.ANIME_OUTSIDE_RELEASE_PERIOD in libraryPreferences.autoUpdateAnimeRestrictions.get()
 
     private val selectedPositions: Array<Int> = arrayOf(-1, -1) // first and last selected index in list
-    private val selectedEpisodeIds: HashSet<Long> = HashSet()
+    private val selectedEpisodeIds = MutableStateFlow(emptySet<Long>())
 
     // AY -->
     val showNextEpisodeAirTime = trackPreferences.showNextEpisodeAiringTime.get()
@@ -252,162 +255,212 @@ class AnimeViewModel(
     val showFileSize = storagePreferences.showEpisodeFileSize.get()
     // <-- AM (FILE_SIZE)
 
-    /**
-     * Helper function to update the UI state only if it's currently in success state
-     */
-    private inline fun updateSuccessState(func: (State.Success) -> State.Success) {
-        state.update {
-            when (it) {
-                State.Loading -> it
-                is State.Success -> func(it)
-            }
+    private val dialog = MutableStateFlow<Dialog?>(null)
+
+    private val isRefreshingData = MutableStateFlow(false)
+
+    // AM -->
+    private val isSyncingTrackers = MutableStateFlow(false)
+    // <-- AM
+
+    private val downloadStates = MutableStateFlow(emptyMap<Long, DownloadProgress>())
+
+    // A finished episode leaves the queue, and its last status change can be lost with it, so its state is left to
+    // the queried item once it's no longer queued
+    private val queuedDownloadStates = combine(downloadStates, downloadManager.queueState) { states, queue ->
+        val queuedEpisodeIds = queue.mapTo(HashSet()) { it.episode.id }
+        states.filterKeys { it in queuedEpisodeIds }
+    }
+
+    private val hideMissingEpisodes = libraryPreferences.hideMissingEpisodes.get()
+
+    private var hasPromptedToAddBefore = false
+
+    private val defaultEpisodeFlagsJob = viewModelScope.launchIO {
+        val anime = getAnimeAndEpisodesAndSeasons.awaitAnime(animeId)
+        if (!anime.favorite) {
+            setAnimeDefaultEpisodeFlags.await(anime)
         }
     }
 
-    init {
-        viewModelScope.launchIO {
+    private val animeAndEpisodesAndSeasons = combine(
+        flow {
+            // So an entry outside the library isn't shown with its old episode settings first
+            defaultEpisodeFlagsJob.join()
+            emitAll(getAnimeAndEpisodesAndSeasons.subscribe(animeId, applyScanlatorFilter = true))
+        }
+            .distinctUntilChanged(),
+        downloadCache.changes,
+        downloadManager.queueState,
+    ) { (anime, episodes, seasons), _, _ ->
+        AnimeAndEpisodesAndSeasons(
+            anime = anime,
+            source = sourceManager.getOrStub(anime.source),
+            episodes = episodes.toEpisodeListItems(anime),
+            seasons = seasons.toAnimeSeasonItems(),
+        )
+    }
+
+    private val scanlators = combine(
+        getAvailableScanlators.subscribe(animeId).distinctUntilChanged(),
+        getExcludedScanlators.subscribe(animeId).distinctUntilChanged(),
+        ::Pair,
+    )
+
+    private val trackers = flow {
+        emit(sourceManager.getOrStub(getAnimeAndEpisodesAndSeasons.awaitAnime(animeId).source))
+    }
+        .flatMapLatest { source ->
             combine(
-                getAnimeAndEpisodesAndSeasons.subscribe(animeId, applyScanlatorFilter = true).distinctUntilChanged(),
-                downloadCache.changes,
-                downloadManager.queueState,
-            ) { animeAndEpisodesAndSeasons, _, _ -> animeAndEpisodesAndSeasons }
-                .collectLatest { (anime, episodes, seasons) ->
-                    updateSuccessState {
-                        it.copy(
-                            anime = anime,
-                            episodes = episodes.toEpisodeListItems(anime),
-                            // AY -->
-                            seasons = seasons.toAnimeSeasonItems(),
-                            // <-- AY
-                        )
-                    }
-                }
-        }
+                getTracks.subscribe(animeId).catch { logcat(LogPriority.ERROR, it) },
+                trackerManager.loggedInTrackersFlow(),
+            ) { animeTracks, loggedInTrackers ->
+                // Show only if the service supports this animes's source
+                val supportedTrackers = loggedInTrackers.filter { (it as? EnhancedTracker)?.accept(source) ?: true }
+                val supportedTrackerIds = supportedTrackers.map { it.id }.toHashSet()
+                val supportedTrackerTracks = animeTracks.filter { it.trackerId in supportedTrackerIds }
 
-        viewModelScope.launchIO {
-            getExcludedScanlators.subscribe(animeId)
-                .distinctUntilChanged()
-                .collectLatest { excludedScanlators ->
-                    updateSuccessState {
-                        it.copy(excludedScanlators = excludedScanlators)
-                    }
-                }
-        }
-
-        viewModelScope.launchIO {
-            getAvailableScanlators.subscribe(animeId)
-                .distinctUntilChanged()
-                .collectLatest { availableScanlators ->
-                    updateSuccessState {
-                        it.copy(availableScanlators = availableScanlators)
-                    }
-                }
-        }
-
-        observeDownloads()
-
-        viewModelScope.launchIO {
-            // AY -->
-            val anime = getAnimeAndEpisodesAndSeasons.awaitAnime(animeId)
-            val source = sourceManager.getOrStub(anime.source)
-
-            val episodes = if (anime.fetchType == FetchType.Seasons) {
-                emptyList()
-            } else {
-                getAnimeAndEpisodesAndSeasons.awaitEpisodes(animeId)
-                    .toEpisodeListItems(anime)
-            }
-
-            val seasons = if (anime.fetchType == FetchType.Episodes) {
-                emptyList()
-            } else {
-                getAnimeAndEpisodesAndSeasons.awaitSeasons(animeId)
-                    .toAnimeSeasonItems()
-            }
-            // <-- AY
-
-            if (!anime.favorite) {
-                setAnimeDefaultEpisodeFlags.await(anime)
-                // AY -->
-                setAnimeDefaultSeasonFlags.await(anime)
-                // <-- AY
-            }
-
-            val needRefreshInfo = !anime.initialized
-            // AY -->
-            val needRefreshEpisode = episodes.isEmpty() && anime.fetchType == FetchType.Episodes
-            val needRefreshSeason = seasons.isEmpty() && anime.fetchType == FetchType.Seasons
-            // <-- AY
-
-            // Show what we have earlier
-            state.update {
-                State.Success(
-                    anime = anime,
-                    source = source,
-                    isFromSource = isFromSource,
-                    episodes = episodes,
-                    availableScanlators = getAvailableScanlators.await(animeId),
-                    excludedScanlators = getExcludedScanlators.await(animeId),
-                    // AY -->
-                    seasons = seasons,
-                    isRefreshingData = needRefreshInfo || needRefreshEpisode || needRefreshSeason,
-                    // <-- AY
-                    dialog = null,
-                    hideMissingEpisodes = libraryPreferences.hideMissingEpisodes.get(),
+                // AM -->
+                val trackItems = loggedInTrackers
+                    .map { service -> TrackItem(animeTracks.find { it.trackerId == service.id }, service) }
+                // <-- AM
+                Triple(
+                    supportedTrackerTracks.size,
+                    supportedTrackers.isNotEmpty(),
+                    trackItems,
                 )
             }
+        }
+        .distinctUntilChanged()
+        .onStart { emit(Triple(0, false, emptyList())) }
 
-            // Start observe tracking since it only needs animeId
-            observeTrackers()
+    // AM -->
+    private val nextAiringEpisode = MutableStateFlow<Pair<Int, Long>?>(null)
+
+    private val isLoadingRelatedAnime = MutableStateFlow(false)
+
+    private val relations = getRelatedAnime.subscribe(animeId)
+        .distinctUntilChanged()
+        .onStart { emit(emptyList()) }
+    // <-- AM
+
+    val state: StateFlow<State> = eu.kanade.core.util.combine(
+        animeAndEpisodesAndSeasons,
+        scanlators,
+        trackers,
+        combine(selectedEpisodeIds, queuedDownloadStates, ::Pair),
+        combine(dialog, isRefreshingData, isSyncingTrackers, ::Triple),
+        // AM -->
+        combine(nextAiringEpisode, isLoadingRelatedAnime, relations, ::Triple),
+        // <-- AM
+    ) {
+            animeAndEpisodesAndSeasons,
+            (availableScanlators, excludedScanlators),
+            (trackingCount, hasLoggedInTrackers, trackItems),
+            (selectedIds, downloads),
+            (dialog, isRefreshingData, isSyncingTrackers),
+            (nextAiringEpisode, isLoadingRelatedAnime, relations),
+        ->
+        State.Success(
+            anime = animeAndEpisodesAndSeasons.anime,
+            source = animeAndEpisodesAndSeasons.source,
+            isFromSource = isFromSource,
+            episodes = animeAndEpisodesAndSeasons.episodes.map { item ->
+                val download = downloads[item.id]
+                val selected = item.id in selectedIds
+                if (download == null && !selected) return@map item
+                item.copy(
+                    downloadState = download?.status ?: item.downloadState,
+                    downloadProgress = download?.progress ?: item.downloadProgress,
+                    selected = selected,
+                )
+            },
+            // AM -->
+            seasons = animeAndEpisodesAndSeasons.seasons,
+            // <-- AM
+            availableScanlators = availableScanlators,
+            excludedScanlators = excludedScanlators,
+            trackingCount = trackingCount,
+            hasLoggedInTrackers = hasLoggedInTrackers,
+            // AM -->
+            relatedAnime = relations,
+            isLoadingRelatedAnime = isLoadingRelatedAnime,
+            isSyncingTrackers = isSyncingTrackers,
+            // <-- AM
+            isRefreshingData = isRefreshingData,
+            dialog = dialog,
+            hideMissingEpisodes = hideMissingEpisodes,
+            // AM -->
+            trackItems = trackItems,
+            nextAiringEpisode = nextAiringEpisode
+                ?: Pair(
+                    animeAndEpisodesAndSeasons.anime.nextEpisodeToAir,
+                    animeAndEpisodesAndSeasons.anime.nextEpisodeAiringAt,
+                ),
+            // <-- AM
+        )
+    }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State.Loading)
+
+    init {
+        // AM -->
+        observeTrackers()
+        // <-- AM
+
+        viewModelScope.launchIO {
+            merge(downloadManager.statusFlow(), downloadManager.progressFlow())
+                .filter { it.anime.id == animeId }
+                .catch { logcat(LogPriority.ERROR, it) }
+                .collect(::updateDownloadState)
+        }
+
+        viewModelScope.launchIO {
+            // The state loads the entry and its items anyway, so they aren't queried separately
+            val loadedState = state.filterIsInstance<State.Success>().first()
+            val anime = loadedState.anime
+            val needRefreshInfo = !anime.initialized
+            // AY -->
+            val needRefreshEpisode = loadedState.episodes.isEmpty() && anime.fetchType == FetchType.Episodes
+            val needRefreshSeason = loadedState.seasons.isEmpty() && anime.fetchType == FetchType.Seasons
+            // <-- AY
 
             // AY -->
-            observeRelatedAnime()
             syncRelatedAnime()
             // <-- AY
 
-            // Fetch info-episodes when needed
-            if (viewModelScope.isActive) {
-                val fetchFromSourceTasks = listOf(
-                    // AM -->
-                    async { syncTrackers() },
-                    // <-- AM
-                    async {
-                        if (needRefreshInfo || needRefreshEpisode || needRefreshSeason) {
-                            fetchAllFromSource(
-                                manualFetch = false,
-                                fetchDetails = needRefreshInfo,
-                                fetchEpisodes = needRefreshEpisode,
-                                fetchSeasons = needRefreshSeason,
-                            )
-                        }
-                    },
+            // Fetch info-episodes-seasons when needed
+            isRefreshingData.value = true
+            // AM -->
+            viewModelScope.launchIO { syncTrackers() }
+            // <-- AM
+            if (needRefreshInfo || needRefreshEpisode || needRefreshSeason) {
+                fetchAllFromSource(
+                    anime = anime,
+                    manualFetch = false,
+                    fetchDetails = needRefreshInfo,
+                    fetchEpisodes = needRefreshEpisode,
+                    fetchSeasons = needRefreshSeason,
                 )
-                fetchFromSourceTasks.awaitAll()
             }
-
-            // Initial loading finished
-            updateSuccessState { it.copy(isRefreshingData = false) }
+            isRefreshingData.value = false
         }
     }
 
     fun fetchAllFromSource(manualFetch: Boolean = true) {
         viewModelScope.launch {
-            updateSuccessState { it.copy(isRefreshingData = true) }
-            val fetchFromSourceTasks = listOf(
-                // AM -->
-                async { syncTrackers() },
-                // <-- AM
-                async {
-                    fetchAllFromSource(
-                        manualFetch = manualFetch,
-                        fetchDetails = true,
-                        fetchEpisodes = true,
-                        fetchSeasons = true,
-                    )
-                },
+            isRefreshingData.value = true
+            // AM -->
+            viewModelScope.launchIO { syncTrackers() }
+            // <-- AM
+            fetchAllFromSource(
+                anime = getAnimeAndEpisodesAndSeasons.awaitAnime(animeId),
+                manualFetch = manualFetch,
+                fetchDetails = true,
+                fetchEpisodes = true,
+                fetchSeasons = true,
             )
-            fetchFromSourceTasks.awaitAll()
-            updateSuccessState { it.copy(isRefreshingData = false) }
+            isRefreshingData.value = false
             // AY -->
             successState?.let { updateAiringTime(it.anime, it.trackItems, manualFetch) }
             // <-- AY
@@ -420,7 +473,7 @@ class AnimeViewModel(
         val state = successState ?: return
         if (state.source is StubSource) return
 
-        updateSuccessState { it.copy(isSyncingTrackers = true) }
+        isSyncingTrackers.value = true
 
         when (state.anime.fetchType) {
             FetchType.Seasons -> {
@@ -449,20 +502,21 @@ class AnimeViewModel(
             }
         }
 
-        updateSuccessState { it.copy(isSyncingTrackers = false) }
+        isSyncingTrackers.value = false
     }
     // <-- AM
 
     private suspend fun fetchAllFromSource(
+        anime: Anime,
         manualFetch: Boolean,
         fetchDetails: Boolean,
         fetchEpisodes: Boolean,
         fetchSeasons: Boolean,
     ) {
-        val state = successState ?: return
+        val source = sourceManager.getOrStub(anime.source)
 
         // AY -->
-        startTorrentServer(state.source)
+        startTorrentServer(source)
 
         if (fetchDetails) {
             syncRelatedAnime(forceRefresh = true)
@@ -471,11 +525,11 @@ class AnimeViewModel(
 
         try {
             withUIContext {
-                when (state.anime.fetchType) {
+                when (anime.fetchType) {
                     FetchType.Episodes -> {
                         val update = updateAnimeFromRemote.awaitEpisodesUpdate(
-                            source = state.source,
-                            anime = state.anime,
+                            source = source,
+                            anime = anime,
                             fetchDetails = fetchDetails,
                             fetchEpisodes = fetchEpisodes,
                             manualFetch = manualFetch,
@@ -488,8 +542,8 @@ class AnimeViewModel(
                     }
                     FetchType.Seasons -> {
                         val update = updateAnimeFromRemote.awaitSeasonsUpdate(
-                            source = state.source,
-                            anime = state.anime,
+                            source = source,
+                            anime = anime,
                             fetchDetails = fetchDetails,
                             fetchSeasons = fetchSeasons,
                             manualFetch = manualFetch,
@@ -551,7 +605,7 @@ class AnimeViewModel(
                         customGenre = tags,
                         customTitle = newTitle,
                         customStatus = status ?: 0L,
-                    )
+                    ),
                 )
             }
         } else {
@@ -574,10 +628,6 @@ class AnimeViewModel(
                 )
                 anime = anime.copy(lastUpdate = anime.lastUpdate + 1)
             }
-        }
-
-        updateSuccessState { successState ->
-            successState.copy(anime = anime)
         }
     }
     // <-- AM (CUSTOM_INFORMATION)
@@ -639,7 +689,7 @@ class AnimeViewModel(
                     val duplicates = getDuplicateLibraryAnime(anime)
 
                     if (duplicates.isNotEmpty()) {
-                        updateSuccessState { it.copy(dialog = Dialog.DuplicateAnime(anime, duplicates)) }
+                        dialog.value = Dialog.DuplicateAnime(anime, duplicates)
                         return@launchIO
                     }
                 }
@@ -688,35 +738,24 @@ class AnimeViewModel(
         viewModelScope.launch {
             val categories = getCategories()
             val selection = getAnimeCategoryIds(anime)
-            updateSuccessState { successState ->
-                successState.copy(
-                    dialog = Dialog.ChangeCategory(
-                        anime = anime,
-                        initialSelection = categories.mapAsCheckboxState { it.id in selection },
-                    ),
-                )
-            }
+            dialog.value = Dialog.ChangeCategory(
+                anime = anime,
+                initialSelection = categories.mapAsCheckboxState { it.id in selection },
+            )
         }
     }
 
     fun showSetFetchIntervalDialog() {
         val anime = successState?.anime ?: return
-        updateSuccessState {
-            it.copy(dialog = Dialog.SetFetchInterval(anime))
-        }
+        dialog.value = Dialog.SetFetchInterval(anime)
     }
 
     fun setFetchInterval(anime: Anime, interval: Int) {
         viewModelScope.launchIO {
-            if (
-                updateAnime.awaitUpdateFetchInterval(
-                    // Custom intervals are negative
-                    anime.copy(fetchInterval = -interval),
-                )
-            ) {
-                val updatedAnime = animeRepository.getAnimeById(anime.id)
-                updateSuccessState { it.copy(anime = updatedAnime) }
-            }
+            updateAnime.awaitUpdateFetchInterval(
+                // Custom intervals are negative
+                anime.copy(fetchInterval = -interval),
+            )
         }
     }
 
@@ -794,41 +833,16 @@ class AnimeViewModel(
 
     // Episodes list - start
 
-    private fun observeDownloads() {
-        viewModelScope.launchIO {
-            downloadManager.statusFlow()
-                .filter { it.anime.id == successState?.anime?.id }
-                .catch { error -> logcat(LogPriority.ERROR, error) }
-                .collect {
-                    withUIContext {
-                        updateDownloadState(it)
-                    }
-                }
-        }
-
-        viewModelScope.launchIO {
-            downloadManager.progressFlow()
-                .filter { it.anime.id == successState?.anime?.id }
-                .catch { error -> logcat(LogPriority.ERROR, error) }
-                .collect {
-                    withUIContext {
-                        updateDownloadState(it)
-                    }
-                }
-        }
-    }
-
     private fun updateDownloadState(download: Download) {
-        updateSuccessState { successState ->
-            val modifiedIndex = successState.episodes.indexOfFirst { it.id == download.episode.id }
-            if (modifiedIndex < 0) return@updateSuccessState successState
-
-            val newEpisodes = successState.episodes.toMutableList().apply {
-                val item = removeAt(modifiedIndex)
-                    .copy(downloadState = download.status, downloadProgress = download.progress)
-                add(modifiedIndex, item)
+        val episodeId = download.episode.id
+        downloadStates.update {
+            // Terminal states are derived by the queried item itself, so drop the override instead
+            // of letting it outlive reality, e.g. showing a since deleted chapter as downloaded.
+            if (download.status == Download.State.NOT_DOWNLOADED || download.status == Download.State.DOWNLOADED) {
+                it - episodeId
+            } else {
+                it + (episodeId to DownloadProgress(download.status, download.progress))
             }
-            successState.copy(episodes = newEpisodes)
         }
     }
 
@@ -849,7 +863,6 @@ class AnimeViewModel(
                 episode = episode,
                 downloadState = downloadState,
                 downloadProgress = activeDownload?.progress ?: 0,
-                selected = episode.id in selectedEpisodeIds,
             )
         }
     }
@@ -1007,7 +1020,7 @@ class AnimeViewModel(
         video: Video? = null,
         // <-- AY
     ) {
-        val successState = successState ?: return
+        if (successState == null) return
 
         viewModelScope.launchNonCancellable {
             if (startNow) {
@@ -1017,10 +1030,8 @@ class AnimeViewModel(
                 downloadEpisodes(episodes, false, video)
             }
 
-            if (!isFavorited && !successState.hasPromptedToAddBefore) {
-                updateSuccessState { state ->
-                    state.copy(hasPromptedToAddBefore = true)
-                }
+            if (!isFavorited && !hasPromptedToAddBefore) {
+                hasPromptedToAddBefore = true
                 val result = snackbarHostState.showSnackbar(
                     message = context.stringResource(MR.strings.snack_add_to_library),
                     actionLabel = context.stringResource(MR.strings.action_add),
@@ -1651,86 +1662,66 @@ class AnimeViewModel(
         selected: Boolean,
         fromLongPress: Boolean = false,
     ) {
-        updateSuccessState { successState ->
-            val newEpisodes = successState.processedEpisodes.toMutableList().apply {
-                val selectedIndex = successState.processedEpisodes.indexOfFirst { it.id == item.episode.id }
-                if (selectedIndex < 0) return@apply
+        val episodes = successState?.processedEpisodes ?: return
+        val selectedIndex = episodes.indexOfFirst { it.id == item.episode.id }
+        if (selectedIndex < 0) return
 
-                val selectedItem = get(selectedIndex)
-                if ((selectedItem.selected && selected) || (!selectedItem.selected && !selected)) return@apply
+        // Read from the ids, as the state catches up with a selection only after it's been made
+        val selectedIds = HashSet(selectedEpisodeIds.value)
+        if ((item.id in selectedIds) == selected) return
 
-                val firstSelection = none { it.selected }
-                set(selectedIndex, selectedItem.copy(selected = selected))
-                selectedEpisodeIds.addOrRemove(item.id, selected)
+        val firstSelection = episodes.none { it.id in selectedIds }
+        selectedIds.addOrRemove(item.id, selected)
 
-                if (selected && fromLongPress) {
-                    if (firstSelection) {
-                        selectedPositions[0] = selectedIndex
-                        selectedPositions[1] = selectedIndex
-                    } else {
-                        // Try to select the items in-between when possible
-                        val range: IntRange
-                        if (selectedIndex < selectedPositions[0]) {
-                            range = selectedIndex + 1..<selectedPositions[0]
-                            selectedPositions[0] = selectedIndex
-                        } else if (selectedIndex > selectedPositions[1]) {
-                            range = (selectedPositions[1] + 1)..<selectedIndex
-                            selectedPositions[1] = selectedIndex
-                        } else {
-                            // Just select itself
-                            range = IntRange.EMPTY
-                        }
+        if (selected && fromLongPress) {
+            if (firstSelection) {
+                selectedPositions[0] = selectedIndex
+                selectedPositions[1] = selectedIndex
+            } else {
+                // Try to select the items in-between when possible
+                val range: IntRange
+                if (selectedIndex < selectedPositions[0]) {
+                    range = selectedIndex + 1..<selectedPositions[0]
+                    selectedPositions[0] = selectedIndex
+                } else if (selectedIndex > selectedPositions[1]) {
+                    range = (selectedPositions[1] + 1)..<selectedIndex
+                    selectedPositions[1] = selectedIndex
+                } else {
+                    // Just select itself
+                    range = IntRange.EMPTY
+                }
 
-                        range.forEach {
-                            val inbetweenItem = get(it)
-                            if (!inbetweenItem.selected) {
-                                selectedEpisodeIds.add(inbetweenItem.id)
-                                set(it, inbetweenItem.copy(selected = true))
-                            }
-                        }
-                    }
-                } else if (!fromLongPress) {
-                    if (!selected) {
-                        if (selectedIndex == selectedPositions[0]) {
-                            selectedPositions[0] = indexOfFirst { it.selected }
-                        } else if (selectedIndex == selectedPositions[1]) {
-                            selectedPositions[1] = indexOfLast { it.selected }
-                        }
-                    } else {
-                        if (selectedIndex < selectedPositions[0]) {
-                            selectedPositions[0] = selectedIndex
-                        } else if (selectedIndex > selectedPositions[1]) {
-                            selectedPositions[1] = selectedIndex
-                        }
-                    }
+                range.forEach { selectedIds.add(episodes[it].id) }
+            }
+        } else if (!fromLongPress) {
+            if (!selected) {
+                if (selectedIndex == selectedPositions[0]) {
+                    selectedPositions[0] = episodes.indexOfFirst { it.id in selectedIds }
+                } else if (selectedIndex == selectedPositions[1]) {
+                    selectedPositions[1] = episodes.indexOfLast { it.id in selectedIds }
+                }
+            } else {
+                if (selectedIndex < selectedPositions[0]) {
+                    selectedPositions[0] = selectedIndex
+                } else if (selectedIndex > selectedPositions[1]) {
+                    selectedPositions[1] = selectedIndex
                 }
             }
-            successState.copy(episodes = newEpisodes)
         }
+        selectedEpisodeIds.value = selectedIds
     }
 
     fun toggleAllSelection(selected: Boolean) {
-        updateSuccessState { successState ->
-            val newEpisodes = successState.episodes.map {
-                selectedEpisodeIds.addOrRemove(it.id, selected)
-                it.copy(selected = selected)
-            }
-            selectedPositions[0] = -1
-            selectedPositions[1] = -1
-            successState.copy(episodes = newEpisodes)
-        }
+        selectedEpisodeIds.value = if (selected) allEpisodes.orEmpty().mapTo(HashSet()) { it.id } else emptySet()
+        selectedPositions[0] = -1
+        selectedPositions[1] = -1
     }
 
     fun invertSelection() {
-        updateSuccessState { successState ->
-            val newEpisodes = successState.episodes.map {
-                selectedEpisodeIds.addOrRemove(it.id, !it.selected)
-                it.copy(selected = !it.selected)
-            }
-            selectedPositions[0] = -1
-            selectedPositions[1] = -1
-            successState.copy(episodes = newEpisodes)
-        }
+        val selectedIds = selectedEpisodeIds.value
+        selectedEpisodeIds.value = allEpisodes.orEmpty().filterNot { it.id in selectedIds }.mapTo(HashSet()) { it.id }
+        selectedPositions[0] = -1
+        selectedPositions[1] = -1
     }
 
     // Episodes list - end
@@ -1738,28 +1729,18 @@ class AnimeViewModel(
     // AY -->
     // Related anime - start
 
-    private fun observeRelatedAnime() {
-        viewModelScope.launchIO {
-            getRelatedAnime.subscribe(animeId)
-                .distinctUntilChanged()
-                .collectLatest { relations ->
-                    updateSuccessState { it.copy(relatedAnime = relations) }
-                }
-        }
-    }
-
     fun syncRelatedAnime(forceRefresh: Boolean = false) {
         val state = successState ?: return
         if (!state.source.supportsRelatedAnime) return
 
         viewModelScope.launchIO {
-            updateSuccessState { it.copy(isLoadingRelatedAnime = true) }
+            isLoadingRelatedAnime.value = true
             try {
                 syncRelatedAnimeWithSource.await(state.anime, forceRefresh)
             } catch (e: Throwable) {
                 logcat(LogPriority.ERROR, e) { "Failed to fetch related anime" }
             } finally {
-                updateSuccessState { it.copy(isLoadingRelatedAnime = false) }
+                isLoadingRelatedAnime.value = false
             }
         }
     }
@@ -1769,54 +1750,22 @@ class AnimeViewModel(
 
     // Track sheet - start
 
+    // AM -->
     private fun observeTrackers() {
-        val anime = successState?.anime ?: return
-
         viewModelScope.launchIO {
             combine(
-                getTracks.subscribe(anime.id).catch { logcat(LogPriority.ERROR, it) },
-                trackerManager.loggedInTrackersFlow(),
-            ) { animeTracks, loggedInTrackers ->
-                // Show only if the service supports this anime's source
-                val supportedTrackers = loggedInTrackers.filter { (it as? EnhancedTracker)?.accept(source!!) ?: true }
-                    // AM -->
-                    // For now, only enhanced trackers supports season tracking to sync the seasons.
-                    // This could probably be fleshed out later.
-                    .filter { anime.fetchType == FetchType.Episodes || it is EnhancedTracker }
-                // <-- AM
-                val supportedTrackerIds = supportedTrackers.map { it.id }.toHashSet()
-                val supportedTrackerTracks = animeTracks.filter { it.trackerId in supportedTrackerIds }
-                supportedTrackerTracks.size to supportedTrackers.isNotEmpty()
+                flow { emit(getAnimeAndEpisodesAndSeasons.awaitAnime(animeId)) },
+                trackers,
+            ) { anime, (_, _, trackItems) ->
+                anime to trackItems
             }
                 .distinctUntilChanged()
-                .collectLatest { (trackingCount, hasLoggedInTrackers) ->
-                    updateSuccessState {
-                        it.copy(
-                            trackingCount = trackingCount,
-                            hasLoggedInTrackers = hasLoggedInTrackers,
-                        )
-                    }
-                }
-        }
-
-        // AY -->
-        viewModelScope.launchIO {
-            combine(
-                getTracks.subscribe(anime.id).catch { logcat(LogPriority.ERROR, it) },
-                trackerManager.loggedInTrackersFlow(),
-            ) { animeTracks, loggedInTrackers ->
-                loggedInTrackers
-                    .map { service -> TrackItem(animeTracks.find { it.trackerId == service.id }, service) }
-            }
-                .distinctUntilChanged()
-                .collectLatest { trackItems ->
+                .collectLatest { (anime, trackItems) ->
                     updateAiringTime(anime, trackItems, manualFetch = false)
                 }
         }
-        // <-- AY
     }
 
-    // AY -->
     private suspend fun updateAiringTime(
         anime: Anime,
         trackItems: List<TrackItem>,
@@ -1824,9 +1773,9 @@ class AnimeViewModel(
     ) {
         val airingEpisodeData = AniChartApi().loadAiringTime(anime, trackItems, manualFetch)
         setAnimeViewerFlags.awaitSetNextEpisodeAiring(anime.id, airingEpisodeData)
-        updateSuccessState { it.copy(nextAiringEpisode = airingEpisodeData) }
+        nextAiringEpisode.value = airingEpisodeData
     }
-    // <-- AY
+    // <-- AM
 
     // Track sheet - end
 
@@ -1860,35 +1809,32 @@ class AnimeViewModel(
     }
 
     fun dismissDialog() {
-        updateSuccessState { it.copy(dialog = null) }
+        dialog.value = null
     }
 
     fun showDeleteEpisodeDialog(episodes: List<Episode>) {
-        updateSuccessState { it.copy(dialog = Dialog.DeleteEpisodes(episodes)) }
+        dialog.value = Dialog.DeleteEpisodes(episodes)
     }
 
     fun showSettingsDialog() {
-        updateSuccessState {
-            // AY -->
-            when (it.anime.fetchType) {
-                FetchType.Seasons -> it.copy(dialog = Dialog.SeasonSettingsSheet)
-                FetchType.Episodes -> it.copy(dialog = Dialog.EpisodeSettingsSheet)
-            }
-            // <-- AY
+        val anime = successState?.anime ?: return
+        dialog.value = when (anime.fetchType) {
+            FetchType.Episodes -> Dialog.EpisodeSettingsSheet
+            FetchType.Seasons -> Dialog.SeasonSettingsSheet
         }
     }
 
     fun showTrackDialog() {
-        updateSuccessState { it.copy(dialog = Dialog.TrackSheet) }
+        dialog.value = Dialog.TrackSheet
     }
 
     fun showImagesDialog() {
-        updateSuccessState { it.copy(dialog = Dialog.FullImages) }
+        dialog.value = Dialog.FullImages
     }
 
     fun showMigrateDialog(duplicate: Anime) {
         val anime = successState?.anime ?: return
-        updateSuccessState { it.copy(dialog = Dialog.Migrate(target = anime, current = duplicate)) }
+        dialog.value = Dialog.Migrate(target = anime, current = duplicate)
     }
 
     fun setExcludedScanlators(excludedScanlators: Set<String>) {
@@ -1899,19 +1845,30 @@ class AnimeViewModel(
 
     // AY -->
     fun showAnimeSkipIntroDialog() {
-        updateSuccessState { it.copy(dialog = Dialog.ChangeAnimeSkipIntro) }
+        dialog.value = Dialog.ChangeAnimeSkipIntro
     }
 
     private fun showQualitiesDialog(episode: Episode) {
-        updateSuccessState { it.copy(dialog = Dialog.ShowQualities(episode, it.anime, it.source)) }
+        val successState = successState ?: return
+        dialog.value = Dialog.ShowQualities(episode, successState.anime, successState.source)
     }
     // <-- AY
 
     // AM (CUSTOM_INFORMATION) -->
     fun showEditAnimeInfoDialog() {
-        updateSuccessState { it.copy(dialog = Dialog.EditAnimeInfo(it.anime)) }
+        val anime = successState?.anime ?: return
+        dialog.value = Dialog.EditAnimeInfo(anime)
     }
     // <-- AM (CUSTOM_INFORMATION)
+
+    private data class AnimeAndEpisodesAndSeasons(
+        val anime: Anime,
+        val source: AnimeSource,
+        val episodes: List<EpisodeList.Item>,
+        val seasons: List<AnimeSeasonItem>,
+    )
+
+    private data class DownloadProgress(val status: Download.State, val progress: Int)
 
     sealed interface State {
         @Immutable
@@ -1939,7 +1896,6 @@ class AnimeViewModel(
             // <-- AM
             val isRefreshingData: Boolean = false,
             val dialog: Dialog? = null,
-            val hasPromptedToAddBefore: Boolean = false,
             val hideMissingEpisodes: Boolean = false,
             // AY -->
             val trackItems: List<TrackItem> = emptyList(),
