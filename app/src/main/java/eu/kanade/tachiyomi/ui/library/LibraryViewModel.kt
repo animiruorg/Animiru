@@ -497,17 +497,22 @@ class LibraryViewModel(
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
         ) { libraryAnime, preferences, _ ->
+            val sources = libraryAnime
+                .mapTo(mutableSetOf()) { it.anime.source }
+                .associateWith { sourceManager.getOrStub(it) }
             libraryAnime.map { anime ->
+                val source = sources.getValue(anime.anime.source)
+                val downloadCount = downloadManager.getDownloadCount(anime.anime)
                 LibraryItem(
                     libraryAnime = anime,
-                    downloadCount = downloadManager.getDownloadCount(anime.anime),
+                    downloadCount = downloadCount,
                     unseenCount = anime.unseenCount,
                     isLocal = anime.anime.isLocal(),
-                    sourceName = sourceManager.getOrStub(anime.anime.source).name.lowercase(),
-                    sourceLanguage = sourceManager.getOrStub(anime.anime.source).lang,
+                    sourceName = source.name.lowercase(),
+                    sourceLanguage = source.lang,
                     badges = LibraryItem.Badges(
                         downloadCount = if (preferences.downloadBadge) {
-                            downloadManager.getDownloadCount(anime.anime)
+                            downloadCount
                         } else {
                             0
                         },
@@ -522,7 +527,7 @@ class LibraryViewModel(
                             false
                         },
                         sourceLanguage = if (preferences.languageBadge) {
-                            sourceManager.getOrStub(anime.anime.source).lang
+                            source.lang
                         } else {
                             ""
                         },
