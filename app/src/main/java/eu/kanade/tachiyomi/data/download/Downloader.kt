@@ -186,8 +186,6 @@ class Downloader(
         }
 
         isPaused = false
-
-        DownloadJob.stop(context)
     }
 
     /**
@@ -299,6 +297,7 @@ class Downloader(
      * @param anime the anime of the episodes to download.
      * @param episodes the list of episodes to download.
      * @param autoStart whether to start the downloader after enqueing the episodes.
+     * @return true if the downloader should be started.
      */
     suspend fun queueEpisodes(
         anime: Anime,
@@ -308,10 +307,10 @@ class Downloader(
         changeDownloader: Boolean = false,
         video: Video? = null,
         // <-- AY
-    ) {
-        if (episodes.isEmpty()) return
+    ): Boolean {
+        if (episodes.isEmpty()) return false
 
-        val source = sourceManager.get(anime.source) as? AnimeHttpSource ?: return
+        val source = sourceManager.get(anime.source) as? AnimeHttpSource ?: return false
         val wasEmpty = queueState.value.isEmpty()
         val episodesToQueue = episodes.asSequence()
             // Filter out those already downloaded.
@@ -350,9 +349,10 @@ class Downloader(
                         NotificationHandler.openUrl(context, LibraryUpdateNotifier.HELP_WARNING_URL),
                     )
                 }
-                DownloadJob.start(context)
+                return true
             }
         }
+        return false
     }
 
     /**

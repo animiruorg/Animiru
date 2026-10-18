@@ -57,30 +57,19 @@ class DownloadManager(
     private val pendingDeleter: DownloadPendingDeleter,
 ) {
 
-    val isRunning: Boolean
-        get() = downloader.isRunning
-
     val queueState
         get() = downloader.queueState
-
-    // For use by DownloadService only
-    fun downloaderStart() = downloader.start()
-    fun downloaderStop(reason: String? = null) = downloader.stop(reason)
 
     val isDownloaderRunning
         get() = DownloadJob.isRunningFlow(context)
 
     /**
-     * Tells the downloader to begin downloads.
+     * Starts the download worker, which runs the downloader.
      */
     fun startDownloads() {
         if (downloader.isRunning) return
 
-        if (DownloadJob.isRunning(context)) {
-            downloader.start()
-        } else {
-            DownloadJob.start(context)
-        }
+        DownloadJob.start(context)
     }
 
     /**
@@ -157,7 +146,9 @@ class DownloadManager(
     ) {
         // AY -->
         val filteredEpisodes = getEpisodesToDownload(episodes)
-        downloader.queueEpisodes(anime, filteredEpisodes, autoStart, alt, video)
+        if (downloader.queueEpisodes(anime, filteredEpisodes, autoStart, alt, video)) {
+            startDownloads()
+        }
         // <-- AY
     }
 
@@ -172,7 +163,7 @@ class DownloadManager(
             addAll(0, downloads)
             reorderQueue(this)
         }
-        if (!DownloadJob.isRunning(context)) startDownloads()
+        startDownloads()
     }
 
     /**
