@@ -551,36 +551,19 @@ class LibraryViewModel(
         }
     }
 
-    /**
-     * Returns the common categories for the given list of anime.
-     *
-     * @param animes the list of anime.
-     */
-    private suspend fun getCommonCategories(animes: List<Anime>): Collection<Category> {
-        if (animes.isEmpty()) return emptyList()
-        return animes
-            // AY -->
-            .map { getVisibleCategories.await(it.id).toSet() }
-            // <-- AY
-            .reduce { set1, set2 -> set1.intersect(set2) }
+    private suspend fun getCategoryIds(anime: Anime): Set<Long> {
+        return state.value.libraryData.favoritesById[anime.id]
+            ?.libraryAnime
+            ?.categories
+            // The library reports no category as 0
+            ?.filterTo(mutableSetOf()) { it != 0L }
+            // AM -->
+            ?: getVisibleCategories.await(anime.id).mapTo(mutableSetOf()) { it.id }
+            // <-- AM
     }
 
     suspend fun getNextUnseenEpisode(anime: Anime): Episode? {
         return getEpisodesByAnimeId.await(anime.id, applyScanlatorFilter = true).getNextUnseen(anime, downloadManager)
-    }
-
-    /**
-     * Returns the mix (non-common) categories for the given list of anime.
-     *
-     * @param animes the list of anime.
-     */
-    private suspend fun getMixCategories(animes: List<Anime>): Collection<Category> {
-        if (animes.isEmpty()) return emptyList()
-        // AY -->
-        val animeCategories = animes.map { getVisibleCategories.await(it.id).toSet() }
-        // <-- AY
-        val common = animeCategories.reduce { set1, set2 -> set1.intersect(set2) }
-        return animeCategories.flatten().distinct().subtract(common)
     }
 
     /**
@@ -704,10 +687,7 @@ class LibraryViewModel(
     fun setAnimeCategories(animeList: List<Anime>, addCategories: List<Long>, removeCategories: List<Long>) {
         viewModelScope.launchNonCancellable {
             animeList.forEach { anime ->
-                // AY -->
-                val categoryIds = getVisibleCategories.await(anime.id)
-                    // <-- AY
-                    .map { it.id }
+                val categoryIds = getCategoryIds(anime)
                     .subtract(removeCategories.toSet())
                     .plus(addCategories)
                     .toList()
@@ -836,13 +816,12 @@ class LibraryViewModel(
             // Hide the default category because it has a different behavior than the ones from db.
             val categories = state.value.displayedCategories.filter { it.id != 0L }
 
-            // Get indexes of the common categories to preselect.
-            val common = getCommonCategories(animeList)
-            // Get indexes of the mix categories to preselect.
-            val mix = getMixCategories(animeList)
+            val animeCategoryIds = animeList.map { getCategoryIds(it) }
+            val common = animeCategoryIds.reduceOrNull { set1, set2 -> set1 intersect set2 }.orEmpty()
+            val mix = animeCategoryIds.flatten().toSet() - common
             val preselected = categories
                 .map {
-                    when (it) {
+                    when (it.id) {
                         in common -> CheckboxState.State.Checked(it)
                         in mix -> CheckboxState.TriState.Exclude(it)
                         else -> CheckboxState.State.None(it)
