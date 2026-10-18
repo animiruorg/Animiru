@@ -15,7 +15,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.track.model.toDbTrack
-import eu.kanade.domain.track.service.DelayedTrackingUpdateJob
+import eu.kanade.domain.track.service.DelayedTrackingUpdateWorker
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.domain.track.store.DelayedTrackingStore
 import eu.kanade.tachiyomi.animesource.AnimeSource
@@ -580,7 +580,7 @@ class ExternalIntents(
                                     upsertTrack.await(updatedTrack)
                                 } else {
                                     delayedTrackingStore.add(track.animeId, lastEpisodeSeen = episodeNumber)
-                                    DelayedTrackingUpdateJob.setupTask(context)
+                                    DelayedTrackingUpdateWorker.setupTask(context)
                                 }
                             }
                         }

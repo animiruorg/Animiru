@@ -4,7 +4,7 @@ import android.content.Context
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
-import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
+import eu.kanade.tachiyomi.data.library.LibraryUpdateWorker
 import mihon.core.migration.Migration
 import mihon.core.migration.MigrationContext
 import tachiyomi.domain.library.service.LibraryPreferences
@@ -22,7 +22,7 @@ class RemoveQuickUpdateMigration(
         val updateInterval = libraryPreferences.autoUpdateInterval.get()
         if (updateInterval in listOf(3, 4, 6, 8)) {
             libraryPreferences.autoUpdateInterval.set(12)
-            LibraryUpdateJob.setupTask(context, 12)
+            LibraryUpdateWorker.setupTask(context, 12)
         }
 
         return true

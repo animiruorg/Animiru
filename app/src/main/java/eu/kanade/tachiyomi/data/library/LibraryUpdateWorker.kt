@@ -86,7 +86,7 @@ import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.time.Clock
 
 @OptIn(ExperimentalAtomicApi::class)
-class LibraryUpdateJob(private val context: Context, workerParams: WorkerParameters) :
+class LibraryUpdateWorker(private val context: Context, workerParams: WorkerParameters) :
     CoroutineWorker(context, workerParams) {
 
     private val graph: AppGraph = context.metroGraph()
@@ -567,7 +567,7 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
                     .setRequiresBatteryNotLow(true)
                     .build()
 
-                val request = PeriodicWorkRequestBuilder<LibraryUpdateJob>(
+                val request = PeriodicWorkRequestBuilder<LibraryUpdateWorker>(
                     interval.toLong(),
                     TimeUnit.HOURS,
                     10,

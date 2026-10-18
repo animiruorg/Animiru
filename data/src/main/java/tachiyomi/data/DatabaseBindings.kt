@@ -25,7 +25,6 @@ import dev.zacsweers.metro.SingleIn
 @BindingContainer
 object DatabaseBindings {
 
-
     /**
      * Configured like Room's connection manager: WAL unless the device is low on RAM, one writer with four
      * readers (one in TRUNCATE mode), and a busy timeout on every connection.

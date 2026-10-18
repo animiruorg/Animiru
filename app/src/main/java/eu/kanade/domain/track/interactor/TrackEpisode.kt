@@ -4,7 +4,7 @@ import android.content.Context
 import dev.zacsweers.metro.Inject
 import eu.kanade.domain.track.model.toDbTrack
 import eu.kanade.domain.track.model.toDomainTrack
-import eu.kanade.domain.track.service.DelayedTrackingUpdateJob
+import eu.kanade.domain.track.service.DelayedTrackingUpdateWorker
 import eu.kanade.domain.track.store.DelayedTrackingStore
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import kotlinx.coroutines.async
@@ -46,7 +46,7 @@ class TrackEpisode(
                         } catch (e: Exception) {
                             delayedTrackingStore.add(track.id, episodeNumber)
                             if (setupJobOnFailure) {
-                                DelayedTrackingUpdateJob.setupTask(context)
+                                DelayedTrackingUpdateWorker.setupTask(context)
                             }
                             throw e
                         }
