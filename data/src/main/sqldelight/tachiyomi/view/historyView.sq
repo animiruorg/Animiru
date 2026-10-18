@@ -48,18 +48,23 @@ ORDER BY seenAt DESC;
 
 getLatestHistory:
 SELECT
-id,
-animeId,
-episodeId,
-custom_title,
-title,
-thumbnailUrl,
-sourceId,
-favorite,
-coverLastModified,
-episodeNumber,
-seenAt
-FROM historyView
-WHERE historyView.seenAt > 0
-ORDER BY seenAt DESC
+history.id AS id,
+anime.id AS animeId,
+episode.id AS episodeId,
+anime.user_custom_title AS customTitle,
+anime.remote_title AS title,
+anime.remote_cover AS thumbnailUrl,
+anime.source_id AS sourceId,
+anime.user_favorite_at IS NOT NULL AS favorite,
+anime.state_cover_last_modified AS coverLastModified,
+episode.remote_episode_number AS episodeNumber,
+history.seen_at AS seenAt
+FROM history
+JOIN anime
+ON anime.id = history.anime_id
+JOIN episode
+ON episode.id = history.episode_id
+WHERE history.seen_at > 0
+ORDER BY history.seen_at DESC
+
 LIMIT 1;
