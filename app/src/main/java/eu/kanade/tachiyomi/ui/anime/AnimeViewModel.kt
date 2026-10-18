@@ -31,11 +31,11 @@ import eu.kanade.domain.anime.interactor.SetAnimeViewerFlags
 import eu.kanade.domain.anime.interactor.SetExcludedScanlators
 import eu.kanade.domain.anime.interactor.SyncRelatedAnimeWithSource
 import eu.kanade.domain.anime.interactor.UpdateAnime
+import eu.kanade.domain.anime.interactor.UpdateCustomInfo
 import eu.kanade.domain.anime.model.downloadedFilter
 import eu.kanade.domain.anime.model.episodesFiltered
 import eu.kanade.domain.anime.model.seasonDownloadedFilter
 import eu.kanade.domain.anime.model.seasonsFiltered
-import eu.kanade.domain.anime.model.toSAnime
 import eu.kanade.domain.episode.interactor.GetAvailableScanlators
 import eu.kanade.domain.episode.interactor.SetSeenStatus
 import eu.kanade.domain.source.service.SourcePreferences
@@ -188,6 +188,7 @@ class AnimeViewModel(
     private val coverCache: CoverCache,
     // AM -->
     private val thumbnailCache: ThumbnailCache,
+    private val updateCustomInfo: UpdateCustomInfo,
     // <-- AM
     // AM (FILE_SIZE) -->
     storagePreferences: StoragePreferences,
@@ -540,38 +541,17 @@ class AnimeViewModel(
             val newAuthor = author?.trimOrNull()
             val newArtist = artist?.trimOrNull()
             val newDesc = description?.trimOrNull()
-            anime = anime.copy(
-                ogTitle = newTitle,
-                ogAuthor = author?.trimOrNull(),
-                ogArtist = artist?.trimOrNull(),
-                ogDescription = description?.trimOrNull(),
-                ogGenre = tags?.nullIfEmpty(),
-                ogStatus = status ?: 0,
-                lastUpdate = anime.lastUpdate + 1,
-            )
             viewModelScope.launchNonCancellable {
-                (sourceManager.get(LocalSource.ID) as LocalSource).updateAnimeInfo(anime.toSAnime())
-                // TODO: clean this up
-                animeRepository.updateRemote(
-                    AnimeRemoteUpdate(
-                        anime.id,
-                        title = newTitle,
-                        author = newAuthor,
-                        artist = newArtist,
-                        description = newDesc,
-                        genre = tags,
-                        status = status ?: 0L,
-                        thumbnailUrl = anime.thumbnailUrl,
-                        updateStrategy = anime.updateStrategy,
-                        memo = anime.memo,
-                        initialized = anime.initialized,
-                        coverLastModified = anime.coverLastModified,
-                        backgroundUrl = anime.backgroundUrl,
-                        backgroundLastModified = anime.backgroundLastModified,
-                        parentId = anime.parentId,
-                        seasonNumber = anime.seasonNumber,
-                        seasonSourceOrder = anime.seasonSourceOrder,
-                    ),
+                updateCustomInfo.await(
+                    AnimeCustomUpdate(
+                        id = anime.id,
+                        customArtist = newArtist,
+                        customAuthor = newAuthor,
+                        customDescription = newDesc,
+                        customGenre = tags,
+                        customTitle = newTitle,
+                        customStatus = status ?: 0L,
+                    )
                 )
             }
         } else {
@@ -581,7 +561,7 @@ class AnimeViewModel(
                 null
             }
             viewModelScope.launchNonCancellable {
-                animeRepository.updateCustomInfo(
+                updateCustomInfo.await(
                     AnimeCustomUpdate(
                         id = state.anime.id,
                         customArtist = artist?.trimOrNull(),
