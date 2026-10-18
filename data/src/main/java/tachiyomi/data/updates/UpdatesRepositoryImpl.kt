@@ -1,5 +1,6 @@
 package tachiyomi.data.updates
 
+import app.cash.sqldelight.Query
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -25,12 +26,7 @@ class UpdatesRepositoryImpl(
         after: Long,
         limit: Long,
     ): List<UpdatesWithRelations> {
-        return database.updatesViewQueries.getUpdatesBySeenStatus(
-            seen = seen,
-            after = after,
-            limit = limit,
-            mapper = ::mapUpdatesWithRelations,
-        ).awaitAsList()
+        return getUpdatesBySeenStatus(seen = seen, after = after, limit = limit).awaitAsList()
     }
 
     override fun subscribeAll(
@@ -66,13 +62,23 @@ class UpdatesRepositoryImpl(
         after: Long,
         limit: Long,
     ): Flow<List<UpdatesWithRelations>> {
-        return database.updatesViewQueries.getUpdatesBySeenStatus(
-            seen = seen,
-            after = after,
-            limit = limit,
-            mapper = ::mapUpdatesWithRelations,
-        )
-            .subscribeToList()
+        return getUpdatesBySeenStatus(seen = seen, after = after, limit = limit).subscribeToList()
+    }
+
+    private fun getUpdatesBySeenStatus(seen: Boolean, after: Long, limit: Long): Query<UpdatesWithRelations> {
+        return if (seen) {
+            database.updatesViewQueries.getSeenUpdates(
+                after = after,
+                limit = limit,
+                mapper = ::mapUpdatesWithRelations,
+            )
+        } else {
+            database.updatesViewQueries.getUnseenUpdates(
+                after = after,
+                limit = limit,
+                mapper = ::mapUpdatesWithRelations,
+            )
+        }
     }
 
     @Suppress("UNUSED_PARAMETER")

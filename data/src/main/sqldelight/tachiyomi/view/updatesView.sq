@@ -34,25 +34,11 @@ WHERE user_favorite_at IS NOT NULL
 AND state_date_fetch > user_favorite_at
 ORDER BY state_date_fetch DESC;
 
-getRecentUpdates:
-SELECT
-    animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
-    scanlator, episodeUrl, seen, bookmark, fillermark,
-    lastSecondSeen, totalSeconds, sourceId, favorite,
-    thumbnailUrl, coverLastModified, dateUpload, dateFetch,
-    excludedScanlator
-FROM updatesView
-WHERE dateUpload > :after
-ORDER BY dateFetch DESC
-LIMIT :limit;
-
 getRecentUpdatesWithFilters:
 SELECT
-    animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
-    scanlator, episodeUrl, seen, bookmark, fillermark,
-    lastSecondSeen, totalSeconds, sourceId, favorite,
-    thumbnailUrl, coverLastModified, dateUpload, dateFetch,
-    excludedScanlator
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName, scanlator, episodeUrl, seen,
+    bookmark, fillermark, lastSecondSeen, totalSeconds, sourceId, favorite, thumbnailUrl,
+    coverLastModified, dateUpload, dateFetch, excludedScanlator
 FROM updatesView
 WHERE dateUpload > :after
 AND (:seen IS NULL OR seen = :seen)
@@ -64,19 +50,17 @@ AND (
 )
 AND (:bookmarked IS NULL OR bookmark = :bookmarked)
 AND (:fillermarked IS NULL OR fillermark = :fillermarked)
-AND (
-    (excludedScanlator IS NULL OR :hideExcludedScanlators = 0)
-)
+AND (excludedScanlator IS NULL OR :hideExcludedScanlators = 0)
 AND (
     -- includedEmpty being true expresses "don't care" state and bypasses the membership filter
     :includedEmpty
     OR EXISTS (
         SELECT 1 FROM anime_category
         WHERE anime_category.anime_id = animeId
-        AND COALESCE(anime_category.category_id, 0) IN :includedCategories
+        AND anime_category.category_id IN :includedCategories
     )
     OR (0 IN :includedCategories AND NOT EXISTS (
-        SELECT 1 FROM anime_category ac WHERE ac.anime_id = animeId)
+        SELECT 1 FROM anime_category WHERE anime_category.anime_id = animeId)
     )
 )
 AND (
@@ -86,7 +70,7 @@ AND (
         NOT EXISTS (
             SELECT 1 FROM anime_category
             WHERE anime_category.anime_id = animeId
-            AND COALESCE(anime_category.category_id, 0) IN :excludedCategories
+            AND anime_category.category_id IN :excludedCategories
         )
         AND (
             0 NOT IN :excludedCategories
@@ -97,15 +81,24 @@ AND (
 ORDER BY dateFetch DESC
 LIMIT :limit;
 
-getUpdatesBySeenStatus:
+getSeenUpdates:
 SELECT
-    animeId, customAnimeTitle, animeTitle, episodeId, episodeName,
-    scanlator, episodeUrl, seen, bookmark, fillermark,
-    lastSecondSeen, totalSeconds, sourceId, favorite,
-    thumbnailUrl, coverLastModified, dateUpload, dateFetch,
-    excludedScanlator
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName, scanlator, episodeUrl, seen,
+    bookmark, fillermark, lastSecondSeen, totalSeconds, sourceId, favorite, thumbnailUrl,
+    coverLastModified, dateUpload, dateFetch, excludedScanlator
 FROM updatesView
-WHERE seen = :seen
+WHERE seen = 1
+AND dateUpload > :after
+ORDER BY dateFetch DESC
+LIMIT :limit;
+
+getUnseenUpdates:
+SELECT
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName, scanlator, episodeUrl, seen,
+    bookmark, fillermark, lastSecondSeen, totalSeconds, sourceId, favorite, thumbnailUrl,
+    coverLastModified, dateUpload, dateFetch, excludedScanlator
+FROM updatesView
+WHERE seen = 0
 AND dateUpload > :after
 ORDER BY dateFetch DESC
 LIMIT :limit;
