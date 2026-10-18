@@ -126,6 +126,27 @@ class DownloadCache(
     }
 
     /**
+     * Returns the ids of the downloaded episodes among the given episodes of one anime.
+     *
+     * @param episodes the episodes to query, all of the same anime.
+     * @param animeTitle the title of the anime to query.
+     * @param sourceId the id of the source of the episodes.
+     */
+    fun getDownloadedEpisodeIds(episodes: List<Episode>, animeTitle: String, sourceId: Long): Set<Long> {
+        renewCache()
+
+        val animeDir = rootDownloadsDir.sourceDirs[sourceId]?.animeDirs?.get(provider.getAnimeDirName(animeTitle))
+        if (animeDir == null || animeDir.episodeDirs.isEmpty()) return emptySet()
+
+        return episodes
+            .filter { episode ->
+                provider.getValidEpisodeDirNames(episode.name, episode.scanlator, episode.url)
+                    .any { it in animeDir.episodeDirs }
+            }
+            .mapTo(HashSet()) { it.id }
+    }
+
+    /**
      * Returns true if the episode is downloaded.
      *
      * @param episodeName the name of the episode to query.

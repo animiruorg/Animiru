@@ -854,25 +854,11 @@ class AnimeViewModel(
 
     private fun List<Episode>.toEpisodeListItems(anime: Anime): List<EpisodeList.Item> {
         val isLocal = anime.isLocal()
+        val queuedDownloads = if (isLocal) emptyMap() else downloadManager.getQueuedDownloadsByEpisodeId()
+        val downloadedEpisodeIds = if (isLocal) emptySet() else downloadManager.getDownloadedEpisodeIds(this, anime)
         return map { episode ->
-            val activeDownload = if (isLocal) {
-                null
-            } else {
-                downloadManager.getQueuedDownloadOrNull(episode.id)
-            }
-            val downloaded = if (isLocal) {
-                true
-            } else {
-                downloadManager.isEpisodeDownloaded(
-                    episode.name,
-                    episode.scanlator,
-                    episode.url,
-                    // AM (CUSTOM_INFORMATION) -->
-                    anime.ogTitle,
-                    // <-- AM (CUSTOM_INFORMATION)
-                    anime.source,
-                )
-            }
+            val activeDownload = queuedDownloads[episode.id]
+            val downloaded = isLocal || episode.id in downloadedEpisodeIds
             val downloadState = when {
                 activeDownload != null -> activeDownload.status
                 downloaded -> Download.State.DOWNLOADED

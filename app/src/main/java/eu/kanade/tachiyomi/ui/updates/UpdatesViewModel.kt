@@ -224,9 +224,10 @@ class UpdatesViewModel(
     }
 
     private fun List<UpdatesWithRelations>.toUpdateItems(): List<UpdatesItem> {
+        val queuedDownloads = downloadManager.getQueuedDownloadsByEpisodeId()
         return this
             .map { update ->
-                val activeDownload = downloadManager.getQueuedDownloadOrNull(update.episodeId)
+                val activeDownload = queuedDownloads[update.episodeId]
                 val downloaded = downloadManager.isEpisodeDownloaded(
                     update.episodeName,
                     update.scanlator,

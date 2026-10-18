@@ -97,6 +97,13 @@ class DownloadManager(
         return queueState.value.find { it.episode.id == episodeId }
     }
 
+    /**
+     * Returns the queued downloads by episode id, for looking up many episodes at once.
+     */
+    fun getQueuedDownloadsByEpisodeId(): Map<Long, Download> {
+        return queueState.value.associateBy { it.episode.id }
+    }
+
     fun startDownloadNow(episodeId: Long) {
         val existingDownload = getQueuedDownloadOrNull(episodeId)
         // If not in queue try to start a new download
@@ -194,6 +201,16 @@ class DownloadManager(
             initialized = true,
         ).apply { status = Video.State.READY }
         // <-- AY
+    }
+
+    /**
+     * Returns the ids of the downloaded episodes among the given episodes of the anime.
+     *
+     * @param episodes the episodes to query, all of [anime].
+     * @param anime the anime of the episodes.
+     */
+    fun getDownloadedEpisodeIds(episodes: List<Episode>, anime: Anime): Set<Long> {
+        return cache.getDownloadedEpisodeIds(episodes, anime.title, anime.source)
     }
 
     /**
