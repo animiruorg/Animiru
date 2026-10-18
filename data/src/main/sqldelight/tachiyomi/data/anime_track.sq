@@ -24,63 +24,65 @@ CREATE INDEX anime_track_tracker_id_remote_id_index ON anime_track(tracker_id, r
 
 delete:
 DELETE FROM anime_track
-WHERE anime_id = :animeId AND tracker_id = :syncId;
+WHERE anime_id = :animeId
+AND tracker_id = :trackerId;
 
 getTracks:
 SELECT
-    id, anime_id, tracker_id, remote_id, library_id,
-    title, last_episode_seen, total_episodes, start_date, score,
-    remote_url, start_date, finish_date, private
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
 FROM anime_track;
 
 getTrackById:
 SELECT
-    id, anime_id, tracker_id, remote_id, library_id,
-    title, last_episode_seen, total_episodes, start_date, score,
-    remote_url, start_date, finish_date, private
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
 FROM anime_track
 WHERE id = :id;
 
 getTracksByAnimeId:
 SELECT
-    id, anime_id, tracker_id, remote_id, library_id,
-    title, last_episode_seen, total_episodes, start_date, score,
-    remote_url, start_date, finish_date, private
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
 FROM anime_track
 WHERE anime_id = :animeId;
 
 upsert:
-INSERT INTO anime_track(anime_id,tracker_id,remote_id,library_id,title,last_episode_seen,total_episodes,status,score,remote_url,start_date,finish_date,private)
-VALUES (:animeId,:syncId,:remoteId,:libraryId,:title,:lastEpisodeSeen,:totalEpisodes,:status,:score,:remoteUrl,:startDate,:finishDate,:private)
-ON CONFLICT(anime_id, tracker_id)
-DO UPDATE
-SET
-    remote_id = :remoteId,
-    library_id = :libraryId,
-    title = :title,
-    last_episode_seen = :lastEpisodeSeen,
-    total_episodes = :totalEpisodes,
-    status = :status,
-    score = :score,
-    remote_url = :remoteUrl,
-    start_date = :startDate,
-    finish_date = :finishDate,
-    private = :private
-WHERE anime_id = :animeId AND tracker_id = :syncId;
+INSERT INTO anime_track(
+    anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+)
+VALUES (
+    :animeId, :trackerId, :remoteId, :remoteUrl, :libraryId, :title, :lastEpisodeSeen,
+    :totalEpisodes, :status, :score, :startDate, :finishDate, :private
+)
+ON CONFLICT(anime_id, tracker_id) DO UPDATE SET
+    remote_id = excluded.remote_id,
+    remote_url = excluded.remote_url,
+    library_id = excluded.library_id,
+    title = excluded.title,
+    last_episode_seen = excluded.last_episode_seen,
+    total_episodes = excluded.total_episodes,
+    status = excluded.status,
+    score = excluded.score,
+    start_date = excluded.start_date,
+    finish_date = excluded.finish_date,
+    private = excluded.private;
+
 
 update:
 UPDATE anime_track
 SET
     anime_id = coalesce(:animeId, anime_id),
-    tracker_id = coalesce(:syncId, tracker_id),
-    remote_id = coalesce(:mediaId, remote_id),
+    tracker_id = coalesce(:trackerId, tracker_id),
+    remote_id = coalesce(:remoteId, remote_id),
+    remote_url = coalesce(:remoteUrl, remote_url),
     library_id = coalesce(:libraryId, library_id),
     title = coalesce(:title, title),
     last_episode_seen = coalesce(:lastEpisodeSeen, last_episode_seen),
     total_episodes = coalesce(:totalEpisodes, total_episodes),
     status = coalesce(:status, status),
     score = coalesce(:score, score),
-    remote_url = coalesce(:trackingUrl, remote_url),
     start_date = coalesce(:startDate, start_date),
     finish_date = coalesce(:finishDate, finish_date),
     private = coalesce(:private, private)

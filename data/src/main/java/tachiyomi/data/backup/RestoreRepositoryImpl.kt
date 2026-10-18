@@ -323,15 +323,15 @@ class RestoreRepositoryImpl(
         existingTracks.forEach { track ->
             database.anime_trackQueries.update(
                 animeId = track.animeId,
-                syncId = track.trackerId,
-                mediaId = track.remoteId,
+                trackerId = track.trackerId,
+                remoteId = track.remoteId,
                 libraryId = track.libraryId,
                 title = track.title,
                 lastEpisodeSeen = track.lastEpisodeSeen,
                 totalEpisodes = track.totalEpisodes,
                 status = track.status,
                 score = track.score,
-                trackingUrl = track.remoteUrl,
+                remoteUrl = track.remoteUrl,
                 startDate = track.startDate,
                 finishDate = track.finishDate,
                 private = track.private,
