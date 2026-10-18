@@ -21,7 +21,7 @@ class AnimeRelationRepositoryImpl(
 ) : AnimeRelationRepository {
 
     override suspend fun getLastFetchedAt(animeId: Long): Long? {
-        return database.anime_relationsQueries.getLastFetchedAt(animeId).awaitAsOneOrNull()
+        return database.anime_relationQueries.getLastFetchedAt(animeId).awaitAsOneOrNull()
     }
 
     override suspend fun replaceRelations(
@@ -30,11 +30,11 @@ class AnimeRelationRepositoryImpl(
         fetchedAt: Long,
     ) {
         database.transaction {
-            database.anime_relationsQueries.deleteByAnimeId(animeId)
+            database.anime_relationQueries.deleteByAnimeId(animeId)
             var sortOrder = 0L
             groups.forEach { (name, relatedIds) ->
                 relatedIds.forEach { relatedId ->
-                    database.anime_relationsQueries.insert(
+                    database.anime_relationQueries.insert(
                         animeId = animeId,
                         relatedAnimeId = relatedId,
                         name = name,
@@ -47,7 +47,7 @@ class AnimeRelationRepositoryImpl(
     }
 
     override fun subscribeRelatedAnime(animeId: Long): Flow<List<AnimeRelationGroup>> {
-        return database.anime_relationsQueries.getRelatedAnimeByAnimeId(
+        return database.anime_relationQueries.getRelatedAnimeByAnimeId(
             animeId,
             AnimeMapper::mapRelatedAnime,
         )

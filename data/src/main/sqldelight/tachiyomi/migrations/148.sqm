@@ -535,6 +535,35 @@ FROM custom_buttons;
 
 DROP TABLE custom_buttons;
 
+-- ---------------------------------------------------------------------------------------------------------
+-- table - anime_relation
+-- ---------------------------------------------------------------------------------------------------------
+
+CREATE TABLE anime_relation(
+    anime_id INTEGER NOT NULL,
+    related_anime_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    last_fetched_at INTEGER NOT NULL,
+    PRIMARY KEY(anime_id, related_anime_id, name),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(related_anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+DROP INDEX anime_relations_anime_id_index;
+DROP INDEX anime_relations_related_anime_id_index;
+
+INSERT INTO anime_relation(anime_id, related_anime_id, name, sort_order, last_fetched_at)
+SELECT anime_id, related_anime_id, name, sort_order, last_fetched_at
+FROM anime_relations;
+
+DROP TABLE anime_relations;
+
+CREATE INDEX anime_relations_anime_id_index ON anime_relation(anime_id);
+CREATE INDEX anime_relations_related_anime_id_index ON anime_relation(related_anime_id);
+
 -- The views read the columns that just changed, so they come back in their new shape
 CREATE VIEW animedeletableView AS
 SELECT
