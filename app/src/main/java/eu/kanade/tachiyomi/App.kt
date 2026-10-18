@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import animiru.core.cache.ThumbnailCache
 import animiru.core.coil.EpisodeThumbnailFetcher
 import animiru.core.coil.EpisodeThumbnailKeyer
+import animiru.core.coil.ThumbnailRequestInterceptor
 import animiru.domain.player.service.PlayerPreferences
 import animiru.domain.torrent.service.TorrentUtilsHolder
 import coil3.ImageLoader
@@ -39,6 +40,7 @@ import eu.kanade.tachiyomi.data.coil.AnimeCoverKeyer
 import eu.kanade.tachiyomi.data.coil.AnimeImageFetcher
 import eu.kanade.tachiyomi.data.coil.AnimeKeyer
 import eu.kanade.tachiyomi.data.coil.BufferedSourceFetcher
+import eu.kanade.tachiyomi.data.coil.CoverRequestInterceptor
 import eu.kanade.tachiyomi.data.connection.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -229,6 +231,11 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 add(AnimeKeyer())
                 // AM -->
                 add(EpisodeThumbnailKeyer())
+                // <-- AM
+                // Interceptor
+                add(CoverRequestInterceptor())
+                // AM -->
+                add(ThumbnailRequestInterceptor())
                 // <-- AM
             }
 
