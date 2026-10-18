@@ -53,13 +53,14 @@ WHERE A.user_favorite_at IS NOT NULL;
 
 library:
 SELECT
-    id, source_id, remote_url, remote_artist, remote_author, remote_description, remote_genre, remote_title,
-    remote_status, remote_cover, state_episode_last_update, state_episode_next_update, state_initialized,
-    user_player_flags, user_episode_flags, state_cover_last_modified, remote_update_strategy,
-    state_episode_fetch_interval, user_notes, remote_fetch_type, state_parent_id, user_season_flags,
-    remote_season_number, remote_season_source_order, remote_background, state_background_last_modified,
-    remote_memo, user_favorite_at, user_custom_artist, user_custom_author, user_custom_description,
-    user_custom_genre, user_custom_title, user_custom_status,
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified,
     totalCount, seenCount, latestUpload, episodeFetchedAt,
     lastSeen, bookmarkCount, fillermarkCount, categories
 FROM libraryView;

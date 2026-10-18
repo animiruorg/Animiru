@@ -17,13 +17,14 @@ CREATE INDEX anime_relations_related_anime_id_index ON anime_relations(related_a
 
 getRelatedAnimeByAnimeId:
 SELECT
-    A.id, A.source_id, A.remote_url, A.remote_artist, A.remote_author, A.remote_description, A.remote_genre, A.remote_title,
-    A.remote_status, A.remote_cover, A.state_episode_last_update, A.state_episode_next_update, A.state_initialized,
-    A.user_player_flags, A.user_episode_flags, A.state_cover_last_modified, A.remote_update_strategy,
-    A.state_episode_fetch_interval, A.user_notes, A.remote_fetch_type, A.state_parent_id, A.user_season_flags,
-    A.remote_season_number, A.remote_season_source_order, A.remote_background, A.state_background_last_modified,
-    A.remote_memo, A.user_favorite_at, A.user_custom_artist, A.user_custom_author, A.user_custom_description,
-    A.user_custom_genre, A.user_custom_title, A.user_custom_status,
+    A.id, A.source_id, A.remote_url, A.remote_title, A.remote_author, A.remote_artist, A.remote_description,
+    A.remote_genre, A.remote_status, A.remote_cover, A.remote_update_strategy, A.remote_memo,
+    A.remote_fetch_type, A.remote_season_number, A.remote_season_source_order, A.remote_background,
+    A.user_favorite_at, A.user_notes, A.user_player_flags, A.user_episode_flags, A.user_season_flags,
+    A.user_custom_artist, A.user_custom_author, A.user_custom_description, A.user_custom_genre,
+    A.user_custom_title, A.user_custom_status, A.state_episode_last_update, A.state_episode_next_update,
+    A.state_episode_fetch_interval, A.state_cover_last_modified, A.state_initialized,
+    A.state_parent_id, A.state_background_last_modified,
     R.name
 FROM anime_relations AS R
 JOIN anime AS A

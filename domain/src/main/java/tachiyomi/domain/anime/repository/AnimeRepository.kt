@@ -79,12 +79,6 @@ interface AnimeRepository {
     // <-- AY
 
     // AM -->
-    suspend fun getAllAnime(): List<Anime>
-
-    suspend fun getAllAnimeThatNeedsSync(): List<Anime>
-
-    suspend fun updateAnime(anime: Anime)
-
     suspend fun updateCustomInfo(customInfo: AnimeCustomUpdate)
 
     suspend fun updateCustomInfoAll(customInfos: List<AnimeCustomUpdate>)
