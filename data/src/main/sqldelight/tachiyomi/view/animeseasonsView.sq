@@ -19,7 +19,26 @@ SELECT
         WHEN 0 THEN coalesce(ASS.max_fetched_at, 0)
     END AS episodeFetchedAt,
     CASE A.remote_fetch_type
-        WHEN 1 THEN coalesce(HS.lastSeen, 0)
+        -- Joining history to every episode is the slowest part of the query, and only entries with excluded
+        -- scanlators need the episodes to leave theirs out
+        WHEN 1 THEN coalesce(
+            CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = A.id)
+            THEN (
+                SELECT max(history.seen_at)
+                FROM history
+                JOIN episode
+                ON episode.id = history.episode_id
+                WHERE history.anime_id = A.id
+                AND NOT EXISTS (
+                    SELECT 0 FROM excluded_scanlator
+                    WHERE excluded_scanlator.anime_id = A.id
+                    AND excluded_scanlator.scanlator = episode.remote_scanlator
+                )
+            )
+            ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = A.id)
+            END,
+            0
+        )
         WHEN 0 THEN coalesce(ASS.max_last_seen, 0)
     END AS lastSeen,
     CASE A.remote_fetch_type
@@ -33,8 +52,6 @@ SELECT
 FROM anime AS A
 LEFT JOIN episodestatsView AS ES
 ON A.id = ES.anime_id
-LEFT JOIN historystatsView AS HS
-ON A.id = HS.anime_id
 LEFT JOIN animeseasonstatsView AS ASS
 ON A.id = ASS.state_parent_id
 WHERE A.state_parent_id IS NOT NULL
