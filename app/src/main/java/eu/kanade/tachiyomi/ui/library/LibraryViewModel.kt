@@ -729,7 +729,9 @@ class LibraryViewModel(
         dialog.update { Dialog.SettingsSheet }
     }
 
-    private var lastSelectionCategory: Long? = null
+    private data class LastSelection(val categoryId: Long, val animeId: Long)
+
+    private var lastSelection: LastSelection? = null
 
     /**
      * Reads from [selection] rather than [state], which is derived asynchronously and can still
@@ -742,7 +744,7 @@ class LibraryViewModel(
         }
 
     fun clearSelection() {
-        lastSelectionCategory = null
+        lastSelection = null
         selection.update { setOf() }
     }
 
@@ -751,7 +753,7 @@ class LibraryViewModel(
             val newSelection = selection.mutate { set ->
                 if (!set.remove(anime.id)) set.add(anime.id)
             }
-            lastSelectionCategory = category.id.takeIf { newSelection.isNotEmpty() }
+            lastSelection = LastSelection(category.id, anime.id).takeIf { anime.id in newSelection }
             newSelection
         }
     }
@@ -764,31 +766,30 @@ class LibraryViewModel(
         val state = state.value
         selection.update { selection ->
             val newSelection = selection.mutate { list ->
-                val lastSelected = list.lastOrNull()
-                if (lastSelectionCategory != category.id) {
+                val items = state.getItemsForCategoryId(category.id).fastMap { it.id }
+                val lastAnimeIndex = lastSelection
+                    ?.takeIf { it.categoryId == category.id && it.animeId in list }
+                    ?.let { items.indexOf(it.animeId) }
+                    ?: -1
+                val curAnimeIndex = items.indexOf(anime.id)
+                if (lastAnimeIndex == -1 || curAnimeIndex == -1) {
                     list.add(anime.id)
                     return@mutate
                 }
 
-                val items = state.getItemsForCategoryId(category.id).fastMap { it.id }
-                val lastAnimeIndex = items.indexOf(lastSelected)
-                val curAnimeIndex = items.indexOf(anime.id)
-
                 val selectionRange = when {
                     lastAnimeIndex < curAnimeIndex -> lastAnimeIndex..curAnimeIndex
-                    curAnimeIndex < lastAnimeIndex -> curAnimeIndex..lastAnimeIndex
-                    // We shouldn't reach this point
-                    else -> return@mutate
+                    else -> curAnimeIndex..lastAnimeIndex
                 }
-                selectionRange.mapNotNull { items[it] }.let(list::addAll)
+                list.addAll(items.subList(selectionRange.first, selectionRange.last + 1))
             }
-            lastSelectionCategory = category.id
+            lastSelection = LastSelection(category.id, anime.id)
             newSelection
         }
     }
 
     fun selectAll() {
-        lastSelectionCategory = null
+        lastSelection = null
         val state = state.value
         selection.update { selection ->
             selection.mutate { list ->
@@ -798,7 +799,7 @@ class LibraryViewModel(
     }
 
     fun invertSelection() {
-        lastSelectionCategory = null
+        lastSelection = null
         val state = state.value
         selection.update { selection ->
             selection.mutate { list ->
