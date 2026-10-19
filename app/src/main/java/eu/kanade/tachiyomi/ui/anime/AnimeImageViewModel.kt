@@ -210,6 +210,15 @@ class AnimeImageViewModel(
         }
     }
 
+    fun addToLibraryWarning(context: Context) {
+        viewModelScope.launch {
+            snackbarHostState.showSnackbar(
+                context.stringResource(MR.strings.notification_first_add_to_library),
+                withDismissAction = true,
+            )
+        }
+    }
+
     private fun notifyImageUpdated(context: Context) {
         // AY -->
         val updatedStringResource = if (isCover) {

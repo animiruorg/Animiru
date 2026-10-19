@@ -400,6 +400,7 @@ class AnimeScreen(
                             when (it) {
                                 EditCoverAction.EDIT -> getContent.launch("image/*")
                                 EditCoverAction.DELETE -> vm.deleteCustomImage(context)
+                                EditCoverAction.ADD_TO_LIBRARY -> vm.addToLibraryWarning(context)
                             }
                         },
                         onDismissRequest = onDismissRequest,

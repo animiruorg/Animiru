@@ -61,6 +61,8 @@ import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.clickableNoIndication
+import tachiyomi.source.local.isLocal
+import kotlin.math.exp
 
 @Composable
 fun AnimeImagesDialog(
@@ -155,12 +157,16 @@ fun AnimeImagesDialog(
                                 var expanded by remember { mutableStateOf(false) }
                                 IconButton(
                                     onClick = {
-                                        // AY -->
-                                        if ((isCover && isCustomCover) || (!isCover && isCustomBackground)) {
-                                            // <-- AY
-                                            expanded = true
-                                        } else {
-                                            onEditClick(EditCoverAction.EDIT)
+                                        when {
+                                            !anime.favorite && !anime.isLocal() -> {
+                                                onEditClick(EditCoverAction.ADD_TO_LIBRARY)
+                                            }
+                                            // AM -->
+                                            (isCover && isCustomCover) || (!isCover && isCustomBackground) -> {
+                                            // <-- AM
+                                                expanded = true
+                                            }
+                                            else -> onEditClick(EditCoverAction.EDIT)
                                         }
                                     },
                                 ) {
