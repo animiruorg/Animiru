@@ -33,6 +33,8 @@ dependencies {
     implementation(projects.presentationCore)
     implementation(projects.sourceApi)
     implementation(projects.i18nAnimiru)
+    implementation(projects.icons.customMaterialSymbols)
+    implementation(projects.icons.materialSymbols)
     implementation(aniyomilibs.mediarouter)
     implementation(aniyomilibs.ffmpeg.kit)
     implementation(libs.androidx.appCompat)

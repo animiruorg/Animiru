@@ -33,6 +33,7 @@ import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.Block
 import mihon.icons.materialsymbols.rounded.Gradient
 import mihon.icons.materialsymbols.rounded.Memory
+import mihon.icons.materialsymbols.rounded.ResetIso
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.padding
@@ -90,7 +91,7 @@ fun VideoSettingsDebandCard(
                         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(painterResource(R.drawable.reset_iso_24px), null)
+                        Icon(MaterialSymbols.Rounded.ResetIso, null)
                         Text(stringResource(MR.strings.action_reset))
                     }
                 }

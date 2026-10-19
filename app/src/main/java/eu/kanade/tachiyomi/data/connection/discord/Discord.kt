@@ -2,11 +2,11 @@
 package eu.kanade.tachiyomi.data.connection.discord
 
 import android.graphics.Color
-import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.connection.BaseConnection
+import mihon.icons.simpleicons.R as SimpleIconsR
 
 class Discord(id: Long) : BaseConnection(id, "Discord") {
-    override fun getLogo() = R.drawable.ic_discord_24dp
+    override fun getLogo() = SimpleIconsR.drawable.valkyrie_resources_discord
 
     override fun getLogoColor() = Color.rgb(88, 101, 242)
 

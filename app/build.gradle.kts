@@ -214,6 +214,7 @@ dependencies {
     implementation(projects.i18nAnimiru)
     implementation(projects.cast)
     // <-- AM
+    implementation(projects.icons.customMaterialSymbols)
     implementation(projects.icons.materialSymbols)
     implementation(projects.icons.simpleIcons)
     implementation(projects.core.archive)

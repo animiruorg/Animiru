@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:name="vector"
+            android:width="24dp"
+            android:height="24dp"
+            android:viewportWidth="960"
+            android:viewportHeight="960">
+            <group
+                android:name="group_rotate"
+                android:pivotX="480"
+                android:pivotY="480">
+                <group
+                    android:name="group_translate"
+                    android:translateY="960">
+                    <group android:name="group_ring">
+                        <clip-path
+                            android:name="mask"
+                            android:pathData="M0,-960 L960,-960 L960,0 L0,0 Z
+                                M520,-496 L520,-640 Q520,-657 508.5,-668.5 Q497,-680 480,-680 Q463,-680 451.5,-668.5 Q440,-657 440,-640 L440,-481 Q440,-473 443,-465.5 Q446,-458 452,-452 L584,-320 Q595,-309 612,-309 Q629,-309 640,-320 Q651,-331 651,-348 Q651,-365 640,-376 L520,-496 Z"/>
+                        <path
+                            android:name="ring"
+                            android:fillColor="#000"
+                            android:pathData="M480,-80 Q397,-80 324,-111.5 Q251,-143 197,-197 Q143,-251 111.5,-324 Q80,-397 80,-480 Q80,-563 111.5,-636 Q143,-709 197,-763 Q251,-817 324,-848.5 Q397,-880 480,-880 Q563,-880 636,-848.5 Q709,-817 763,-763 Q817,-709 848.5,-636 Q880,-563 880,-480 Q880,-397 848.5,-324 Q817,-251 763,-197 Q709,-143 636,-111.5 Q563,-80 480,-80 Z
+                                M480,-160 Q613,-160 706.5,-253.5 Q800,-347 800,-480 Q800,-613 706.5,-706.5 Q613,-800 480,-800 Q347,-800 253.5,-706.5 Q160,-613 160,-480 Q160,-347 253.5,-253.5 Q347,-160 480,-160 Z"/>
+                    </group>
+                    <path
+                        android:name="hand"
+                        android:fillColor="#000"
+                        android:pathData="M520,-496 L520,-640 Q520,-657 508.5,-668.5 Q497,-680 480,-680 Q463,-680 451.5,-668.5 Q440,-657 440,-640 L440,-481 Q440,-473 443,-465.5 Q446,-458 452,-452 L584,-320 Q595,-309 612,-309 Q629,-309 640,-320 Q651,-331 651,-348 Q651,-365 640,-376 L520,-496 Z"/>
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="group_rotate">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="rotation"
+                android:startOffset="75"
+                android:duration="400"
+                android:valueFrom="0"
+                android:valueTo="360"
+                android:valueType="floatType"
+                android:interpolator="@android:interpolator/fast_out_slow_in"/>
+        </aapt:attr>
+    </target>
+    <target android:name="ring">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="pathData"
+                android:startOffset="125"
+                android:duration="275"
+                android:valueFrom="M480,-80 Q397,-80 324,-111.5 Q251,-143 197,-197 Q143,-251 111.5,-324 Q80,-397 80,-480 Q80,-563 111.5,-636 Q143,-709 197,-763 Q251,-817 324,-848.5 Q397,-880 480,-880 Q563,-880 636,-848.5 Q709,-817 763,-763 Q817,-709 848.5,-636 Q880,-563 880,-480 Q880,-397 848.5,-324 Q817,-251 763,-197 Q709,-143 636,-111.5 Q563,-80 480,-80 Z M480,-160 Q613,-160 706.5,-253.5 Q800,-347 800,-480 Q800,-613 706.5,-706.5 Q613,-800 480,-800 Q347,-800 253.5,-706.5 Q160,-613 160,-480 Q160,-347 253.5,-253.5 Q347,-160 480,-160 Z"
+                android:valueTo="M480,-80 Q397,-80 324,-111.5 Q251,-143 197,-197 Q143,-251 111.5,-324 Q80,-397 80,-480 Q80,-563 111.5,-636 Q143,-709 197,-763 Q251,-817 324,-848.5 Q397,-880 480,-880 Q563,-880 636,-848.5 Q709,-817 763,-763 Q817,-709 848.5,-636 Q880,-563 880,-480 Q880,-397 848.5,-324 Q817,-251 763,-197 Q709,-143 636,-111.5 Q563,-80 480,-80 Z M480,-480 Q480,-480 480,-480 Q480,-480 480,-480 Q480,-480 480,-480 Q480,-480 480,-480 Q480,-480 480,-480 Q480,-480 480,-480 Q480,-480 480,-480 Q480,-480 480,-480 Z"
+                android:valueType="pathType"
+                android:interpolator="@android:interpolator/fast_out_slow_in"/>
+        </aapt:attr>
+    </target>
+    <target android:name="hand">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:startOffset="175"
+                android:duration="350"
+                android:valueFrom="1"
+                android:valueTo="0"
+                android:valueType="floatType"
+                android:interpolator="@android:interpolator/fast_out_slow_in"/>
+        </aapt:attr>
+    </target>
+</animated-vector>

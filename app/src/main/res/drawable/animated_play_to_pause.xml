@@ -1,0 +1,49 @@
+<animated-vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:name="playtopause"
+            android:width="24dp"
+            android:height="24dp"
+            android:viewportWidth="960"
+            android:viewportHeight="960">
+            <group
+                android:name="group"
+                android:pivotX="480"
+                android:pivotY="480">
+                <group
+                    android:name="group_translate"
+                    android:translateY="960">
+                    <path
+                        android:name="path"
+                        android:fillColor="#FFF"
+                        android:pathData="M725,-480 Q725,-475 724,-470 Q702,-470 680,-470 L320,-470 Q320,-578.5 320,-687 Q320,-704 332,-715.5 Q344,-727 360,-727 Q371,-727 381,-721 L707,-514 Q716,-508 720.5,-499 Q725,-490 725,-480 Z
+                            M725,-480 Q725,-470 720.5,-461 Q716,-452 707,-446 L381,-239 Q371,-233 360,-233 Q344,-233 332,-244.5 Q320,-256 320,-273 Q320,-381.5 320,-490 L680,-490 Q702,-490 724,-490 Q725,-485 725,-480 Z"/>
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="pathData"
+                android:duration="300"
+                android:valueFrom="M725,-480 Q725,-475 724,-470 Q702,-470 680,-470 L320,-470 Q320,-578.5 320,-687 Q320,-704 332,-715.5 Q344,-727 360,-727 Q371,-727 381,-721 L707,-514 Q716,-508 720.5,-499 Q725,-490 725,-480 Z M725,-480 Q725,-470 720.5,-461 Q716,-452 707,-446 L381,-239 Q371,-233 360,-233 Q344,-233 332,-244.5 Q320,-256 320,-273 Q320,-381.5 320,-490 L680,-490 Q702,-490 724,-490 Q725,-485 725,-480 Z"
+                android:valueTo="M760,-640 Q760,-607 736.5,-583.5 Q713,-560 680,-560 L280,-560 Q247,-560 223.5,-583.5 Q200,-607 200,-640 Q200,-673 223.5,-696.5 Q247,-720 280,-720 L680,-720 Q713,-720 736.5,-696.5 Q760,-673 760,-640 Z M760,-320 Q760,-287 736.5,-263.5 Q713,-240 680,-240 L280,-240 Q247,-240 223.5,-263.5 Q200,-287 200,-320 Q200,-353 223.5,-376.5 Q247,-400 280,-400 L680,-400 Q713,-400 736.5,-376.5 Q760,-353 760,-320 Z"
+                android:valueType="pathType"
+                android:interpolator="@android:interpolator/fast_out_slow_in"/>
+        </aapt:attr>
+    </target>
+    <target android:name="group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="rotation"
+                android:duration="300"
+                android:valueFrom="0"
+                android:valueTo="90"
+                android:valueType="floatType"
+                android:interpolator="@android:interpolator/fast_out_slow_in"/>
+        </aapt:attr>
+    </target>
+</animated-vector>

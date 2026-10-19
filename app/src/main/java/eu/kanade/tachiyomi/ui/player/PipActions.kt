@@ -24,10 +24,10 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import androidx.annotation.DrawableRes
 import dev.icerock.moko.resources.StringResource
-import eu.kanade.tachiyomi.R
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
+import mihon.icons.materialsymbols.R as MaterialSymbolsR
 
 fun createPipActions(
     context: Context,
@@ -39,7 +39,7 @@ fun createPipActions(
     if (replaceWithPrevious) {
         createPipAction(
             context,
-            R.drawable.ic_skip_previous_24dp,
+            MaterialSymbolsR.drawable.rounded_filled_skip_previous,
             AYMR.strings.action_previous_episode,
             PIP_PREVIOUS,
             PIP_PREVIOUS,
@@ -48,7 +48,7 @@ fun createPipActions(
     } else {
         createPipAction(
             context,
-            R.drawable.ic_forward_10_24dp,
+            MaterialSymbolsR.drawable.rounded_forward_10,
             AYMR.strings.pref_skip_10,
             PIP_SKIP,
             PIP_SKIP,
@@ -57,7 +57,7 @@ fun createPipActions(
     if (isPaused) {
         createPipAction(
             context,
-            R.drawable.ic_play_arrow_24dp,
+            MaterialSymbolsR.drawable.rounded_filled_play_arrow,
             AYMR.strings.action_play,
             PIP_PLAY,
             PIP_PLAY,
@@ -65,7 +65,7 @@ fun createPipActions(
     } else {
         createPipAction(
             context,
-            R.drawable.ic_pause_24dp,
+            MaterialSymbolsR.drawable.rounded_filled_pause,
             MR.strings.action_pause,
             PIP_PAUSE,
             PIP_PAUSE,
@@ -73,7 +73,7 @@ fun createPipActions(
     },
     createPipAction(
         context,
-        R.drawable.ic_skip_next_24dp,
+        MaterialSymbolsR.drawable.rounded_filled_skip_next,
         AYMR.strings.action_next_episode,
         PIP_NEXT,
         PIP_NEXT,

@@ -32,7 +32,7 @@ import kotlinx.coroutines.runBlocking
 import mihon.app.di.appGraph
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Help
-import mihon.icons.materialsymbols.rounded.Cancel
+import mihon.icons.materialsymbols.roundedfilled.Cancel
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.TextButton
@@ -219,7 +219,7 @@ object SettingsDiscordScreen : SearchableSettings {
                             modifier = Modifier.fillMaxWidth(),
                             trailingIcon = {
                                 IconButton(onClick = { tempCustomMessage = "" }) {
-                                    Icon(imageVector = MaterialSymbols.Rounded.Cancel, contentDescription = null)
+                                    Icon(imageVector = MaterialSymbols.RoundedFilled.Cancel, contentDescription = null)
                                 }
                             },
                             singleLine = true,

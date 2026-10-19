@@ -86,7 +86,7 @@ fun MiddlePlayerControls(
             }
         }
 
-        val icon = AnimatedImageVector.animatedVectorResource(R.drawable.anim_play_to_pause)
+        val icon = AnimatedImageVector.animatedVectorResource(R.drawable.animated_play_to_pause)
         val interaction = remember { MutableInteractionSource() }
         when {
             isStopped -> {

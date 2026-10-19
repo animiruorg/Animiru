@@ -25,6 +25,7 @@ import mihon.core.metro.metroGraph
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.animiru.AMMR
+import mihon.icons.materialsymbols.R as MaterialSymbolsR
 
 class CastProxyServerService : Service() {
 
@@ -39,6 +40,13 @@ class CastProxyServerService : Service() {
     @Inject private lateinit var json: Json
 
     override fun onBind(p0: Intent?): IBinder? = null
+
+    /**
+     * Bitmap of the app for notifications.
+     */
+    private val notificationBitmap by lazy {
+        BitmapFactory.decodeResource(this.resources, R.mipmap.ic_launcher)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         graph.inject(this)
@@ -82,10 +90,10 @@ class CastProxyServerService : Service() {
         )
 
         val builder = notificationBuilder(Notifications.CHANNEL_CAST_SERVER) {
-            setLargeIcon(BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher))
-            setSmallIcon(R.drawable.ic_cast_24dp)
+            setLargeIcon(notificationBitmap)
+            setSmallIcon(MaterialSymbolsR.drawable.rounded_cast)
             addAction(
-                R.drawable.ic_stop_circle_24dp,
+                MaterialSymbolsR.drawable.rounded_stop_circle,
                 "Stop",
                 pendingStopIntent,
             )

@@ -43,7 +43,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import animiru.domain.player.model.SubtitleJustification
 import animiru.domain.player.model.SubtitlesBorderStyle
@@ -52,12 +51,12 @@ import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.presentation.player.components.ExpandableCard
 import eu.kanade.presentation.player.components.ExposedTextDropDownMenu
 import eu.kanade.presentation.player.components.SliderItem
-import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.player.controls.CARDS_MAX_WIDTH
 import eu.kanade.tachiyomi.ui.player.controls.panelCardsColors
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.BorderColor
 import mihon.icons.materialsymbols.rounded.BorderStyle
+import mihon.icons.materialsymbols.rounded.BrandFamily
 import mihon.icons.materialsymbols.rounded.Check
 import mihon.icons.materialsymbols.rounded.FormatAlignCenter
 import mihon.icons.materialsymbols.rounded.FormatAlignJustify
@@ -68,6 +67,7 @@ import mihon.icons.materialsymbols.rounded.FormatClear
 import mihon.icons.materialsymbols.rounded.FormatColorText
 import mihon.icons.materialsymbols.rounded.FormatItalic
 import mihon.icons.materialsymbols.rounded.FormatSize
+import mihon.icons.materialsymbols.rounded.Shadow
 import tachiyomi.core.common.preference.deleteAndGet
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -179,7 +179,7 @@ fun SubtitleSettingsTypographyCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    painterResource(R.drawable.outline_brand_family_24),
+                    MaterialSymbols.Rounded.BrandFamily,
                     null,
                     modifier = Modifier.size(32.dp),
                 )
@@ -262,7 +262,7 @@ fun SubtitleSettingsTypographyCard(
                 valueText = shadowOffset.toString(),
                 onChange = onShadowOffsetChange,
                 max = 100,
-                icon = { Icon(painterResource(R.drawable.sharp_shadow_24), null) },
+                icon = { Icon(MaterialSymbols.Rounded.Shadow, null) },
             )
         }
     }

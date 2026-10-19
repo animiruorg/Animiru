@@ -26,6 +26,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
+import mihon.icons.materialsymbols.R as MaterialSymbolsR
 
 class HttpServerService : Service() {
 
@@ -36,6 +37,13 @@ class HttpServerService : Service() {
     @Inject private lateinit var sourceManager: SourceManager
 
     override fun onBind(intent: Intent?) = null
+
+    /**
+     * Bitmap of the app for notifications.
+     */
+    private val notificationBitmap by lazy {
+        BitmapFactory.decodeResource(this.resources, R.mipmap.ic_launcher)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         graph.inject(this)
@@ -81,10 +89,10 @@ class HttpServerService : Service() {
         )
 
         val builder = notificationBuilder(Notifications.CHANNEL_HTTP_SERVER) {
-            setLargeIcon(BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher))
-            setSmallIcon(R.drawable.ic_dns_24dp)
+            setLargeIcon(notificationBitmap)
+            setSmallIcon(MaterialSymbolsR.drawable.rounded_cast)
             addAction(
-                R.drawable.ic_close_24dp,
+                MaterialSymbolsR.drawable.rounded_close,
                 stringResource(MR.strings.action_close),
                 pendingStopIntent,
             )

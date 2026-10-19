@@ -32,7 +32,7 @@ import eu.kanade.tachiyomi.ui.player.Sheets
 import eu.kanade.tachiyomi.ui.player.components.CurrentChapter
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
 import mihon.icons.materialsymbols.MaterialSymbols
-import mihon.icons.materialsymbols.rounded.ScreenRotation
+import mihon.icons.materialsymbols.rounded.MobileRotate
 import mihon.icons.materialsymbols.roundedfilled.LockOpen
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
@@ -59,7 +59,7 @@ fun BottomLeftPlayerControls(
             verticalSpacing = MaterialTheme.padding.small,
         )
         ControlsButton(
-            icon = MaterialSymbols.Rounded.ScreenRotation,
+            icon = MaterialSymbols.Rounded.MobileRotate,
             onClick = onCycleRotation,
             verticalSpacing = MaterialTheme.padding.small,
         )

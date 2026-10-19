@@ -32,6 +32,7 @@ import tachiyomi.i18n.aniyomi.AYMR
 import xyz.secozzi.torrserver.TorrServer
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration.Companion.seconds
+import mihon.icons.materialsymbols.R as MaterialSymbolsR
 
 class TorrentServerService : Service() {
     private val serviceScope = CoroutineScope(EmptyCoroutineContext)
@@ -129,7 +130,7 @@ class TorrentServerService : Service() {
             setDeleteIntent(startAgainIntent)
             setUsesChronometer(true)
             addAction(
-                R.drawable.ic_close_24dp,
+                MaterialSymbolsR.drawable.rounded_close,
                 "Stop",
                 exitPendingIntent,
             )

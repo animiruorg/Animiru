@@ -45,8 +45,8 @@ import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Label
 import mihon.icons.materialsymbols.rounded.BookmarkAdd
 import mihon.icons.materialsymbols.rounded.BookmarkRemove
+import mihon.icons.materialsymbols.rounded.Check
 import mihon.icons.materialsymbols.rounded.Delete
-import mihon.icons.materialsymbols.rounded.Done
 import mihon.icons.materialsymbols.rounded.Download
 import mihon.icons.materialsymbols.rounded.FileDownloadOff
 import mihon.icons.materialsymbols.rounded.LabelOff
@@ -319,7 +319,7 @@ private fun getSwipeAction(
 ): SwipeAction? {
     return when (action) {
         LibraryPreferences.EpisodeSwipeAction.ToggleSeen -> swipeAction(
-            icon = if (!seen) MaterialSymbols.Rounded.Done else MaterialSymbols.Rounded.RemoveDone,
+            icon = if (!seen) MaterialSymbols.Rounded.Check else MaterialSymbols.Rounded.RemoveDone,
             background = background,
             isUndo = seen,
             onSwipe = onSwipe,
