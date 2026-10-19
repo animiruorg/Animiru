@@ -9,7 +9,6 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import tachiyomi.data.Database
 import tachiyomi.data.subscribeToList
-import tachiyomi.data.track.TrackMapper.mapTrack
 import tachiyomi.domain.track.model.Track
 import tachiyomi.domain.track.repository.TrackRepository
 
@@ -26,6 +25,12 @@ class TrackRepositoryImpl(
 
     override suspend fun getTracksByAnimeId(animeId: Long): List<Track> {
         return database.anime_trackQueries.getTracksByAnimeId(animeId, TrackMapper::mapTrack).awaitAsList()
+    }
+
+    override suspend fun getTracks(): List<Track> {
+        return database.anime_trackQueries
+            .getTracks(TrackMapper::mapTrack)
+            .awaitAsList()
     }
 
     override fun getTracksAsFlow(): Flow<List<Track>> {
@@ -74,11 +79,4 @@ class TrackRepositoryImpl(
             }
         }
     }
-
-    // AM (GROUPING) -->
-    override suspend fun getTracks(): List<Track> {
-        return database.anime_trackQueries.getTracks(::mapTrack)
-            .awaitAsList()
-    }
-    // <-- AM (GROUPING)
 }

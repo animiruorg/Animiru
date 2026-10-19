@@ -27,6 +27,7 @@ import tachiyomi.domain.library.service.LibraryPreferences.Companion.ANIME_HAS_U
 import tachiyomi.domain.library.service.LibraryPreferences.Companion.ANIME_NON_COMPLETED
 import tachiyomi.domain.library.service.LibraryPreferences.Companion.ANIME_NON_SEEN
 import tachiyomi.domain.track.interactor.GetTracks
+import tachiyomi.domain.track.interactor.GetTracksPerAnime
 import tachiyomi.domain.track.model.Track
 import tachiyomi.source.local.isLocal
 
@@ -39,7 +40,7 @@ class StatsViewModel(
     // AY -->
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     // <-- AY
-    private val getTracks: GetTracks,
+    private val getTracksPerAnime: GetTracksPerAnime,
     private val preferences: LibraryPreferences,
     private val trackerManager: TrackerManager,
 ) : ViewModel() {
@@ -118,8 +119,11 @@ class StatsViewModel(
 
     private suspend fun getAnimeTrackMap(libraryAnime: List<LibraryAnime>): Map<Long, List<Track>> {
         val loggedInTrackerIds = loggedInTrackers.map { it.id }.toHashSet()
+        if (loggedInTrackerIds.isEmpty()) return emptyMap()
+
+        val tracksPerAnime = getTracksPerAnime.await()
         return libraryAnime.associate { anime ->
-            val tracks = getTracks.await(anime.id)
+            val tracks = tracksPerAnime[anime.id].orEmpty()
                 .fastFilter { it.trackerId in loggedInTrackerIds }
 
             anime.id to tracks

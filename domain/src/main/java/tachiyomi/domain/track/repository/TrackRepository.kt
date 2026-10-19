@@ -9,6 +9,8 @@ interface TrackRepository {
 
     suspend fun getTracksByAnimeId(animeId: Long): List<Track>
 
+    suspend fun getTracks(): List<Track>
+
     fun getTracksAsFlow(): Flow<List<Track>>
 
     fun getTracksByAnimeIdAsFlow(animeId: Long): Flow<List<Track>>
@@ -19,7 +21,4 @@ interface TrackRepository {
 
     suspend fun upsertAll(tracks: List<Track>)
 
-    // AM (GROUPING) -->
-    suspend fun getTracks(): List<Track>
-    // <-- AM (GROUPING)
 }
