@@ -28,10 +28,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -310,24 +307,6 @@ class MainActivity : BaseActivity() {
                     if (isLaunch) CheckForUpdates()
                     ShowOnboarding()
                 }
-            }
-
-            var showChangelog by remember { mutableStateOf(didMigration && !BuildConfig.DEBUG) }
-            if (showChangelog) {
-                AlertDialog(
-                    onDismissRequest = { showChangelog = false },
-                    title = { Text(text = stringResource(MR.strings.updated_version, BuildConfig.VERSION_NAME)) },
-                    dismissButton = {
-                        TextButton(onClick = { openInBrowser(RELEASE_URL) }) {
-                            Text(text = stringResource(MR.strings.whats_new))
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { showChangelog = false }) {
-                            Text(text = stringResource(MR.strings.action_ok))
-                        }
-                    },
-                )
             }
         }
 
