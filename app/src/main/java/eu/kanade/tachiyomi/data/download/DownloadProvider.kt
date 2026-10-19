@@ -312,7 +312,7 @@ private class EpisodeDirNameParts(episodeName: String, val episodeScanlator: Str
     private fun validEpisodeName(disallowNonAscii: Boolean): String {
         val index = if (disallowNonAscii) 1 else 0
         return validEpisodeNames[index]
-        // Subtract 7 bytes for hash and underscore, 4 bytes for .mkv
+            // Subtract 7 bytes for hash and underscore, 4 bytes for .mkv
             ?: DiskUtil.buildValidFilename(episodeName, DiskUtil.MAX_FILE_NAME_BYTES - 11, disallowNonAscii)
                 .also { validEpisodeNames[index] = it }
     }

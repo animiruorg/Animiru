@@ -20,5 +20,4 @@ interface TrackRepository {
     suspend fun upsert(track: Track)
 
     suspend fun upsertAll(tracks: List<Track>)
-
 }

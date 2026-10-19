@@ -147,7 +147,10 @@ class LibraryViewModel(
 
     // Tracks are used by tracker filters, the tracker score sort, and tracker group by, and loading every track is slow
     // on large libraries
-    private val tracks = combine(getVisibleCategories.subscribe(), getTrackingFiltersFlow()) { categories, trackingFilters ->
+    private val tracks = combine(getVisibleCategories.subscribe(), getTrackingFiltersFlow()) {
+            categories,
+            trackingFilters,
+        ->
         trackingFilters.values.any { it != TriState.DISABLED } ||
             categories.any { it.sort.type == LibrarySort.Type.TrackerMean }
     }
