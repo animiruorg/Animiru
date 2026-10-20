@@ -47,6 +47,7 @@ data class BackupAnime(
     @ProtoNumber(110) var notes: String = "",
     @ProtoNumber(111) var initialized: Boolean = false,
     @ProtoNumber(112) var memo: ByteArray = JsonObjectEmptyBytes,
+    @ProtoNumber(113) var nextUpdate: Long = 0,
 
     // AM (CUSTOM_INFORMATION) -->
     // Bump values by 200
@@ -112,6 +113,7 @@ data class BackupAnime(
             seasonSourceOrder = this@BackupAnime.seasonSourceOrder,
             // <-- AY
             memo = this@BackupAnime.memo.toJsonObject(),
+            nextUpdate = this@BackupAnime.nextUpdate.toInstantOrNull(),
         )
     }
 }

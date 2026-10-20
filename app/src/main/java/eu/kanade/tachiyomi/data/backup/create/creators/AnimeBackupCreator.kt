@@ -107,6 +107,7 @@ private fun Anime.toBackupAnime() =
         seasonSourceOrder = this.seasonSourceOrder,
         // <-- AY
         memo = this.memo.toByteArray(),
+        nextUpdate = this.nextUpdate.toEpochMillisOrZero(),
         // AM -->
         customArtist = this.customArtist,
         customAuthor = this.customAuthor,

@@ -97,6 +97,7 @@ class RestoreRepositoryImpl(
             initialized = dbAnime.initialized || anime.initialized,
             // Merge both backup and local data with local winning
             memo = JsonObject(anime.memo + dbAnime.memo),
+            nextUpdate = dbAnime.nextUpdate ?: anime.nextUpdate,
             // AM -->
             backgroundUrl = details.backgroundUrl,
             fetchType = details.fetchType,

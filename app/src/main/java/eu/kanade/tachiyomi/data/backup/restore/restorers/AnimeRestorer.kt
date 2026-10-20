@@ -106,8 +106,13 @@ class AnimeRestorer(
             )
         }
 
-        restoreRepository.restoreAnime(entries) {
-            fetchInterval.withFetchInterval(it, now, timeZone, currentFetchWindow)
+        restoreRepository.restoreAnime(entries) { anime ->
+            fetchInterval.withFetchInterval(anime, now, timeZone, currentFetchWindow).apply {
+                // A next update still ahead was worked out with the episodes the backup came from
+                anime.nextUpdate
+                    ?.takeIf { it >= currentFetchWindow.start }
+                    ?.let { nextUpdate = it }
+            }
         }
     }
 }
