@@ -49,6 +49,9 @@ class SetSeenStatus(
 
         if (seen && downloadPreferences.removeAfterMarkedAsSeen.get()) {
             episodesToUpdate
+                // Episodes here still carry their pre-update seen state; downstream
+                // deletion filtering (excluded categories) relies on the new state.
+                .map { it.copy(seen = true) }
                 .groupBy { it.animeId }
                 .forEach { (animeId, episodes) ->
                     deleteDownload.awaitAll(
