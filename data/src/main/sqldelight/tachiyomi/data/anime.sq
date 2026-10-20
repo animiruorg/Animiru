@@ -171,7 +171,11 @@ SELECT
 FROM anime A
 WHERE A.user_favorite_at IS NOT NULL
 AND A.id != :id
-AND (lower(A.remote_title) LIKE '%' || lower(:remoteTitle) || '%' OR A.id IN (SELECT anime_id FROM track_dupes));
+-- A blank title would match every title
+AND (
+    (trim(:remoteTitle) != '' AND lower(A.remote_title) LIKE '%' || lower(:remoteTitle) || '%')
+    OR A.id IN (SELECT anime_id FROM track_dupes)
+);
 
 getUpcomingAnime:
 SELECT
