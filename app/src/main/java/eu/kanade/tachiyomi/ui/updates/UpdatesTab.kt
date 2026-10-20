@@ -53,6 +53,7 @@ fun AnimeUpdatesHalfTab(
             Unit
         },
         contentPadding = contentPadding,
+        hasActiveFilters = state.hasActiveFilters,
     )
     // <-- AM (RECENTS_FILTER_CHIP)
 
