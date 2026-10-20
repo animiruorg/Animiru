@@ -1,5 +1,7 @@
 package eu.kanade.domain.track.model
 
+import mihon.core.common.extensions.toEpochMillisOrZero
+import mihon.core.common.extensions.toInstantOrNull
 import tachiyomi.domain.track.model.Track
 import eu.kanade.tachiyomi.data.database.models.Track as DbTrack
 
@@ -25,8 +27,8 @@ fun Track.toDbTrack(): DbTrack = DbTrack.create(trackerId).also {
     it.status = status
     it.score = score
     it.tracking_url = remoteUrl
-    it.started_watching_date = startDate
-    it.finished_watching_date = finishDate
+    it.started_watching_date = startDate.toEpochMillisOrZero()
+    it.finished_watching_date = finishDate.toEpochMillisOrZero()
     it.private = private
 }
 
@@ -44,8 +46,8 @@ fun DbTrack.toDomainTrack(idRequired: Boolean = true): Track? {
         status = status,
         score = score,
         remoteUrl = tracking_url,
-        startDate = started_watching_date,
-        finishDate = finished_watching_date,
+        startDate = started_watching_date.toInstantOrNull(),
+        finishDate = finished_watching_date.toInstantOrNull(),
         private = private,
     )
 }

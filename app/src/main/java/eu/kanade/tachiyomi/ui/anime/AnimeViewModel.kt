@@ -140,6 +140,7 @@ import tachiyomi.source.local.isLocal
 import java.util.Calendar
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.floor
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @AssistedInject
@@ -626,7 +627,7 @@ class AnimeViewModel(
                         customStatus = status.takeUnless { it == state.anime.ogStatus },
                     ),
                 )
-                anime = anime.copy(lastUpdate = anime.lastUpdate + 1)
+                anime = anime.copy(lastUpdate = anime.lastUpdate?.plus(1.milliseconds))
             }
         }
     }
@@ -902,7 +903,7 @@ class AnimeViewModel(
         val fetch: suspend (Anime) -> Unit = { s ->
             // Only fetch seasons with `Episodes` fetch type and only for non completed, unless they
             // haven't been fetched at all.
-            if (s.fetchType === FetchType.Episodes && (s.lastUpdate == 0L || s.status.toInt() != SAnime.COMPLETED)) {
+            if (s.fetchType === FetchType.Episodes && (s.lastUpdate == null || s.status.toInt() != SAnime.COMPLETED)) {
                 try {
                     updateAnimeFromRemote.awaitEpisodesUpdate(
                         source = state.source,

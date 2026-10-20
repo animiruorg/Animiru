@@ -1,10 +1,12 @@
 -- AM -->
+import kotlin.time.Instant;
+
 CREATE TABLE anime_relation(
     anime_id INTEGER NOT NULL,
     related_anime_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     sort_order INTEGER NOT NULL,
-    last_fetched_at INTEGER NOT NULL,
+    last_fetched_at INTEGER AS Instant NOT NULL,
     PRIMARY KEY(anime_id, related_anime_id, name),
     FOREIGN KEY(anime_id) REFERENCES anime (id)
     ON DELETE CASCADE,

@@ -57,7 +57,7 @@ import tachiyomi.domain.track.interactor.UpsertTrack
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.source.local.isLocal
 import java.io.File
-import java.util.Date
+import kotlin.time.Clock
 
 @Inject
 @SingleIn(AppScope::class)
@@ -477,7 +477,7 @@ class ExternalIntents(
     private suspend fun saveEpisodeHistory(currentEpisode: Episode) {
         if (basePreferences.incognitoMode.get()) return
         upsertHistory.await(
-            HistoryUpdate(currentEpisode.id, Date()),
+            HistoryUpdate(currentEpisode.id, Clock.System.now()),
         )
     }
 
@@ -534,7 +534,7 @@ class ExternalIntents(
         val sortFunction: (Episode, Episode) -> Int = when (anime.sorting) {
             Anime.EPISODE_SORTING_SOURCE -> { c1, c2 -> c2.sourceOrder.compareTo(c1.sourceOrder) }
             Anime.EPISODE_SORTING_NUMBER -> { c1, c2 -> c1.episodeNumber.compareTo(c2.episodeNumber) }
-            Anime.EPISODE_SORTING_UPLOAD_DATE -> { c1, c2 -> c1.dateUpload.compareTo(c2.dateUpload) }
+            Anime.EPISODE_SORTING_UPLOAD_DATE -> { c1, c2 -> compareValues(c1.dateUpload, c2.dateUpload) }
             else -> throw NotImplementedError("Unknown sorting method")
         }
 

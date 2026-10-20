@@ -15,7 +15,6 @@ import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteConnectionFactory
 import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteDatabaseType
 import com.eygraber.sqldelight.androidx.driver.AndroidxSqliteDriver
 import com.eygraber.sqldelight.androidx.driver.FileProvider
-import com.eygraber.sqldelight.androidx.driver.SqliteJournalMode
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ContributesTo
@@ -68,7 +67,7 @@ object DatabaseBindings {
         return Database(
             driver = driver,
             historyAdapter = History.Adapter(
-                seen_atAdapter = DateColumnAdapter,
+                seen_atAdapter = InstantColumnAdapter,
             ),
             animeAdapter = Anime.Adapter(
                 remote_genreAdapter = StringListColumnAdapter,
@@ -77,13 +76,32 @@ object DatabaseBindings {
                 remote_fetch_typeAdapter = FetchTypeColumnAdapter,
                 // <-- AY
                 remote_memoAdapter = MemoColumnAdapter,
+                user_favorite_atAdapter = InstantColumnAdapter,
                 // AM -->
                 user_custom_genreAdapter = StringListColumnAdapter,
                 // <-- AM
+                state_episode_last_updateAdapter = InstantColumnAdapter,
+                state_episode_next_updateAdapter = InstantColumnAdapter,
+                state_cover_last_modifiedAdapter = InstantColumnAdapter,
+                state_background_last_modifiedAdapter = InstantColumnAdapter,
             ),
             episodeAdapter = Episode.Adapter(
+                remote_date_uploadAdapter = InstantColumnAdapter,
                 remote_memoAdapter = MemoColumnAdapter,
+                state_date_fetchAdapter = InstantColumnAdapter,
+                // AM -->
+                state_thumbnail_last_modified_atAdapter = InstantColumnAdapter,
+                // <-- AM
             ),
+            anime_trackAdapter = Anime_track.Adapter(
+                start_dateAdapter = InstantColumnAdapter,
+                finish_dateAdapter = InstantColumnAdapter,
+            ),
+            // AM -->
+            anime_relationAdapter = Anime_relation.Adapter(
+                last_fetched_atAdapter = InstantColumnAdapter,
+            ),
+            // <-- AM
         )
     }
 }

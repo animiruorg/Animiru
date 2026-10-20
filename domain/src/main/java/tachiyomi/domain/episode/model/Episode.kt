@@ -2,6 +2,7 @@ package tachiyomi.domain.episode.model
 
 import kotlinx.serialization.json.JsonObject
 import mihon.core.common.extensions.EMPTY
+import kotlin.time.Instant
 
 data class Episode(
     val id: Long,
@@ -15,11 +16,11 @@ data class Episode(
     // AY -->
     val totalSeconds: Long,
     // <-- AY
-    val dateFetch: Long,
+    val dateFetch: Instant,
     val sourceOrder: Long,
     val url: String,
     val name: String,
-    val dateUpload: Long,
+    val dateUpload: Instant?,
     val episodeNumber: Double,
     val scanlator: String?,
     // AY -->
@@ -28,7 +29,7 @@ data class Episode(
     // <-- AY
     val memo: JsonObject,
     // AM -->
-    val thumbnailLastModifiedAt: Long,
+    val thumbnailLastModifiedAt: Instant?,
     // <-- AM
 ) {
     val isRecognizedNumber: Boolean
@@ -64,11 +65,11 @@ data class Episode(
             // AY -->
             totalSeconds = 0,
             // <-- AY
-            dateFetch = 0,
+            dateFetch = Instant.fromEpochMilliseconds(0),
             sourceOrder = 0,
             url = "",
             name = "",
-            dateUpload = -1,
+            dateUpload = null,
             episodeNumber = -1.0,
             scanlator = null,
             // AY -->
@@ -77,7 +78,7 @@ data class Episode(
             // <-- AY
             memo = JsonObject.EMPTY,
             // AM -->
-            thumbnailLastModifiedAt = 0L,
+            thumbnailLastModifiedAt = null,
             // <-- AM
         )
     }

@@ -18,7 +18,7 @@ import kotlin.time.Clock
 fun Anime.removeCovers(coverCache: CoverCache): Anime {
     if (isLocal()) return this
     return if (coverCache.deleteFromCache(this, true) > 0) {
-        copy(coverLastModified = Clock.System.now().toEpochMilliseconds())
+        copy(coverLastModified = Clock.System.now())
     } else {
         this
     }
@@ -28,7 +28,7 @@ fun Anime.removeCovers(coverCache: CoverCache): Anime {
 fun Anime.removeBackgrounds(backgroundCache: BackgroundCache): Anime {
     if (isLocal()) return this
     return if (backgroundCache.deleteFromCache(this, true) > 0) {
-        copy(backgroundLastModified = Clock.System.now().toEpochMilliseconds())
+        copy(backgroundLastModified = Clock.System.now())
     } else {
         this
     }
@@ -39,7 +39,7 @@ fun Anime.removeBackgrounds(backgroundCache: BackgroundCache): Anime {
 fun Episode.removeThumbnail(thumbnailCache: ThumbnailCache, isLocal: Boolean): Episode {
     if (isLocal || this.previewUrl.isNullOrEmpty()) return this
     return if (thumbnailCache.deleteFromCache(this.previewUrl!!) > 0) {
-        copy(thumbnailLastModifiedAt = Clock.System.now().toEpochMilliseconds())
+        copy(thumbnailLastModifiedAt = Clock.System.now())
     } else {
         this
     }

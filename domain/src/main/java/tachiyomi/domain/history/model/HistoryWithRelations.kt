@@ -1,7 +1,7 @@
 package tachiyomi.domain.history.model
 
 import tachiyomi.domain.anime.model.AnimeCover
-import java.util.Date
+import kotlin.time.Instant
 
 data class HistoryWithRelations(
     val id: Long,
@@ -12,7 +12,7 @@ data class HistoryWithRelations(
     private val ogTitle: String,
     // <-- AM (CUSTOM_INFORMATION)
     val episodeNumber: Double,
-    val seenAt: Date?,
+    val seenAt: Instant?,
     val coverData: AnimeCover,
 ) {
     // AM (CUSTOM_INFORMATION) -->

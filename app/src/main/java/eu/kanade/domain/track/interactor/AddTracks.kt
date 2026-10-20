@@ -21,6 +21,7 @@ import tachiyomi.domain.history.interactor.GetHistory
 import tachiyomi.domain.season.interactor.GetAnimeSeasonsByParentId
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.UpsertTrack
+import kotlin.time.Instant
 
 @Inject
 class AddTracks(
@@ -67,18 +68,18 @@ class AddTracks(
                             tracker.setRemoteLastEpisodeSeen(track.toDbTrack(), latestLocalSeenEpisodeNumber.toInt())
                         }
 
-                        if (track.startDate <= 0) {
+                        if (track.startDate == null) {
                             val firstSeenEpisodeDate = getHistory.await(anime.id)
-                                .mapNotNull { it.seenAt?.takeIf { seenAt -> seenAt.time > 0 } }
+                                .mapNotNull { it.seenAt }
                                 .minOrNull()
 
                             firstSeenEpisodeDate?.let {
-                                val startDate = firstSeenEpisodeDate.time.convertEpochMillisZone(
+                                val startDate = firstSeenEpisodeDate.toEpochMilliseconds().convertEpochMillisZone(
                                     TimeZone.currentSystemDefault(),
                                     TimeZone.UTC,
                                 )
                                 track = track.copy(
-                                    startDate = startDate,
+                                    startDate = Instant.fromEpochMilliseconds(startDate),
                                 )
                                 tracker.setRemoteStartDate(track.toDbTrack(), startDate)
                             }

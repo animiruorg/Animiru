@@ -8,6 +8,7 @@ import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.library.model.LibraryAnime
 import tachiyomi.domain.source.model.DeletableAnime
+import kotlin.time.Instant
 
 object AnimeMapper {
     fun mapAnime(
@@ -29,7 +30,7 @@ object AnimeMapper {
         remoteSeasonSourceOrder: Long,
         remoteBackground: String?,
         // <-- AM
-        userFavoriteAt: Long?,
+        userFavoriteAt: Instant?,
         userNotes: String,
         userPlayerFlags: Long,
         userEpisodeFlags: Long,
@@ -42,20 +43,20 @@ object AnimeMapper {
         userCustomTitle: String?,
         userCustomStatus: Long?,
         // <-- AM
-        stateEpisodeLastUpdate: Long?,
-        stateEpisodeNextUpdate: Long?,
+        stateEpisodeLastUpdate: Instant?,
+        stateEpisodeNextUpdate: Instant?,
         stateEpisodeFetchInterval: Long,
-        stateCoverLastModified: Long,
+        stateCoverLastModified: Instant?,
         stateInitialized: Boolean,
         // AM -->
         stateParentId: Long?,
-        stateBackgroundLastModified: Long,
+        stateBackgroundLastModified: Instant?,
         // <-- AM
     ): Anime = Anime(
         id = id,
         source = sourceId,
-        lastUpdate = stateEpisodeLastUpdate ?: 0,
-        nextUpdate = stateEpisodeNextUpdate ?: 0,
+        lastUpdate = stateEpisodeLastUpdate,
+        nextUpdate = stateEpisodeNextUpdate,
         fetchInterval = stateEpisodeFetchInterval.toInt(),
         favoriteAt = userFavoriteAt,
         viewerFlags = userPlayerFlags,
@@ -115,7 +116,7 @@ object AnimeMapper {
         remoteSeasonSourceOrder: Long,
         remoteBackground: String?,
         // <-- AM
-        userFavoriteAt: Long?,
+        userFavoriteAt: Instant?,
         userNotes: String,
         userPlayerFlags: Long,
         userEpisodeFlags: Long,
@@ -128,20 +129,20 @@ object AnimeMapper {
         userCustomTitle: String?,
         userCustomStatus: Long?,
         // <-- AM
-        stateEpisodeLastUpdate: Long?,
-        stateEpisodeNextUpdate: Long?,
+        stateEpisodeLastUpdate: Instant?,
+        stateEpisodeNextUpdate: Instant?,
         stateEpisodeFetchInterval: Long,
-        stateCoverLastModified: Long,
+        stateCoverLastModified: Instant?,
         stateInitialized: Boolean,
         // AM -->
         stateParentId: Long?,
-        stateBackgroundLastModified: Long,
+        stateBackgroundLastModified: Instant?,
         // <-- AM
         totalCount: Long,
         seenCount: Double,
-        latestUpload: Long,
-        episodeFetchedAt: Long,
-        lastSeen: Long,
+        latestUpload: Instant?,
+        episodeFetchedAt: Instant?,
+        lastSeen: Instant?,
         bookmarkCount: Double,
         // AY -->
         fillermarkCount: Double,
@@ -221,7 +222,7 @@ object AnimeMapper {
         remoteSeasonSourceOrder: Long,
         remoteBackground: String?,
         // <-- AM
-        userFavoriteAt: Long?,
+        userFavoriteAt: Instant?,
         userNotes: String,
         userPlayerFlags: Long,
         userEpisodeFlags: Long,
@@ -234,14 +235,14 @@ object AnimeMapper {
         userCustomTitle: String?,
         userCustomStatus: Long?,
         // <-- AM
-        stateEpisodeLastUpdate: Long?,
-        stateEpisodeNextUpdate: Long?,
+        stateEpisodeLastUpdate: Instant?,
+        stateEpisodeNextUpdate: Instant?,
         stateEpisodeFetchInterval: Long,
-        stateCoverLastModified: Long,
+        stateCoverLastModified: Instant?,
         stateInitialized: Boolean,
         // AM -->
         stateParentId: Long?,
-        stateBackgroundLastModified: Long,
+        stateBackgroundLastModified: Instant?,
         // <-- AM
 
         // <-- AM
@@ -312,7 +313,7 @@ object AnimeMapper {
         remoteSeasonSourceOrder: Long,
         remoteBackground: String?,
         // <-- AM
-        userFavoriteAt: Long?,
+        userFavoriteAt: Instant?,
         userNotes: String,
         userPlayerFlags: Long,
         userEpisodeFlags: Long,
@@ -325,20 +326,20 @@ object AnimeMapper {
         userCustomTitle: String?,
         userCustomStatus: Long?,
         // <-- AM
-        stateEpisodeLastUpdate: Long?,
-        stateEpisodeNextUpdate: Long?,
+        stateEpisodeLastUpdate: Instant?,
+        stateEpisodeNextUpdate: Instant?,
         stateEpisodeFetchInterval: Long,
-        stateCoverLastModified: Long,
+        stateCoverLastModified: Instant?,
         stateInitialized: Boolean,
         // AM -->
         stateParentId: Long?,
-        stateBackgroundLastModified: Long,
+        stateBackgroundLastModified: Instant?,
         // <-- AM
         totalCount: Long,
         seenCount: Double,
-        latestUpload: Long,
-        fetchedAt: Long,
-        lastSeen: Long,
+        latestUpload: Instant?,
+        fetchedAt: Instant?,
+        lastSeen: Instant?,
         bookmarkCount: Double,
         fillermarkCount: Double,
     ): SeasonAnime = SeasonAnime(
@@ -412,7 +413,7 @@ object AnimeMapper {
         remoteSeasonSourceOrder: Long,
         remoteBackground: String?,
         // <-- AM
-        userFavoriteAt: Long?,
+        userFavoriteAt: Instant?,
         userNotes: String,
         userPlayerFlags: Long,
         userEpisodeFlags: Long,
@@ -425,14 +426,14 @@ object AnimeMapper {
         userCustomTitle: String?,
         userCustomStatus: Long?,
         // <-- AM
-        stateEpisodeLastUpdate: Long?,
-        stateEpisodeNextUpdate: Long?,
+        stateEpisodeLastUpdate: Instant?,
+        stateEpisodeNextUpdate: Instant?,
         stateEpisodeFetchInterval: Long,
-        stateCoverLastModified: Long,
+        stateCoverLastModified: Instant?,
         stateInitialized: Boolean,
         // AM -->
         stateParentId: Long?,
-        stateBackgroundLastModified: Long,
+        stateBackgroundLastModified: Instant?,
         // <-- AM
         name: String,
     ): Pair<String, Anime> = name to mapAnime(

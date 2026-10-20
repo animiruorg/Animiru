@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 import tachiyomi.data.Database
 import tachiyomi.data.anime.AnimeMapper
 import tachiyomi.data.subscribeToList
+import kotlin.time.Instant
 
 @Inject
 @SingleIn(AppScope::class)
@@ -20,14 +21,14 @@ class AnimeRelationRepositoryImpl(
     private val database: Database,
 ) : AnimeRelationRepository {
 
-    override suspend fun getLastFetchedAt(animeId: Long): Long? {
+    override suspend fun getLastFetchedAt(animeId: Long): Instant? {
         return database.anime_relationQueries.getLastFetchedAt(animeId).awaitAsOneOrNull()
     }
 
     override suspend fun replaceRelations(
         animeId: Long,
         groups: List<Pair<String, List<Long>>>,
-        fetchedAt: Long,
+        fetchedAt: Instant,
     ) {
         database.transaction {
             database.anime_relationQueries.deleteByAnimeId(animeId)

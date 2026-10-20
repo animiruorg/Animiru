@@ -61,6 +61,7 @@ import tachiyomi.presentation.core.components.material.SECONDARY_ALPHA
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.secondaryItemAlpha
 import tachiyomi.presentation.core.util.selectedBackground
+import kotlin.time.Instant
 
 @Composable
 fun AnimeEpisodeListItem(
@@ -97,7 +98,7 @@ fun AnimeEpisodeListItem(
     animeId: Long,
     sourceId: Long,
     isLibraryAnime: Boolean,
-    thumbnailLastModified: Long,
+    thumbnailLastModified: Instant?,
     thumbnailSize: Float,
     // <-- AM
     modifier: Modifier = Modifier,
@@ -588,7 +589,7 @@ fun AnimeEpisodeListItemPreview() {
         animeId = 0L,
         sourceId = 0L,
         isLibraryAnime = false,
-        thumbnailLastModified = 0L,
+        thumbnailLastModified = null,
         thumbnailSize = 1f,
         // <-- AM
     )

@@ -95,11 +95,10 @@ class AnimeRepositoryImpl(
         includedCategories: List<Long>,
     ): Flow<List<Anime>> {
         val timeZone = TimeZone.currentSystemDefault()
-        val epochMillis =
-            Clock.System.now().toLocalDateTime(timeZone).date.atStartOfDayIn(timeZone).toEpochMilliseconds()
+        val startOfDay = Clock.System.now().toLocalDateTime(timeZone).date.atStartOfDayIn(timeZone)
         return database.animeQueries
             .getUpcomingAnime(
-                startOfDay = epochMillis,
+                startOfDay = startOfDay,
                 statuses = statuses,
                 includedEmpty = includedCategories.isEmpty(),
                 includedCategories = includedCategories,

@@ -7,6 +7,7 @@ import eu.kanade.tachiyomi.data.backup.models.BackupHistory
 import eu.kanade.tachiyomi.data.backup.models.toBackupEpisode
 import eu.kanade.tachiyomi.data.backup.models.toBackupTracking
 import mihon.core.common.extensions.toByteArray
+import mihon.core.common.extensions.toEpochMillisOrZero
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.repository.AnimeRepository
 import tachiyomi.domain.category.interactor.GetCategories
@@ -65,7 +66,7 @@ class AnimeBackupCreator(
                 val history = historyByAnimeId.mapNotNull { history ->
                     // An episode removed since its history was seen takes that history with it
                     val url = episodeUrlsById[history.episodeId] ?: return@mapNotNull null
-                    BackupHistory(url, history.seenAt?.time ?: 0L)
+                    BackupHistory(url, history.seenAt.toEpochMillisOrZero())
                 }
                 if (history.isNotEmpty()) {
                     animeObject.history = history
@@ -91,7 +92,7 @@ private fun Anime.toBackupAnime() =
         thumbnailUrl = this.thumbnailUrl,
         favorite = this.favorite,
         source = this.source,
-        dateAdded = this.favoriteAt ?: 0L,
+        dateAdded = this.favoriteAt.toEpochMillisOrZero(),
         viewer_flags = this.viewerFlags.toInt(),
         episodeFlags = this.episodeFlags.toInt(),
         updateStrategy = this.updateStrategy,

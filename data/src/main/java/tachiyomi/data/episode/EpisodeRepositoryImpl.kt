@@ -16,6 +16,7 @@ import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.episode.repository.EpisodeRepository
+import kotlin.time.Instant
 
 @Inject
 @SingleIn(AppScope::class)
@@ -176,7 +177,7 @@ class EpisodeRepositoryImpl(
         remoteName: String,
         remoteScanlator: String?,
         remoteEpisodeNumber: Double,
-        remoteDateUpload: Long,
+        remoteDateUpload: Instant?,
         remoteOrder: Long,
         // AM -->
         remoteFillermark: Boolean,
@@ -187,9 +188,9 @@ class EpisodeRepositoryImpl(
         userSeen: Boolean,
         userBookmark: Boolean,
         userLastSecondSeen: Long,
-        stateDateFetch: Long,
+        stateDateFetch: Instant,
         // AM -->
-        stateThumbnailLastModifiedAt: Long,
+        stateThumbnailLastModifiedAt: Instant?,
         stateTotalSeconds: Long,
         // <-- AM
     ): Episode = Episode(

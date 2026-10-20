@@ -1,6 +1,7 @@
 package tachiyomi.domain.updates.model
 
 import tachiyomi.domain.anime.model.AnimeCover
+import kotlin.time.Instant
 
 data class UpdatesWithRelations(
     val animeId: Long,
@@ -22,7 +23,7 @@ data class UpdatesWithRelations(
     val totalSeconds: Long,
     // <-- AY
     val sourceId: Long,
-    val dateFetch: Long,
+    val dateFetch: Instant,
     val coverData: AnimeCover,
 ) {
     // AM (CUSTOM_INFORMATION) -->

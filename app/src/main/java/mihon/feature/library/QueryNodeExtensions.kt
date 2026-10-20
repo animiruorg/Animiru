@@ -108,9 +108,9 @@ private fun FieldQueryNode.matches(item: LibraryItem): Boolean {
 private fun ComparisonQueryNode.matches(item: LibraryItem): Boolean {
     val anime = item.libraryAnime.anime
 
-    fun compareDates(timestamp: Long, value: String): Boolean? {
+    fun compareDates(date: Instant, value: String): Boolean? {
         val inputDate = runCatching { LocalDate.parse(value) }.getOrNull() ?: return null
-        val animeDate = Instant.fromEpochMilliseconds(timestamp).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val animeDate = date.toLocalDateTime(TimeZone.currentSystemDefault()).date
         return queryComparator.apply(animeDate, inputDate)
     }
 
@@ -122,7 +122,7 @@ private fun ComparisonQueryNode.matches(item: LibraryItem): Boolean {
         ComparisonField.FETCH_INTERVAL -> value.toIntOrNull()
             ?.let { queryComparator.apply(abs(anime.fetchInterval), it) }
 
-        ComparisonField.NEXT_UPDATE -> compareDates(anime.nextUpdate, value)
+        ComparisonField.NEXT_UPDATE -> anime.nextUpdate?.let { compareDates(it, value) }
 
         ComparisonField.UNSEEN -> {
             value.toLongOrNull()?.let {

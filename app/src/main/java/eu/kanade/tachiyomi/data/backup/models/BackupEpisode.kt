@@ -1,13 +1,14 @@
 package eu.kanade.tachiyomi.data.backup.models
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.protobuf.ProtoNumber
 import mihon.core.common.extensions.JsonObjectEmptyBytes
 import mihon.core.common.extensions.toByteArray
+import mihon.core.common.extensions.toEpochMillisOrZero
+import mihon.core.common.extensions.toInstantOrNull
 import mihon.core.common.extensions.toJsonObject
-import tachiyomi.data.MemoColumnAdapter
 import tachiyomi.domain.episode.model.Episode
+import kotlin.time.Instant
 
 @Serializable
 class BackupEpisode(
@@ -58,8 +59,8 @@ class BackupEpisode(
             // AY -->
             totalSeconds = this@BackupEpisode.totalSeconds,
             // <-- AY
-            dateFetch = this@BackupEpisode.dateFetch,
-            dateUpload = this@BackupEpisode.dateUpload,
+            dateFetch = Instant.fromEpochMilliseconds(this@BackupEpisode.dateFetch),
+            dateUpload = this@BackupEpisode.dateUpload.toInstantOrNull(),
             sourceOrder = this@BackupEpisode.sourceOrder,
             memo = this@BackupEpisode.memo.toJsonObject(),
         )
@@ -84,8 +85,8 @@ fun Episode.toBackupEpisode() = BackupEpisode(
     // AY -->
     totalSeconds = totalSeconds,
     // <-- AY
-    dateFetch = dateFetch,
-    dateUpload = dateUpload,
+    dateFetch = dateFetch.toEpochMilliseconds(),
+    dateUpload = dateUpload.toEpochMillisOrZero(),
     sourceOrder = sourceOrder,
     memo = memo.toByteArray(),
 )

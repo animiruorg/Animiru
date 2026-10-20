@@ -571,7 +571,6 @@ private fun ExtensionItemActions(
             }
         }
 
-
         val action = when {
             installStep == InstallStep.Error -> MaterialSymbols.Rounded.Refresh to MR.strings.action_retry
             extension is Extension.Available -> MaterialSymbols.Rounded.Download to MR.strings.ext_install

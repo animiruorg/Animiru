@@ -269,7 +269,7 @@ class BrowseSourceViewModel(
             } else {
                 setAnimeDefaultEpisodeFlags.await(anime)
                 addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source))
-                AnimeUpdate(anime.id) { favoriteAt = Clock.System.now().toEpochMilliseconds() }
+                AnimeUpdate(anime.id) { favoriteAt = Clock.System.now() }
             }
 
             updateAnime.await(update)

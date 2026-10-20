@@ -1,10 +1,10 @@
-import java.util.Date;
+import kotlin.time.Instant;
 
 CREATE TABLE history(
     id INTEGER NOT NULL PRIMARY KEY,
     anime_id INTEGER NOT NULL,
     episode_id INTEGER NOT NULL UNIQUE,
-    seen_at INTEGER AS Date,
+    seen_at INTEGER AS Instant,
     FOREIGN KEY(anime_id) REFERENCES anime (id)
     ON DELETE CASCADE,
     FOREIGN KEY(episode_id) REFERENCES episode (id)
@@ -21,12 +21,12 @@ WHERE anime_id = :animeId;
 
 resetHistoryById:
 UPDATE history
-SET seen_at = 0
+SET seen_at = NULL
 WHERE id = :id;
 
 resetHistoryByAnimeId:
 UPDATE history
-SET seen_at = 0
+SET seen_at = NULL
 WHERE anime_id = :animeId;
 
 removeAllHistory:
@@ -34,7 +34,7 @@ DELETE FROM history;
 
 removeResettedHistory:
 DELETE FROM history
-WHERE seen_at = 0;
+WHERE seen_at IS NULL;
 
 upsert:
 INSERT INTO history(anime_id, episode_id, seen_at)

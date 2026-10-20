@@ -3,6 +3,7 @@ import eu.kanade.tachiyomi.animesource.model.FetchType;
 import kotlin.Boolean;
 import kotlin.String;
 import kotlin.collections.List;
+import kotlin.time.Instant;
 import kotlinx.serialization.json.JsonObject;
 
 CREATE TABLE anime(
@@ -24,7 +25,7 @@ CREATE TABLE anime(
     remote_season_source_order INTEGER NOT NULL,
     remote_background TEXT,
     -- <-- AM
-    user_favorite_at INTEGER,
+    user_favorite_at INTEGER AS Instant,
     user_notes TEXT NOT NULL,
     user_player_flags INTEGER NOT NULL,
     user_episode_flags INTEGER NOT NULL,
@@ -37,14 +38,14 @@ CREATE TABLE anime(
     user_custom_title TEXT,
     user_custom_status INTEGER,
     -- <-- AM
-    state_episode_last_update INTEGER,
-    state_episode_next_update INTEGER,
+    state_episode_last_update INTEGER AS Instant,
+    state_episode_next_update INTEGER AS Instant,
     state_episode_fetch_interval INTEGER NOT NULL,
-    state_cover_last_modified INTEGER NOT NULL,
+    state_cover_last_modified INTEGER AS Instant,
     state_initialized INTEGER AS Boolean NOT NULL,
     -- AM -->
     state_parent_id INTEGER,
-    state_background_last_modified INTEGER NOT NULL,
+    state_background_last_modified INTEGER AS Instant,
     -- <-- AM
     UNIQUE(source_id, remote_url)
 );

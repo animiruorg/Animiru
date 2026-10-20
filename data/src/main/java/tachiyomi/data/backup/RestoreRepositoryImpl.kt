@@ -2,7 +2,6 @@ package tachiyomi.data.backup
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
-import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -21,8 +20,8 @@ import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.repository.EpisodeRepository
 import tachiyomi.domain.track.model.Track
 import tachiyomi.domain.track.repository.TrackRepository
-import java.util.Date
 import kotlin.math.max
+import kotlin.time.Instant
 
 @Inject
 @SingleIn(AppScope::class)
@@ -80,7 +79,10 @@ class RestoreRepositoryImpl(
         val details = if (dbAnime.initialized || !anime.initialized) dbAnime else anime
         return dbAnime.copy(
             favoriteAt = if (dbAnime.favorite || anime.favorite) {
-                listOfNotNull(dbAnime.favoriteAt, anime.favoriteAt).filter { it > 0 }.minOrNull() ?: 0L
+                listOfNotNull(dbAnime.favoriteAt, anime.favoriteAt)
+                    .filter { it > Anime.UNKNOWN_FAVORITE_AT }
+                    .minOrNull()
+                    ?: Anime.UNKNOWN_FAVORITE_AT
             } else {
                 null
             },
@@ -149,7 +151,7 @@ class RestoreRepositoryImpl(
             remoteStatus = anime.ogStatus,
             remoteCover = anime.thumbnailUrl,
             stateEpisodeLastUpdate = anime.lastUpdate,
-            stateEpisodeNextUpdate = 0L,
+            stateEpisodeNextUpdate = null,
             stateInitialized = anime.initialized,
             userPlayerFlags = anime.viewerFlags,
             userEpisodeFlags = anime.episodeFlags,
@@ -262,7 +264,13 @@ class RestoreRepositoryImpl(
     }
 
     private fun Episode.forComparison() =
-        this.copy(id = 0L, animeId = 0L, dateFetch = 0L, dateUpload = 0L, thumbnailLastModifiedAt = 0L)
+        this.copy(
+            id = 0L,
+            animeId = 0L,
+            dateFetch = Instant.DISTANT_PAST,
+            dateUpload = null,
+            thumbnailLastModifiedAt = null,
+        )
 
     private suspend fun restoreHistory(anime: Anime, restoredHistory: List<RestoredHistory>) {
         if (restoredHistory.isEmpty()) return
@@ -279,16 +287,16 @@ class RestoreRepositoryImpl(
             // each copy; they are one episode now, read as late as any copy and for as long as all
             .groupBy { episodeIdsByUrl.getValue(it.episodeUrl) }
             .map { (episodeId, copies) ->
-                val seenAt = copies.maxOf { it.seenAt?.time ?: 0L }
+                val seenAt = copies.mapNotNull { it.seenAt }.maxOrNull()
 
                 val dbHistory = dbHistoryByEpisodeId[episodeId]
-                    ?: return@map Pair(episodeId, Date(seenAt))
+                    ?: return@map Pair(episodeId, seenAt)
 
                 // Update history entry. 0 is kept rather than written as NULL, since it marks history
                 // the user removed.
                 Pair(
                     episodeId,
-                    Date(max(seenAt, dbHistory.seen_at?.time ?: 0L)),
+                    listOfNotNull(seenAt, dbHistory.seen_at).maxOrNull(),
                 )
             }
 

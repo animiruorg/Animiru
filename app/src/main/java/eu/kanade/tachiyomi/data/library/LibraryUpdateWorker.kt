@@ -84,6 +84,7 @@ import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 @OptIn(ExperimentalAtomicApi::class)
 class LibraryUpdateWorker(private val context: Context, workerParams: WorkerParameters) :
@@ -269,10 +270,10 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
         val restrictions = libraryPreferences.autoUpdateAnimeRestrictions.get()
         val skippedUpdates = mutableListOf<Pair<Anime, String?>>()
         val timeZone = TimeZone.currentSystemDefault()
-        val (_, fetchWindowUpperBound) = fetchInterval.getWindow(
+        val fetchWindowUpperBound = fetchInterval.getWindow(
             Clock.System.now().toLocalDateTime(timeZone).date,
             timeZone,
-        )
+        ).endInclusive
 
         animeToUpdate = lastToUpdateWithSeasons
             .filter {
@@ -303,7 +304,8 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                         false
                     }
 
-                    ANIME_OUTSIDE_RELEASE_PERIOD in restrictions && it.anime.nextUpdate > fetchWindowUpperBound -> {
+                    ANIME_OUTSIDE_RELEASE_PERIOD in restrictions &&
+                        it.anime.nextUpdate.let { next -> next != null && next > fetchWindowUpperBound } -> {
                         skippedUpdates.add(
                             it.anime to context.stringResource(MR.strings.skipped_reason_not_in_release_period),
                         )
@@ -435,7 +437,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
      * @param anime the anime to update.
      * @return a pair of the inserted and removed episodes.
      */
-    private suspend fun updateAnime(anime: Anime, fetchWindow: Pair<Long, Long>): List<Episode> {
+    private suspend fun updateAnime(anime: Anime, fetchWindow: ClosedRange<Instant>): List<Episode> {
         val source = sourceManager.getOrStub(anime.source)
 
         val update = updateAnimeFromRemote.awaitEpisodesUpdate(

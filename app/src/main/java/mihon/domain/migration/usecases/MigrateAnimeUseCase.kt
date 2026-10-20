@@ -147,7 +147,7 @@ class MigrateAnimeUseCase(
             }
                 .takeIf { replace }
             val targetAnimeUpdate = AnimeUpdate(target.id) {
-                favoriteAt = current.favoriteAt?.takeIf { replace } ?: Clock.System.now().toEpochMilliseconds()
+                favoriteAt = current.favoriteAt?.takeIf { replace } ?: Clock.System.now()
                 episodeFlags = current.episodeFlags
                 viewerFlags = current.viewerFlags
                 if (MigrationFlag.NOTES in flags) notes = current.notes

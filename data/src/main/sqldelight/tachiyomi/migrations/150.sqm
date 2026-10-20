@@ -1,0 +1,485 @@
+import eu.kanade.tachiyomi.animesource.model.AnimeUpdateStrategy;
+import eu.kanade.tachiyomi.animesource.model.FetchType;
+import kotlin.Boolean;
+import kotlin.String;
+import kotlin.collections.List;
+import kotlin.time.Instant;
+import kotlinx.serialization.json.JsonObject;
+
+-- A time that isn't known was stored as 0, which reads as the start of 1970 once it is an instant, so
+-- it is NULL instead. SQLite cannot drop NOT NULL from a column, so the tables holding one are rebuilt.
+
+-- Every view reads `anime` or `episode`, so they are dropped here and recreated against the new tables below
+DROP VIEW animedeletableView;
+DROP VIEW animeseasonstatsView;
+DROP VIEW animeseasonsView;
+DROP VIEW episodestatsView;
+DROP VIEW historyView;
+DROP VIEW libraryView;
+DROP VIEW updatesView;
+
+-- Each table is renamed aside and rebuilt under its own name, as in migration 148. Renaming a table also
+-- repoints the foreign keys of the tables that reference it, which would leave them on the copy that is
+-- dropped; the legacy behavior leaves them naming the table that takes its place.
+PRAGMA legacy_alter_table = 1;
+
+-- ---------------------------------------------------------------------------------------------------------
+-- table - anime
+-- ---------------------------------------------------------------------------------------------------------
+
+ALTER TABLE anime RENAME TO anime_temp;
+
+CREATE TABLE anime(
+    id INTEGER NOT NULL PRIMARY KEY,
+    source_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
+    remote_title TEXT NOT NULL,
+    remote_author TEXT,
+    remote_artist TEXT,
+    remote_description TEXT,
+    remote_genre TEXT AS List<String>,
+    remote_status INTEGER NOT NULL,
+    remote_cover TEXT,
+    remote_update_strategy INTEGER AS AnimeUpdateStrategy NOT NULL,
+    remote_memo BLOB AS JsonObject NOT NULL,
+    -- AM -->
+    remote_fetch_type INTEGER AS FetchType NOT NULL DEFAULT 1,
+    remote_season_number REAL NOT NULL,
+    remote_season_source_order INTEGER NOT NULL,
+    remote_background TEXT,
+    -- <-- AM
+    user_favorite_at INTEGER AS Instant,
+    user_notes TEXT NOT NULL,
+    user_player_flags INTEGER NOT NULL,
+    user_episode_flags INTEGER NOT NULL,
+    -- AM -->
+    user_season_flags INTEGER NOT NULL,
+    user_custom_artist TEXT,
+    user_custom_author TEXT,
+    user_custom_description TEXT,
+    user_custom_genre TEXT AS List<String>,
+    user_custom_title TEXT,
+    user_custom_status INTEGER,
+    -- <-- AM
+    state_episode_last_update INTEGER AS Instant,
+    state_episode_next_update INTEGER AS Instant,
+    state_episode_fetch_interval INTEGER NOT NULL,
+    state_cover_last_modified INTEGER AS Instant,
+    state_initialized INTEGER AS Boolean NOT NULL,
+    -- AM -->
+    state_parent_id INTEGER,
+    state_background_last_modified INTEGER AS Instant,
+    -- <-- AM
+    UNIQUE(source_id, remote_url)
+);
+
+-- `user_favorite_at` keeps its 0: NULL already means the entry isn't in the library, and 0 is an entry
+-- added before the time was recorded
+INSERT INTO anime(
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+)
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, nullif(state_episode_last_update, 0), nullif(state_episode_next_update, 0),
+    state_episode_fetch_interval, nullif(state_cover_last_modified, 0), state_initialized,
+    state_parent_id, nullif(state_background_last_modified, 0)
+FROM anime_temp;
+
+DROP TABLE anime_temp;
+
+CREATE INDEX anime_user_favorite_at_index ON anime(user_favorite_at) WHERE user_favorite_at IS NOT NULL;
+CREATE INDEX anime_parent_id_index ON anime(state_parent_id);
+CREATE INDEX anime_fetch_type_index ON anime(remote_fetch_type);
+
+-- ---------------------------------------------------------------------------------------------------------
+-- table - anime_relation
+-- ---------------------------------------------------------------------------------------------------------
+
+ALTER TABLE anime_relation RENAME TO anime_relation_temp;
+
+CREATE TABLE anime_relation(
+    anime_id INTEGER NOT NULL,
+    related_anime_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    last_fetched_at INTEGER AS Instant NOT NULL,
+    PRIMARY KEY(anime_id, related_anime_id, name),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(related_anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+INSERT INTO anime_relation(anime_id, related_anime_id, name, sort_order, last_fetched_at)
+SELECT
+    anime_id, related_anime_id, name, sort_order, last_fetched_at
+FROM anime_relation_temp;
+
+DROP TABLE anime_relation_temp;
+
+CREATE INDEX anime_relations_anime_id_index ON anime_relation(anime_id);
+CREATE INDEX anime_relations_related_anime_id_index ON anime_relation(related_anime_id);
+
+-- ---------------------------------------------------------------------------------------------------------
+-- table - episode
+-- ---------------------------------------------------------------------------------------------------------
+
+ALTER TABLE episode RENAME TO episode_temp;
+
+CREATE TABLE episode(
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
+    remote_name TEXT NOT NULL,
+    remote_scanlator TEXT,
+    remote_episode_number REAL NOT NULL,
+    remote_date_upload INTEGER AS Instant,
+    remote_order INTEGER NOT NULL,
+    -- AM -->
+    remote_fillermark INTEGER AS Boolean NOT NULL,
+    remote_summary TEXT,
+    remote_preview_url TEXT,
+    -- <-- AM
+    remote_memo BLOB AS JsonObject NOT NULL DEFAULT '{}',
+    user_seen INTEGER AS Boolean NOT NULL,
+    user_bookmark INTEGER AS Boolean NOT NULL,
+    user_last_second_seen INTEGER NOT NULL,
+    state_date_fetch INTEGER AS Instant NOT NULL,
+    -- AM -->
+    state_thumbnail_last_modified_at INTEGER AS Instant,
+    state_total_seconds INTEGER NOT NULL,
+    -- <-- AM
+    UNIQUE(anime_id, remote_url),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+INSERT INTO episode(
+    id, anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    remote_date_upload, remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, state_thumbnail_last_modified_at, state_total_seconds
+)
+SELECT
+    id, anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    nullif(remote_date_upload, 0), remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, nullif(state_thumbnail_last_modified_at, 0), state_total_seconds
+FROM episode_temp;
+
+DROP TABLE episode_temp;
+
+CREATE INDEX episode_state_date_fetch_index ON episode(state_date_fetch);
+CREATE INDEX episode_unseen_state_date_fetch ON episode(state_date_fetch) WHERE user_seen = 0;
+
+-- ---------------------------------------------------------------------------------------------------------
+-- table - anime_track
+-- ---------------------------------------------------------------------------------------------------------
+
+ALTER TABLE anime_track RENAME TO anime_track_temp;
+
+CREATE TABLE anime_track(
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
+    tracker_id INTEGER NOT NULL,
+    remote_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
+    library_id INTEGER,
+    title TEXT NOT NULL,
+    last_episode_seen REAL NOT NULL,
+    total_episodes INTEGER NOT NULL,
+    status INTEGER NOT NULL,
+    score REAL NOT NULL,
+    start_date INTEGER AS Instant,
+    finish_date INTEGER AS Instant,
+    private INTEGER AS Boolean NOT NULL DEFAULT 0,
+    UNIQUE (anime_id, tracker_id),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+INSERT INTO anime_track(
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+)
+SELECT
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, nullif(start_date, 0), nullif(finish_date, 0), private
+FROM anime_track_temp;
+
+DROP TABLE anime_track_temp;
+
+CREATE INDEX anime_track_tracker_id_remote_id_index ON anime_track(tracker_id, remote_id);
+
+PRAGMA legacy_alter_table = 0;
+
+-- ---------------------------------------------------------------------------------------------------------
+-- table - history
+-- ---------------------------------------------------------------------------------------------------------
+
+-- 0 marked history the user removed, which NULL marks now
+UPDATE history
+SET seen_at = NULL
+WHERE seen_at = 0;
+
+-- ---------------------------------------------------------------------------------------------------------
+-- views
+-- ---------------------------------------------------------------------------------------------------------
+
+CREATE VIEW animedeletableView AS
+SELECT
+    A.id,
+    A.source_id,
+    A.remote_fetch_type
+FROM anime AS A
+WHERE A.user_favorite_at IS NULL
+AND A.state_parent_id IS NULL;
+
+CREATE VIEW episodestatsView AS
+SELECT
+    episode.anime_id,
+    count(*) AS total,
+    sum(user_seen) AS seenCount,
+    max(episode.remote_date_upload) AS latestUpload,
+    max(episode.state_date_fetch) AS fetchedAt,
+    sum(episode.user_bookmark) AS bookmarkCount,
+    sum(episode.remote_fillermark) AS fillermarkCount
+FROM episode
+LEFT JOIN excluded_scanlator
+    ON episode.anime_id = excluded_scanlator.anime_id
+    AND episode.remote_scanlator = excluded_scanlator.scanlator
+WHERE excluded_scanlator.scanlator IS NULL
+AND episode.anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
+GROUP BY episode.anime_id;
+
+CREATE VIEW animeseasonstatsView AS
+SELECT
+    season.state_parent_id,
+    count(*) AS child_count,
+    sum(CASE WHEN season.remote_fetch_type = 1 AND
+                 coalesce(ES.total, 0) = coalesce(ES.seenCount, 0)
+            THEN 1 ELSE 0 END) AS fully_seen_seasons,
+    max(ES.latestUpload) AS max_latest_upload,
+    max(ES.fetchedAt) AS max_fetched_at,
+    max(
+        CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = season.id)
+        THEN (
+            SELECT max(history.seen_at)
+            FROM history
+            JOIN episode
+            ON episode.id = history.episode_id
+            AND NOT EXISTS (
+                SELECT 0 FROM excluded_scanlator
+                WHERE excluded_scanlator.anime_id != season.id
+                AND excluded_scanlator.scanlator = episode.remote_scanlator
+            )
+        )
+        ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = season.id)
+        END
+    ) AS max_last_seen,
+    sum(coalesce(ES.bookmarkCount, 0)) AS total_bookmarks,
+    sum(coalesce(ES.fillermarkCount, 0)) AS total_fillermarks
+FROM anime season
+LEFT JOIN episodestatsView ES ON season.id = ES.anime_id
+WHERE season.state_parent_id IS NOT NULL
+GROUP BY season.state_parent_id;
+
+CREATE VIEW animeseasonsView AS
+SELECT
+    A.*,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.total, 0)
+        WHEN 0 THEN coalesce(ASS.child_count, 0)
+    END AS totalCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.seenCount, 0)
+        WHEN 0 THEN coalesce(ASS.fully_seen_seasons, 0)
+    END AS seenCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN ES.latestUpload
+        WHEN 0 THEN ASS.max_latest_upload
+    END AS latestUpload,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN ES.fetchedAt
+        WHEN 0 THEN ASS.max_fetched_at
+    END AS episodeFetchedAt,
+    CASE A.remote_fetch_type
+        -- Joining history to every episode is the slowest part of the query, and only entries with excluded
+        -- scanlators need the episodes to leave theirs out
+        WHEN 1 THEN
+            CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = A.id)
+            THEN (
+                SELECT max(history.seen_at)
+                FROM history
+                JOIN episode
+                ON episode.id = history.episode_id
+                WHERE history.anime_id = A.id
+                AND NOT EXISTS (
+                    SELECT 0 FROM excluded_scanlator
+                    WHERE excluded_scanlator.anime_id = A.id
+                    AND excluded_scanlator.scanlator = episode.remote_scanlator
+                )
+            )
+            ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = A.id)
+            END
+        WHEN 0 THEN ASS.max_last_seen
+    END AS lastSeen,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.bookmarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_bookmarks, 0)
+    END AS bookmarkCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.fillermarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_fillermarks, 0)
+    END AS fillermarkCount
+FROM anime AS A
+LEFT JOIN episodestatsView AS ES
+ON A.id = ES.anime_id
+LEFT JOIN animeseasonstatsView AS ASS
+ON A.id = ASS.state_parent_id
+WHERE A.state_parent_id IS NOT NULL
+AND A.state_parent_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL);
+
+CREATE VIEW historyView AS
+SELECT
+    history.id AS id,
+    anime.id AS animeId,
+    episode.id AS episodeId,
+    -- AM -->
+    anime.user_custom_title AS custom_title,
+    -- <-- AM
+    anime.remote_title AS title,
+    anime.remote_cover AS thumbnailUrl,
+    anime.source_id AS sourceId,
+    anime.user_favorite_at IS NOT NULL AS favorite,
+    anime.state_cover_last_modified AS coverLastModified,
+    episode.remote_episode_number AS episodeNumber,
+    history.seen_at AS seenAt,
+    max_seen.seen_at AS maxSeenAt,
+    max_seen.episode_id AS maxSeenAtEpisodeId
+FROM anime
+JOIN episode
+ON anime.id = episode.anime_id
+JOIN history
+ON episode.id = history.episode_id
+JOIN (
+    SELECT anime_id, episode_id, MAX(seen_at) AS seen_at
+    FROM history
+    GROUP BY anime_id
+) AS max_seen
+ON episode.anime_id = max_seen.anime_id;
+
+CREATE VIEW libraryView AS
+SELECT
+    A.*,
+    -- AY -->
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.total, 0)
+        WHEN 0 THEN coalesce(ASS.child_count, 0)
+    END AS totalCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.seenCount, 0)
+        WHEN 0 THEN coalesce(ASS.fully_seen_seasons, 0)
+    END AS seenCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN ES.latestUpload
+        WHEN 0 THEN ASS.max_latest_upload
+    END AS latestUpload,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN ES.fetchedAt
+        WHEN 0 THEN ASS.max_fetched_at
+    END AS episodeFetchedAt,
+    CASE A.remote_fetch_type
+        -- Joining history to every episode is the slowest part of the query, and only entries with excluded
+        -- scanlators need the episodes to leave theirs out
+        WHEN 1 THEN
+            CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = A.id)
+            THEN (
+                SELECT max(history.seen_at)
+                FROM history
+                JOIN episode
+                ON episode.id = history.episode_id
+                WHERE history.anime_id = A.id
+                AND NOT EXISTS (
+                    SELECT 0 FROM excluded_scanlator
+                    WHERE excluded_scanlator.anime_id = A.id
+                    AND excluded_scanlator.scanlator = episode.remote_scanlator
+                )
+            )
+            ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = A.id)
+            END
+        WHEN 0 THEN ASS.max_last_seen
+    END AS lastSeen,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.bookmarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_bookmarks, 0)
+    END AS bookmarkCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.fillermarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_fillermarks, 0)
+    END AS fillermarkCount,
+    -- <-- AY
+    coalesce(AC.categories, '0') AS categories
+FROM anime A
+-- AY -->
+LEFT JOIN episodestatsView AS ES
+ON A.id = ES.anime_id
+-- <-- AY
+LEFT JOIN (
+    SELECT anime_id, group_concat(category_id) AS categories
+    FROM anime_category
+    WHERE anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
+    GROUP BY anime_id
+) AS AC
+ON AC.anime_id = A.id
+-- AY -->
+LEFT JOIN animeseasonstatsView AS ASS ON A.id = ASS.state_parent_id
+-- <-- AY
+WHERE A.user_favorite_at IS NOT NULL;
+
+CREATE VIEW updatesView AS
+SELECT
+    anime.id AS animeId,
+    -- AM -->
+    anime.user_custom_title AS customAnimeTitle,
+    -- <-- AM
+    anime.remote_title AS animeTitle,
+    episode.id AS episodeId,
+    episode.remote_name AS episodeName,
+    episode.remote_scanlator AS scanlator,
+    episode.remote_url AS episodeUrl,
+    episode.user_seen AS seen,
+    episode.user_bookmark AS bookmark,
+    -- AY -->
+    episode.remote_fillermark AS fillermark,
+    -- <-- AY
+    episode.user_last_second_seen AS lastSecondSeen,
+    -- AY -->
+    episode.state_total_seconds AS totalSeconds,
+    -- <-- AY
+    anime.source_id AS sourceId,
+    anime.user_favorite_at IS NOT NULL AS favorite,
+    anime.remote_cover AS thumbnailUrl,
+    anime.state_cover_last_modified AS coverLastModified,
+    episode.remote_date_upload AS dateUpload,
+    episode.state_date_fetch AS dateFetch,
+    excluded_scanlator.scanlator AS excludedScanlator
+FROM anime JOIN episode
+ON anime.id = episode.anime_id
+LEFT JOIN excluded_scanlator
+ON anime.id = excluded_scanlator.anime_id
+AND episode.remote_scanlator = excluded_scanlator.scanlator
+WHERE user_favorite_at IS NOT NULL
+AND state_date_fetch > user_favorite_at
+ORDER BY state_date_fetch DESC;

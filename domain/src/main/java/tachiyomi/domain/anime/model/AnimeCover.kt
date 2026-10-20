@@ -1,5 +1,7 @@
 package tachiyomi.domain.anime.model
 
+import kotlin.time.Instant
+
 /**
  * Contains the required data for AnimeCoverFetcher
  */
@@ -8,7 +10,7 @@ data class AnimeCover(
     val sourceId: Long,
     val isAnimeFavorite: Boolean,
     val url: String?,
-    val lastModified: Long,
+    val lastModified: Instant?,
 )
 
 fun Anime.asAnimeCover(): AnimeCover {

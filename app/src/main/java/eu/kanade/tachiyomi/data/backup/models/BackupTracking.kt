@@ -2,6 +2,8 @@ package eu.kanade.tachiyomi.data.backup.models
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
+import mihon.core.common.extensions.toEpochMillisOrZero
+import mihon.core.common.extensions.toInstantOrNull
 import tachiyomi.domain.track.model.Track
 
 @Serializable
@@ -46,8 +48,8 @@ data class BackupTracking(
             totalEpisodes = this@BackupTracking.totalEpisodes.toLong(),
             score = this@BackupTracking.score.toDouble(),
             status = this@BackupTracking.status.toLong(),
-            startDate = this@BackupTracking.startedWatchingDate,
-            finishDate = this@BackupTracking.finishedWatchingDate,
+            startDate = this@BackupTracking.startedWatchingDate.toInstantOrNull(),
+            finishDate = this@BackupTracking.finishedWatchingDate.toInstantOrNull(),
             remoteUrl = this@BackupTracking.trackingUrl,
             private = this@BackupTracking.private,
         )
@@ -64,8 +66,8 @@ fun Track.toBackupTracking() = BackupTracking(
     totalEpisodes = totalEpisodes.toInt(),
     score = score.toFloat(),
     status = status.toInt(),
-    startedWatchingDate = startDate,
-    finishedWatchingDate = finishDate,
+    startedWatchingDate = startDate.toEpochMillisOrZero(),
+    finishedWatchingDate = finishDate.toEpochMillisOrZero(),
     trackingUrl = remoteUrl,
     private = private,
 )

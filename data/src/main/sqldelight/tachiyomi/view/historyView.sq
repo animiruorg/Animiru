@@ -41,7 +41,7 @@ coverLastModified,
 episodeNumber,
 seenAt
 FROM historyView
-WHERE historyView.seenAt > 0
+WHERE historyView.seenAt IS NOT NULL
 AND maxSeenAtEpisodeId = historyView.episodeId
 AND lower(historyView.title) LIKE ('%' || :query || '%')
 ORDER BY seenAt DESC;
@@ -64,7 +64,7 @@ JOIN anime
 ON anime.id = history.anime_id
 JOIN episode
 ON episode.id = history.episode_id
-WHERE history.seen_at > 0
+WHERE history.seen_at IS NOT NULL
 ORDER BY history.seen_at DESC
 
 LIMIT 1;

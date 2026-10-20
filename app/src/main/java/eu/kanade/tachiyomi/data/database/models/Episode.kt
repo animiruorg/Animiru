@@ -3,7 +3,9 @@
 package eu.kanade.tachiyomi.data.database.models
 
 import eu.kanade.tachiyomi.animesource.model.SEpisode
+import mihon.core.common.extensions.toInstantOrNull
 import java.io.Serializable
+import kotlin.time.Instant
 import tachiyomi.domain.episode.model.Episode as DomainEpisode
 
 interface Episode : SEpisode, Serializable {
@@ -44,11 +46,11 @@ fun Episode.toDomainEpisode(): DomainEpisode? {
         // AY -->
         totalSeconds = total_seconds,
         // <-- AY
-        dateFetch = date_fetch,
+        dateFetch = Instant.fromEpochMilliseconds(date_fetch),
         sourceOrder = source_order.toLong(),
         url = url,
         name = name,
-        dateUpload = date_upload,
+        dateUpload = date_upload.toInstantOrNull(),
         episodeNumber = episode_number.toDouble(),
         scanlator = scanlator,
         // AY -->
@@ -57,7 +59,7 @@ fun Episode.toDomainEpisode(): DomainEpisode? {
         // <-- AY
         memo = memo,
         // AM -->
-        thumbnailLastModifiedAt = 0,
+        thumbnailLastModifiedAt = null,
         // <-- AM
     )
 }

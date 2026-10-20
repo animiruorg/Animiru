@@ -168,11 +168,11 @@ import tachiyomi.source.local.image.LocalEpisodeThumbnailManager
 import tachiyomi.source.local.isLocal
 import java.io.File
 import java.io.InputStream
-import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 @AssistedInject
@@ -3178,7 +3178,7 @@ class PlayerViewModel(
     private suspend fun saveEpisodeHistory(episode: Episode) {
         if (!stateData.value.incognitoMode) {
             val episodeId = episode.id!!
-            val seenAt = Date()
+            val seenAt = Clock.System.now()
             upsertHistory.await(
                 HistoryUpdate(episodeId, seenAt),
             )

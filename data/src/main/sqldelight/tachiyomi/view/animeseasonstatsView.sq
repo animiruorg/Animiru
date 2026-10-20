@@ -6,26 +6,23 @@ SELECT
     sum(CASE WHEN season.remote_fetch_type = 1 AND
                  coalesce(ES.total, 0) = coalesce(ES.seenCount, 0)
             THEN 1 ELSE 0 END) AS fully_seen_seasons,
-    max(coalesce(ES.latestUpload, 0)) AS max_latest_upload,
-    max(coalesce(ES.fetchedAt, 0)) AS max_fetched_at,
+    max(ES.latestUpload) AS max_latest_upload,
+    max(ES.fetchedAt) AS max_fetched_at,
     max(
-        coalesce(
-            CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = season.id)
-            THEN (
-                SELECT max(history.seen_at)
-                FROM history
-                JOIN episode
-                ON episode.id = history.episode_id
-                AND NOT EXISTS (
-                    SELECT 0 FROM excluded_scanlator
-                    WHERE excluded_scanlator.anime_id != season.id
-                    AND excluded_scanlator.scanlator = episode.remote_scanlator
-                )
+        CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = season.id)
+        THEN (
+            SELECT max(history.seen_at)
+            FROM history
+            JOIN episode
+            ON episode.id = history.episode_id
+            AND NOT EXISTS (
+                SELECT 0 FROM excluded_scanlator
+                WHERE excluded_scanlator.anime_id != season.id
+                AND excluded_scanlator.scanlator = episode.remote_scanlator
             )
-            ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = season.id)
-            END,
-            0
         )
+        ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = season.id)
+        END
     ) AS max_last_seen,
     sum(coalesce(ES.bookmarkCount, 0)) AS total_bookmarks,
     sum(coalesce(ES.fillermarkCount, 0)) AS total_fillermarks

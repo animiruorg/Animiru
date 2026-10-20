@@ -13,6 +13,7 @@ import tachiyomi.data.subscribeToList
 import tachiyomi.domain.anime.model.AnimeCover
 import tachiyomi.domain.updates.model.UpdatesWithRelations
 import tachiyomi.domain.updates.repository.UpdatesRepository
+import kotlin.time.Instant
 
 @Inject
 @SingleIn(AppScope::class)
@@ -23,14 +24,14 @@ class UpdatesRepositoryImpl(
 
     override suspend fun awaitWithSeen(
         seen: Boolean,
-        after: Long,
+        after: Instant,
         limit: Long,
     ): List<UpdatesWithRelations> {
         return getUpdatesBySeenStatus(seen = seen, after = after, limit = limit).awaitAsList()
     }
 
     override fun subscribeAll(
-        after: Long,
+        after: Instant,
         limit: Long,
         unseen: Boolean?,
         started: Boolean?,
@@ -59,13 +60,13 @@ class UpdatesRepositoryImpl(
 
     override fun subscribeWithSeen(
         seen: Boolean,
-        after: Long,
+        after: Instant,
         limit: Long,
     ): Flow<List<UpdatesWithRelations>> {
         return getUpdatesBySeenStatus(seen = seen, after = after, limit = limit).subscribeToList()
     }
 
-    private fun getUpdatesBySeenStatus(seen: Boolean, after: Long, limit: Long): Query<UpdatesWithRelations> {
+    private fun getUpdatesBySeenStatus(seen: Boolean, after: Instant, limit: Long): Query<UpdatesWithRelations> {
         return if (seen) {
             database.updatesViewQueries.getSeenUpdates(
                 after = after,
@@ -104,9 +105,9 @@ class UpdatesRepositoryImpl(
         sourceId: Long,
         favorite: Boolean,
         thumbnailUrl: String?,
-        coverLastModified: Long,
-        dateUpload: Long,
-        dateFetch: Long,
+        coverLastModified: Instant?,
+        dateUpload: Instant?,
+        dateFetch: Instant,
         excludedScanlator: String?,
     ): UpdatesWithRelations = UpdatesWithRelations(
         animeId = animeId,

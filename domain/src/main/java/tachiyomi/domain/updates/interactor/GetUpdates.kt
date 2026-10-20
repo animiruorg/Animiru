@@ -11,7 +11,7 @@ class GetUpdates(
     private val repository: UpdatesRepository,
 ) {
 
-    suspend fun await(seen: Boolean, after: Long): List<UpdatesWithRelations> {
+    suspend fun await(seen: Boolean, after: Instant): List<UpdatesWithRelations> {
         return repository.awaitWithSeen(seen, after, limit = 500)
     }
 
@@ -26,7 +26,7 @@ class GetUpdates(
         excludedCategories: List<Long>,
     ): Flow<List<UpdatesWithRelations>> {
         return repository.subscribeAll(
-            instant.toEpochMilliseconds(),
+            instant,
             limit = 500,
             unseen = unseen,
             started = started,
@@ -38,7 +38,7 @@ class GetUpdates(
         )
     }
 
-    fun subscribe(seen: Boolean, after: Long): Flow<List<UpdatesWithRelations>> {
+    fun subscribe(seen: Boolean, after: Instant): Flow<List<UpdatesWithRelations>> {
         return repository.subscribeWithSeen(seen, after, limit = 500)
     }
 }

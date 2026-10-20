@@ -3,15 +3,14 @@ package tachiyomi.data
 import app.cash.sqldelight.ColumnAdapter
 import eu.kanade.tachiyomi.animesource.model.AnimeUpdateStrategy
 import eu.kanade.tachiyomi.animesource.model.FetchType
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import mihon.core.common.extensions.toByteArray
 import mihon.core.common.extensions.toJsonObject
-import java.util.Date
+import kotlin.time.Instant
 
-object DateColumnAdapter : ColumnAdapter<Date, Long> {
-    override fun decode(databaseValue: Long): Date = Date(databaseValue)
-    override fun encode(value: Date): Long = value.time
+object InstantColumnAdapter : ColumnAdapter<Instant, Long> {
+    override fun decode(databaseValue: Long): Instant = Instant.fromEpochMilliseconds(databaseValue)
+    override fun encode(value: Instant): Long = value.toEpochMilliseconds()
 }
 
 private const val LIST_OF_STRINGS_SEPARATOR = ", "

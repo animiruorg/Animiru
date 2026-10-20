@@ -17,6 +17,7 @@ import tachiyomi.domain.season.interactor.ShouldUpdateDbSeason
 import tachiyomi.domain.season.service.SeasonRecognition
 import tachiyomi.source.local.isLocal
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Inject
 class SyncSeasonsWithSource(
@@ -30,7 +31,7 @@ class SyncSeasonsWithSource(
         anime: Anime,
         source: AnimeSource,
         manualFetch: Boolean = false,
-        fetchWindow: Pair<Long, Long> = Pair(0, 0),
+        fetchWindow: ClosedRange<Instant>? = null,
     ): List<Anime> {
         if (rawSourceSeasons.isEmpty() && !source.isLocal()) {
             throw NoSeasonsException()
@@ -38,7 +39,7 @@ class SyncSeasonsWithSource(
 
         val timeZone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(timeZone)
-        val nowMillis = now.toInstant(timeZone).toEpochMilliseconds()
+        val nowInstant = now.toInstant(timeZone)
 
         val sourceSeasons = rawSourceSeasons
             .distinctBy { it.url }
@@ -104,7 +105,9 @@ class SyncSeasonsWithSource(
 
         // Return if there's nothing to add, delete, or update to avoid unnecessary db transactions.
         if (newSeasons.isEmpty() && removedSeasons.isEmpty() && updatedSeasons.isEmpty()) {
-            if (manualFetch || anime.fetchInterval == 0 || anime.nextUpdate < fetchWindow.first) {
+            val isNextUpdateBeforeWindow = fetchWindow != null &&
+                anime.nextUpdate.let { it == null || it < fetchWindow.start }
+            if (manualFetch || anime.fetchInterval == 0 || isNextUpdateBeforeWindow) {
                 updateAnime.awaitUpdateFetchInterval(
                     anime,
                     timeZone,

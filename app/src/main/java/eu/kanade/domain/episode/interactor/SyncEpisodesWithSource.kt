@@ -23,9 +23,10 @@ import tachiyomi.domain.episode.repository.EpisodeRepository
 import tachiyomi.domain.episode.service.EpisodeRecognition
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.source.local.isLocal
-import java.lang.Long.max
 import java.util.TreeSet
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 
 @Inject
 class SyncEpisodesWithSource(
@@ -54,7 +55,7 @@ class SyncEpisodesWithSource(
         anime: Anime,
         source: AnimeSource,
         manualFetch: Boolean = false,
-        fetchWindow: Pair<Long, Long> = Pair(0, 0),
+        fetchWindow: ClosedRange<Instant>? = null,
     ): List<Episode> {
         if (sourceEpisodes.isEmpty() && !source.isLocal()) {
             throw NoEpisodesException()
@@ -62,7 +63,7 @@ class SyncEpisodesWithSource(
 
         val timeZone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(timeZone)
-        val nowMillis = now.toInstant(timeZone).toEpochMilliseconds()
+        val nowInstant = now.toInstant(timeZone)
 
         val dbEpisodes = episodeRepository.getEpisodeByAnimeId(anime.id)
         val dbEpisodesByUrl = dbEpisodes.associateBy { it.url }
@@ -73,7 +74,7 @@ class SyncEpisodesWithSource(
 
         // Used to not set upload date of older episodes
         // to a higher value than newer episodes
-        var maxSeenUploadDate = 0L
+        var maxSeenUploadDate: Instant? = null
 
         for (sourceEpisode in sourceEpisodes) {
             var episode = sourceEpisode
@@ -95,11 +96,10 @@ class SyncEpisodesWithSource(
             val dbEpisode = dbEpisodesByUrl[episode.url]
 
             if (dbEpisode == null) {
-                val toAddEpisode = if (episode.dateUpload == 0L) {
-                    val altDateUpload = if (maxSeenUploadDate == 0L) nowMillis else maxSeenUploadDate
-                    episode.copy(dateUpload = altDateUpload)
+                val toAddEpisode = if (episode.dateUpload == null) {
+                    episode.copy(dateUpload = maxSeenUploadDate ?: nowInstant)
                 } else {
-                    maxSeenUploadDate = max(maxSeenUploadDate, sourceEpisode.dateUpload)
+                    maxSeenUploadDate = listOfNotNull(maxSeenUploadDate, sourceEpisode.dateUpload).maxOrNull()
                     episode
                 }
                 newEpisodes.add(toAddEpisode)
@@ -127,7 +127,7 @@ class SyncEpisodesWithSource(
                             episodeNumber = episode.episodeNumber,
                             scanlator = episode.scanlator,
                             sourceOrder = episode.sourceOrder,
-                            dateUpload = episode.dateUpload.takeIf { it != 0L },
+                            dateUpload = episode.dateUpload,
                             memo = episode.memo,
                             // AM -->
                             fillerMark = if (episode.fillermark) episode.fillermark else sourceEpisode.fillermark,
@@ -150,7 +150,9 @@ class SyncEpisodesWithSource(
 
         // Return if there's nothing to add, delete, or update to avoid unnecessary db transactions.
         if (newEpisodes.isEmpty() && removedEpisodes.isEmpty() && updatedEpisodes.isEmpty()) {
-            if (manualFetch || anime.fetchInterval == 0 || anime.nextUpdate < fetchWindow.first) {
+            val isNextUpdateBeforeWindow = fetchWindow != null &&
+                anime.nextUpdate.let { it == null || it < fetchWindow.start }
+            if (manualFetch || anime.fetchInterval == 0 || isNextUpdateBeforeWindow) {
                 updateAnime.awaitUpdateFetchInterval(
                     anime,
                     timeZone,
@@ -189,7 +191,7 @@ class SyncEpisodesWithSource(
         // Sources MUST return the episodes from most to less recent, which is common.
         var itemCount = newEpisodes.size
         val toAdd = newEpisodes.map { toAddItem ->
-            var episode = toAddItem.copy(dateFetch = nowMillis + itemCount--)
+            var episode = toAddItem.copy(dateFetch = nowInstant + (itemCount--).milliseconds)
 
             if (episode.episodeNumber in seenEpisodeNumbers && markDuplicateAsSeen) {
                 changedOrDuplicateSeenUrls.add(episode.url)

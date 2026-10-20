@@ -405,10 +405,10 @@ class LibraryViewModel(
                     sortAlphabetically(anime1, anime2)
                 }
                 LibrarySort.Type.LastSeen -> {
-                    anime1.libraryAnime.lastSeen.compareTo(anime2.libraryAnime.lastSeen)
+                    compareValues(anime1.libraryAnime.lastSeen, anime2.libraryAnime.lastSeen)
                 }
                 LibrarySort.Type.LastUpdate -> {
-                    anime1.libraryAnime.anime.lastUpdate.compareTo(anime2.libraryAnime.anime.lastUpdate)
+                    compareValues(anime1.libraryAnime.anime.lastUpdate, anime2.libraryAnime.anime.lastUpdate)
                 }
                 LibrarySort.Type.UnseenCount -> when {
                     // Ensure unseen content comes first
@@ -423,10 +423,10 @@ class LibraryViewModel(
                     // <-- AY
                 }
                 LibrarySort.Type.LatestEpisode -> {
-                    anime1.libraryAnime.latestUpload.compareTo(anime2.libraryAnime.latestUpload)
+                    compareValues(anime1.libraryAnime.latestUpload, anime2.libraryAnime.latestUpload)
                 }
                 LibrarySort.Type.EpisodeFetchDate -> {
-                    anime1.libraryAnime.episodeFetchedAt.compareTo(anime2.libraryAnime.episodeFetchedAt)
+                    compareValues(anime1.libraryAnime.episodeFetchedAt, anime2.libraryAnime.episodeFetchedAt)
                 }
                 LibrarySort.Type.DateAdded -> {
                     compareValues(anime1.libraryAnime.anime.favoriteAt, anime2.libraryAnime.anime.favoriteAt)

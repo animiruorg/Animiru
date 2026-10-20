@@ -11,17 +11,17 @@ SELECT
         WHEN 0 THEN coalesce(ASS.fully_seen_seasons, 0)
     END AS seenCount,
     CASE A.remote_fetch_type
-        WHEN 1 THEN coalesce(ES.latestUpload, 0)
-        WHEN 0 THEN coalesce(ASS.max_latest_upload, 0)
+        WHEN 1 THEN ES.latestUpload
+        WHEN 0 THEN ASS.max_latest_upload
     END AS latestUpload,
     CASE A.remote_fetch_type
-        WHEN 1 THEN coalesce(ES.fetchedAt, 0)
-        WHEN 0 THEN coalesce(ASS.max_fetched_at, 0)
+        WHEN 1 THEN ES.fetchedAt
+        WHEN 0 THEN ASS.max_fetched_at
     END AS episodeFetchedAt,
     CASE A.remote_fetch_type
         -- Joining history to every episode is the slowest part of the query, and only entries with excluded
         -- scanlators need the episodes to leave theirs out
-        WHEN 1 THEN coalesce(
+        WHEN 1 THEN
             CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = A.id)
             THEN (
                 SELECT max(history.seen_at)
@@ -36,10 +36,8 @@ SELECT
                 )
             )
             ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = A.id)
-            END,
-            0
-        )
-        WHEN 0 THEN coalesce(ASS.max_last_seen, 0)
+            END
+        WHEN 0 THEN ASS.max_last_seen
     END AS lastSeen,
     CASE A.remote_fetch_type
         WHEN 1 THEN coalesce(ES.bookmarkCount, 0)

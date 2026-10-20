@@ -1,4 +1,5 @@
 import kotlin.Boolean;
+import kotlin.time.Instant;
 
 CREATE TABLE anime_track(
     id INTEGER NOT NULL PRIMARY KEY,
@@ -12,8 +13,8 @@ CREATE TABLE anime_track(
     total_episodes INTEGER NOT NULL,
     status INTEGER NOT NULL,
     score REAL NOT NULL,
-    start_date INTEGER NOT NULL,
-    finish_date INTEGER NOT NULL,
+    start_date INTEGER AS Instant,
+    finish_date INTEGER AS Instant,
     private INTEGER AS Boolean NOT NULL DEFAULT 0,
     UNIQUE (anime_id, tracker_id),
     FOREIGN KEY(anime_id) REFERENCES anime (id)
