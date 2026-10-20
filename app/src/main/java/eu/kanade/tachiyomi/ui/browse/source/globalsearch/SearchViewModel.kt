@@ -27,6 +27,7 @@ import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.source.local.isLocal
 
 abstract class SearchViewModel(
     initialState: State = State(),
@@ -88,7 +89,7 @@ abstract class SearchViewModel(
 
     open suspend fun getEnabledSources(): List<AnimeSource> {
         return sourceManager.getAll()
-            .filter { it.lang in enabledLanguages && "${it.id}" !in disabledSources }
+            .filter { (it.lang in enabledLanguages || it.isLocal()) && "${it.id}" !in disabledSources }
             .sortedWith(
                 compareBy(
                     { "${it.id}" !in pinnedSources },
