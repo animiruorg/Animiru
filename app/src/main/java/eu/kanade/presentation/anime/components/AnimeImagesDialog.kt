@@ -163,7 +163,7 @@ fun AnimeImagesDialog(
                                             }
                                             // AM -->
                                             (isCover && isCustomCover) || (!isCover && isCustomBackground) -> {
-                                            // <-- AM
+                                                // <-- AM
                                                 expanded = true
                                             }
                                             else -> onEditClick(EditCoverAction.EDIT)
