@@ -868,6 +868,7 @@ class PlayerViewModel(
 
     private suspend fun setupEpisodeList(anime: Anime) {
         val episodes = getEpisodesByAnimeId.await(anime.id)
+        val dbEpisodes = episodes
             .sortedWith(getEpisodeSort(anime, sortDescending = false))
             .run {
                 if (basePreferences.downloadedOnly.get()) {
@@ -878,12 +879,12 @@ class PlayerViewModel(
             }
             .map { it.toDbEpisode() }
 
-        val selectedEpisode = episodes.find { it.id == episodeId }
+        val selectedEpisode = dbEpisodes.find { it.id == episodeId }
             ?: error("Requested episode of id $episodeId not found in episode list")
 
         val source = stateData.value.currentSource ?: return
 
-        val filtered = episodes.filterNot {
+        val filtered = dbEpisodes.filterNot {
             (anime.unseenFilterRaw == Anime.EPISODE_SHOW_SEEN && !it.seen) ||
                 (anime.unseenFilterRaw == Anime.EPISODE_SHOW_UNSEEN && it.seen) ||
                 (
@@ -932,7 +933,12 @@ class PlayerViewModel(
             filtered += listOf(selectedEpisode)
         }
 
-        updateStateData { it.copy(currentPlaylist = filtered.toList()) }
+        updateStateData {
+            it.copy(
+                currentPlaylist = filtered.toList(),
+                unfilteredEpisodeList = episodes,
+            )
+        }
     }
 
     private fun isEpisodeOnline(episode: Episode): Boolean? {
@@ -3247,21 +3253,34 @@ class PlayerViewModel(
         // If episode is completely seen no need to download it
         episodeToDownload = null
 
-        // Check if deleting option is enabled and episode exists
-        if (removeAfterSeenSlots != -1 && episodeToDelete != null) {
-            enqueueDeleteSeenEpisodes(episodeToDelete)
+        if (episodeToDelete == null || !episodeToDelete.seen) return
+
+        val markDuplicateAsSeen = libraryPreferences.markDuplicateSeenEpisodeAsSeen.get()
+            .contains(LibraryPreferences.MARK_DUPLICATE_EPISODE_SEEN_EXISTING)
+        val duplicateEpisodes = if (markDuplicateAsSeen) {
+            stateData.value.unfilteredEpisodeList
+                .filter {
+                    it.id != episodeToDelete.id &&
+                        it.isRecognizedNumber &&
+                        it.episodeNumber.toFloat() == episodeToDelete.episode_number
+                }
+                // The list is loaded once, before these were marked seen along with episodeToDelete
+                .map { it.copy(seen = true) }
+        } else {
+            emptyList()
         }
+        enqueueDeleteEpisodes(listOf(episodeToDelete.toDomainEpisode()!!) + duplicateEpisodes)
     }
 
     /**
-     * Enqueues this [episode] to be deleted when [deletePendingEpisodes] is called. The download
-     * manager handles persisting it across process deaths.
+     * Enqueues these [episodes] to be deleted when [deletePendingEpisodes] is called. The download
+     * manager handles persisting them across process deaths.
      */
-    private fun enqueueDeleteSeenEpisodes(episode: Episode) {
-        if (!episode.seen) return
+    private fun enqueueDeleteEpisodes(episodes: List<tachiyomi.domain.episode.model.Episode>) {
         val anime = stateData.value.currentAnime ?: return
+
         viewModelScope.launchNonCancellable {
-            downloadManager.enqueueEpisodesToDelete(listOf(episode.toDomainEpisode()!!), anime)
+            downloadManager.enqueueEpisodesToDelete(episodes, anime)
         }
     }
 
@@ -3587,6 +3606,7 @@ class PlayerViewModel(
         val hasTrackers: Boolean = false,
         val incognitoMode: Boolean = false,
         val currentPlaylist: List<Episode> = emptyList(),
+        val unfilteredEpisodeList: List<tachiyomi.domain.episode.model.Episode> = emptyList(),
         val currentPlaylistIndex: Int = -1,
         val hasPreviousEpisode: Boolean = false,
         val hasNextEpisode: Boolean = false,
