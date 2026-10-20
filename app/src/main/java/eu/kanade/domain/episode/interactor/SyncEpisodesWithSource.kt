@@ -143,6 +143,11 @@ class SyncEpisodesWithSource(
 
         val removedEpisodes = dbEpisodes.filterNot { it.url in sourceUrls }
 
+        // The source no longer lists these, so their queued downloads could only fail
+        removedEpisodes.mapNotNull { downloadManager.getQueuedDownloadOrNull(it.id) }
+            .takeIf { it.isNotEmpty() }
+            ?.let(downloadManager::cancelQueuedDownloads)
+
         // Return if there's nothing to add, delete, or update to avoid unnecessary db transactions.
         if (newEpisodes.isEmpty() && removedEpisodes.isEmpty() && updatedEpisodes.isEmpty()) {
             if (manualFetch || anime.fetchInterval == 0 || anime.nextUpdate < fetchWindow.first) {
