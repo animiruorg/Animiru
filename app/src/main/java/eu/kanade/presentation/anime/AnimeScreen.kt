@@ -633,11 +633,19 @@ private fun AnimeScreenSmallImpl(
                         span = { GridItemSpan(maxLineSpan) },
                         // <-- AY
                     ) {
-                        val missingEpisodeCount = remember(episodes) {
+                        val missingEpisodeCount = remember(episodes, state.hideMissingEpisodes) {
+                            if (state.hideMissingEpisodes) {
+                                return@remember 0
+                            }
+
                             episodes.map { it.episode.episodeNumber }.missingEntriesCount()
                         }
                         // AY -->
-                        val missingSeasonsCount = remember(seasons) {
+                        val missingSeasonsCount = remember(seasons, state.hideMissingEpisodes) {
+                            if (state.hideMissingEpisodes) {
+                                return@remember 0
+                            }
+
                             seasons.map { it.seasonAnime.anime.seasonNumber }.missingEntriesCount()
                         }
                         ItemHeader(
@@ -1016,11 +1024,19 @@ fun AnimeScreenLargeImpl(
                                 span = { GridItemSpan(maxLineSpan) },
                                 // <-- AY
                             ) {
-                                val missingEpisodeCount = remember(episodes) {
+                                val missingEpisodeCount = remember(episodes, state.hideMissingEpisodes) {
+                                    if (state.hideMissingEpisodes) {
+                                        return@remember 0
+                                    }
+
                                     episodes.map { it.episode.episodeNumber }.missingEntriesCount()
                                 }
                                 // AY -->
-                                val missingSeasonsCount = remember(seasons) {
+                                val missingSeasonsCount = remember(seasons, state.hideMissingEpisodes) {
+                                    if (state.hideMissingEpisodes) {
+                                        return@remember 0
+                                    }
+
                                     seasons.map { it.seasonAnime.anime.seasonNumber }.missingEntriesCount()
                                 }
                                 ItemHeader(
