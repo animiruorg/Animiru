@@ -88,9 +88,11 @@ object DatabaseBindings {
             episodeAdapter = Episode.Adapter(
                 remote_date_uploadAdapter = InstantColumnAdapter,
                 remote_memoAdapter = MemoColumnAdapter,
+                user_last_second_seenAdapter = IntColumnAdapter,
                 state_date_fetchAdapter = InstantColumnAdapter,
                 // AM -->
                 state_thumbnail_last_modified_atAdapter = InstantColumnAdapter,
+                state_total_secondsAdapter = IntColumnAdapter,
                 // <-- AM
             ),
             anime_trackAdapter = Anime_track.Adapter(

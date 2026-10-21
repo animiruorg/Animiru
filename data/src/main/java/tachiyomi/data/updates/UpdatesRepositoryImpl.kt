@@ -98,9 +98,9 @@ class UpdatesRepositoryImpl(
         // AY -->
         fillermark: Boolean,
         // <-- AY
-        lastSecondSeen: Long,
+        lastSecondSeen: Int,
         // AY -->
-        totalSeconds: Long,
+        totalSeconds: Int,
         // <-- AY
         sourceId: Long,
         favorite: Boolean,

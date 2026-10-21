@@ -127,8 +127,8 @@ internal fun LazyListScope.updatesUiItems(
                             // AY -->
                             stringResource(
                                 AYMR.strings.episode_progress,
-                                formatProgress(it),
-                                formatProgress(updatesItem.update.totalSeconds),
+                                formatProgress(it.toLong()),
+                                formatProgress(updatesItem.update.totalSeconds.toLong()),
                             )
                             // <-- AY
                         },

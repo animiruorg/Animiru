@@ -55,9 +55,10 @@ class BackupEpisode(
             // AY -->
             fillermark = this@BackupEpisode.fillermark,
             // <-- AY
-            lastSecondSeen = this@BackupEpisode.lastSecondSeen,
+            // Only untrusted source of this value, and a truncating narrow can land negative
+            lastSecondSeen = this@BackupEpisode.lastSecondSeen.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
             // AY -->
-            totalSeconds = this@BackupEpisode.totalSeconds,
+            totalSeconds = this@BackupEpisode.totalSeconds.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
             // <-- AY
             dateFetch = Instant.fromEpochMilliseconds(this@BackupEpisode.dateFetch),
             dateUpload = this@BackupEpisode.dateUpload.toInstantOrNull(),
@@ -81,9 +82,9 @@ fun Episode.toBackupEpisode() = BackupEpisode(
     // AY -->
     fillermark = fillermark,
     // <-- AY
-    lastSecondSeen = lastSecondSeen,
+    lastSecondSeen = lastSecondSeen.toLong(),
     // AY -->
-    totalSeconds = totalSeconds,
+    totalSeconds = totalSeconds.toLong(),
     // <-- AY
     dateFetch = dateFetch.toEpochMilliseconds(),
     dateUpload = dateUpload.toEpochMillisOrZero(),

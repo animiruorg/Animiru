@@ -12,9 +12,9 @@ data class Episode(
     // AY -->
     val fillermark: Boolean,
     // <-- AY
-    val lastSecondSeen: Long,
+    val lastSecondSeen: Int,
     // AY -->
-    val totalSeconds: Long,
+    val totalSeconds: Int,
     // <-- AY
     val dateFetch: Instant,
     val sourceOrder: Long,

@@ -1173,7 +1173,7 @@ private fun SharedAnimeBottomActionMenu(
         }.takeIf { selected.fastAny { !it.episode.seen } },
         onMarkAsUnseenClicked = {
             onMultiMarkAsSeenClicked(selected.fastMap { it.episode }, false)
-        }.takeIf { selected.fastAny { it.episode.seen || it.episode.lastSecondSeen > 0L } },
+        }.takeIf { selected.fastAny { it.episode.seen || it.episode.lastSecondSeen > 0 } },
         onMarkPreviousAsSeenClicked = {
             onMarkPreviousAsSeenClicked(selected[0].episode)
         }.takeIf { selected.size == 1 },
@@ -1320,8 +1320,8 @@ private fun LazyGridScope.sharedEpisodeItems(
                             // AY -->
                             stringResource(
                                 AYMR.strings.episode_progress,
-                                formatTime(it),
-                                formatTime(item.episode.totalSeconds),
+                                formatTime(it.toLong()),
+                                formatTime(item.episode.totalSeconds.toLong()),
                             )
                             // <-- AY
                         },

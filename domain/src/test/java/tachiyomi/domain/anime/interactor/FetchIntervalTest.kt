@@ -141,7 +141,6 @@ class FetchIntervalTest {
         fetchInterval.calculateInterval(episodes, testTimeZone) shouldBe 2
     }
 
-
     @Test
     fun `follows releases on a few fixed weekdays`() = runTest {
         val mondaysAndThursdays = generateSequence(LocalDate.parse("2019-12-02")) { it.plus(DatePeriod(days = 1)) }

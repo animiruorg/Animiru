@@ -187,11 +187,11 @@ class EpisodeRepositoryImpl(
         remoteMemo: JsonObject,
         userSeen: Boolean,
         userBookmark: Boolean,
-        userLastSecondSeen: Long,
+        userLastSecondSeen: Int,
         stateDateFetch: Instant,
         // AM -->
         stateThumbnailLastModifiedAt: Instant?,
-        stateTotalSeconds: Long,
+        stateTotalSeconds: Int,
         // <-- AM
     ): Episode = Episode(
         id = id,

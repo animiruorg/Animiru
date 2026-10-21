@@ -767,7 +767,7 @@ class PlayerActivity : BaseActivity() {
                             episodeNumber = if (connectionPreferences.discordShowEpisodeTitle.get()) {
                                 episode.name
                             } else {
-                                episode.episode_number.toString()
+                                episode.episodeNumber.toString()
                             },
                             startTimestamp = startTimestamp.toEpochMilliseconds().takeUnless { paused },
                             endTimestamp = endTimestamp.toEpochMilliseconds().takeUnless { paused },

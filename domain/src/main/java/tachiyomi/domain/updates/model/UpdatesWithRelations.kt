@@ -18,9 +18,9 @@ data class UpdatesWithRelations(
     // AY -->
     val fillermark: Boolean,
     // <-- AY
-    val lastSecondSeen: Long,
+    val lastSecondSeen: Int,
     // AY -->
-    val totalSeconds: Long,
+    val totalSeconds: Int,
     // <-- AY
     val sourceId: Long,
     val dateFetch: Instant,

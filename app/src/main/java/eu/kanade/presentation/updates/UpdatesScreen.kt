@@ -214,7 +214,7 @@ fun UpdatesBottomBar(
         }.takeIf { selected.fastAny { !it.update.seen } },
         onMarkAsUnseenClicked = {
             onMultiMarkAsSeenClicked(selected, false)
-        }.takeIf { selected.fastAny { it.update.seen || it.update.lastSecondSeen > 0L } },
+        }.takeIf { selected.fastAny { it.update.seen || it.update.lastSecondSeen > 0 } },
         onDownloadClicked = {
             onDownloadEpisode(selected, EpisodeDownloadAction.START)
         }.takeIf {

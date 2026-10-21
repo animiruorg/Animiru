@@ -179,7 +179,6 @@ class FetchInterval(
         return latestDate.plus(DatePeriod(days = (cycle + 1) * interval)).atStartOfDayIn(timeZone)
     }
 
-
     private fun backOff(interval: Int, daysSinceRelease: Int): Int {
         var backedOff = interval
         while (backedOff < MAX_INTERVAL && daysSinceRelease > backedOff * HIATUS_CYCLES) {

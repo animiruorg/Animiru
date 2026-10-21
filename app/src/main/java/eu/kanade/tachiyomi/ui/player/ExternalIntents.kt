@@ -213,12 +213,12 @@ class ExternalIntents(
     /**
      * Returns the second to start the external player at.
      */
-    private fun getLastSecondSeen(): Long {
+    private fun getLastSecondSeen(): Int {
         val preserveWatchPos = playerPreferences.preserveWatchingPosition.get()
         val isEpisodeWatched = episode.lastSecondSeen == episode.totalSeconds
 
         return if (episode.seen && (!preserveWatchPos || (preserveWatchPos && isEpisodeWatched))) {
-            1L
+            1
         } else {
             episode.lastSecondSeen
         }
@@ -463,7 +463,12 @@ class ExternalIntents(
                     currentExtEpisode.totalSeconds,
                 )
             } else {
-                saveEpisodeProgress(currentExtEpisode, anime, currentPosition, duration)
+                saveEpisodeProgress(
+                    currentExtEpisode,
+                    anime,
+                    currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
+                    duration.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
+                )
             }
             saveEpisodeHistory(currentExtEpisode)
         }
@@ -493,8 +498,8 @@ class ExternalIntents(
     private suspend fun saveEpisodeProgress(
         currentEpisode: Episode?,
         anime: Anime,
-        lastSecondSeen: Long,
-        totalSeconds: Long,
+        lastSecondSeen: Int,
+        totalSeconds: Int,
     ) {
         if (basePreferences.incognitoMode.get()) return
         val currEp = currentEpisode ?: return
