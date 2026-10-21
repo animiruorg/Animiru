@@ -41,8 +41,12 @@ import eu.kanade.tachiyomi.data.coil.AnimeImageFetcher
 import eu.kanade.tachiyomi.data.coil.AnimeKeyer
 import eu.kanade.tachiyomi.data.coil.BufferedSourceFetcher
 import eu.kanade.tachiyomi.data.coil.CoverRequestInterceptor
+import eu.kanade.tachiyomi.data.coil.ExtensionIconFetcher
+import eu.kanade.tachiyomi.data.coil.InstalledExtensionIconKeyer
+import eu.kanade.tachiyomi.data.coil.InstalledSourceIconKeyer
 import eu.kanade.tachiyomi.data.connection.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.extension.ExtensionManager
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.NetworkPreferences
 import eu.kanade.tachiyomi.ui.base.delegate.SecureActivityDelegate
@@ -100,6 +104,8 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     @Inject private lateinit var networkHelper: Lazy<NetworkHelper>
 
     @Inject private lateinit var sourceManager: Lazy<SourceManager>
+
+    @Inject private lateinit var extensionManager: Lazy<ExtensionManager>
 
     @Inject private lateinit var widgetManager: WidgetManager
 
@@ -237,12 +243,16 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 add(BufferedSourceFetcher.Factory())
                 add(AnimeImageFetcher.AnimeCoverFactory(callFactoryLazy, coverCache, sourceManager))
                 add(AnimeImageFetcher.AnimeFactory(callFactoryLazy, coverCache, backgroundCache, sourceManager))
+                add(ExtensionIconFetcher.ExtensionFactory(context))
+                add(ExtensionIconFetcher.SourceFactory(context, extensionManager))
                 // AM -->
                 add(EpisodeThumbnailFetcher.EpisodeFactory(callFactoryLazy, thumbnailCache, sourceManager))
                 // <-- AM
                 // Keyer
                 add(AnimeCoverKeyer(coverCache))
                 add(AnimeKeyer())
+                add(InstalledExtensionIconKeyer())
+                add(InstalledSourceIconKeyer())
                 // AM -->
                 add(EpisodeThumbnailKeyer())
                 // <-- AM

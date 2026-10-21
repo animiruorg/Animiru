@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.extension.model
 
-import android.graphics.drawable.Drawable
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import mihon.domain.extension.model.ContentWarning
 import mihon.domain.extension.model.ExtensionStore
@@ -105,7 +104,6 @@ sealed interface Extension {
         override val signatures: List<String>,
         val pkgFactory: String?,
         val sources: List<AnimeSource>,
-        val icon: Drawable?,
         override val hasUpdate: Boolean = false,
         val isObsolete: Boolean = false,
         override val store: ExtensionStore? = null,
