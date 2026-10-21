@@ -45,9 +45,10 @@ import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
-import tachiyomi.core.common.util.lang.launchIO
+import kotlinx.coroutines.launch
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
@@ -207,7 +208,7 @@ data object BrowseTab : Tab {
         LaunchedEffect(Unit) {
             // AM (DISCORD_RPC) -->
             with(DiscordRPCService) {
-                discordScope.launchIO { setScreen(context.applicationContext, DiscordScreen.BROWSE) }
+                discordScope.launch(Dispatchers.IO) { setScreen(context.applicationContext, DiscordScreen.BROWSE) }
             }
             // <-- AM (DISCORD_RPC)
             (context as? MainActivity)?.ready = true

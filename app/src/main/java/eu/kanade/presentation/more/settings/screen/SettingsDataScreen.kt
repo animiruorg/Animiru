@@ -80,15 +80,13 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.app.di.appGraph
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Help
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.storage.displayablePath
-import tachiyomi.core.common.util.lang.launchNonCancellable
-import tachiyomi.core.common.util.lang.withIOContext
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.backup.service.BackupPreferences
@@ -145,17 +143,13 @@ object SettingsDataScreen : SearchableSettings {
                 canDelete = canDelete,
                 onDelete = {
                     if (it.isEmpty()) return@getDataGroup
-                    scope.launchNonCancellable {
+                    scope.launch {
                         try {
-                            viewModel.delete(it)
-                            withUIContext {
-                                context.toast(context.stringResource(MR.strings.cache_deleted, it.size))
-                            }
+                            withContext(Dispatchers.IO) { viewModel.delete(it) }
+                            context.toast(context.stringResource(MR.strings.cache_deleted, it.size))
                         } catch (e: Throwable) {
                             logcat(LogPriority.ERROR, e)
-                            withUIContext {
-                                context.toast(MR.strings.cache_delete_error)
-                            }
+                            context.toast(MR.strings.cache_delete_error)
                         }
                     }
                 },
@@ -238,6 +232,7 @@ object SettingsDataScreen : SearchableSettings {
     private fun getBackupAndRestoreGroup(backupPreferences: BackupPreferences): Preference.PreferenceGroup {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
+        val scope = rememberCoroutineScope()
 
         val lastAutoBackup by backupPreferences.lastAutoBackupTimestamp.collectAsState()
 
@@ -288,13 +283,15 @@ object SettingsDataScreen : SearchableSettings {
                                     modifier = Modifier.fillMaxHeight(),
                                     checked = false,
                                     onCheckedChange = {
-                                        if (!BackupRestoreWorker.isRunning(context.workManager)) {
-                                            if (DeviceUtil.isMiui && DeviceUtil.isMiuiOptimizationDisabled()) {
-                                                context.toast(MR.strings.restore_miui_warning)
+                                        scope.launch {
+                                            if (!BackupRestoreWorker.isRunning(context.workManager)) {
+                                                if (DeviceUtil.isMiui && DeviceUtil.isMiuiOptimizationDisabled()) {
+                                                    context.toast(MR.strings.restore_miui_warning)
+                                                }
+                                                chooseBackup.launch(arrayOf("*/*"))
+                                            } else {
+                                                context.toast(MR.strings.restore_in_progress)
                                             }
-                                            chooseBackup.launch(arrayOf("*/*"))
-                                        } else {
-                                            context.toast(MR.strings.restore_in_progress)
                                         }
                                     },
                                     shape = SegmentedButtonDefaults.itemShape(1, 2),
@@ -554,7 +551,7 @@ class SettingsStorageViewModel(
         .onStart { emit(Unit) }
         .mapLatest {
             try {
-                withIOContext {
+                withContext(Dispatchers.IO) {
                     getDownloadCacheDir()
                         .listFiles()!!
                         .mapNotNull { it.name }

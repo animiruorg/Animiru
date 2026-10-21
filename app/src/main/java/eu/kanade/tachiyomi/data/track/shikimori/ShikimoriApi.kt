@@ -17,6 +17,7 @@ import eu.kanade.tachiyomi.network.dataOrElse
 import eu.kanade.tachiyomi.network.jsonMime
 import eu.kanade.tachiyomi.network.parseAs
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -28,7 +29,6 @@ import mihon.graphql.shikimori.ShikimoriSearchAnimeQuery
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 class ShikimoriApi(
@@ -51,7 +51,7 @@ class ShikimoriApi(
     }
 
     suspend fun addLibAnime(track: Track, userId: String): Track {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             with(json) {
                 val payload = buildJsonObject {
                     putJsonObject("user_rate") {
@@ -80,7 +80,7 @@ class ShikimoriApi(
     }
 
     suspend fun updateLibAnime(track: Track): Track {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val payload = buildJsonObject {
                 putJsonObject("user_rate") {
                     put("episodes", track.last_episode_seen.toInt())
@@ -107,10 +107,10 @@ class ShikimoriApi(
     }
 
     suspend fun deleteLibAnime(track: DomainTrack) {
-        withIOContext {
+        withContext(Dispatchers.IO) {
             authClient
                 .newCall(DELETE("$API_URL/v2/user_rates/${track.libraryId}"))
-                .awaitSuccess()
+                .awaitSuccess().close()
         }
     }
 
@@ -190,7 +190,7 @@ class ShikimoriApi(
     }
 
     suspend fun accessToken(code: String): SMOAuth {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             with(json) {
                 client.newCall(accessTokenRequest(code))
                     .awaitSuccess()

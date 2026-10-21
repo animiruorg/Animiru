@@ -75,11 +75,12 @@ import eu.kanade.tachiyomi.ui.anime.AnimeSeasonItem
 import eu.kanade.tachiyomi.ui.anime.AnimeViewModel
 import eu.kanade.tachiyomi.ui.anime.EpisodeList
 import eu.kanade.tachiyomi.util.system.copyToClipboard
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import mihon.app.di.appGraph
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.roundedfilled.PlayArrow
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.service.missingEntriesCount
@@ -1289,7 +1290,7 @@ private fun LazyGridScope.sharedEpisodeItems(
                 val isEpisodeDownloaded = item.downloadState == Download.State.DOWNLOADED
                 if (isEpisodeDownloaded && showFileSize && fileSizeAsync == null) {
                     LaunchedEffect(item, Unit) {
-                        fileSizeAsync = withIOContext {
+                        fileSizeAsync = withContext(Dispatchers.IO) {
                             downloadProvider.getEpisodeFileSize(
                                 item.episode.name,
                                 item.episode.url,

@@ -12,6 +12,9 @@ import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import mihon.core.metro.AppCoroutineScope
 import mihon.domain.migration.models.MigrationFlag
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
 import tachiyomi.domain.anime.model.Anime
@@ -28,6 +31,7 @@ import kotlin.time.Clock
 
 @Inject
 class MigrateAnimeUseCase(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val sourcePreferences: SourcePreferences,
     private val trackerManager: TrackerManager,
     private val sourceManager: SourceManager,
@@ -126,21 +130,24 @@ class MigrateAnimeUseCase(
                 current.fetchType == FetchType.Episodes
             ) {
                 // <-- AY
-                downloadManager.deleteAnime(current, currentSource)
+                scope.launch { downloadManager.deleteAnime(current, currentSource) }
             }
 
             // Update custom cover (recheck if custom cover exists)
             if (MigrationFlag.CUSTOM_COVER in flags && current.hasCustomCover()) {
-                coverCache.setCustomCoverToCache(target, coverCache.getCustomCoverFile(current.id).inputStream())
+                coverCache.getCustomCoverFile(current.id).inputStream().use {
+                    coverCache.setCustomCoverToCache(target, it)
+                }
             }
 
+            // AM -->
             // Update custom background (recheck if custom background exists)
             if (MigrationFlag.CUSTOM_BACKGROUND in flags && current.hasCustomBackground()) {
-                backgroundCache.setCustomBackgroundToCache(
-                    target,
-                    backgroundCache.getCustomBackgroundFile(current.id).inputStream(),
-                )
+                backgroundCache.getCustomBackgroundFile(current.id).inputStream().use {
+                    backgroundCache.setCustomBackgroundToCache(target, it)
+                }
             }
+            // <-- AM
 
             val currentAnimeUpdate = AnimeUpdate(current.id) {
                 favoriteAt = null

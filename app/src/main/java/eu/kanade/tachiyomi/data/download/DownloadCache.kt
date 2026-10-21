@@ -46,8 +46,6 @@ import logcat.LogPriority
 import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.storage.extension
 import tachiyomi.core.common.storage.nameWithoutExtension
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
@@ -102,11 +100,13 @@ class DownloadCache(
         get() = AtomicFile(File(context.cacheDir, "dl_index_cache_v3"))
 
     private val rootDownloadsDirMutex = Mutex()
-    private var rootDownloadsDir = RootDirectory(storageManager.getDownloadsDirectory())
+
+    @Volatile
+    private var rootDownloadsDir = RootDirectory(null)
 
     init {
         // Attempt to read cache file
-        initJob = scope.launchIO {
+        initJob = scope.launch(Dispatchers.IO) {
             rootDownloadsDirMutex.withLock {
                 try {
                     if (diskCacheFile.baseFile.exists()) {
@@ -292,11 +292,8 @@ class DownloadCache(
             // AM (CUSTOM_INFORMATION) -->
             val animeDir = sourceDir.animeDirs[provider.getAnimeDirName(anime.ogTitle)] ?: return
             // <-- AM (CUSTOM_INFORMATION)
-            provider.getValidEpisodeDirNames(episode.name, episode.scanlator, episode.url).forEach {
-                if (it in animeDir.episodeDirs) {
-                    animeDir.episodeDirs -= it
-                }
-            }
+            animeDir.episodeDirs -=
+                provider.getValidEpisodeDirNames(episode.name, episode.scanlator, episode.url).toSet()
         }
 
         notifyChanges()
@@ -314,13 +311,9 @@ class DownloadCache(
             // AM (CUSTOM_INFORMATION) -->
             val animeDir = sourceDir.animeDirs[provider.getAnimeDirName(anime.ogTitle)] ?: return
             // <-- AM (CUSTOM_INFORMATION)
-            episodes.forEach { episode ->
-                provider.getValidEpisodeDirNames(episode.name, episode.scanlator, episode.url).forEach {
-                    if (it in animeDir.episodeDirs) {
-                        animeDir.episodeDirs -= it
-                    }
-                }
-            }
+            animeDir.episodeDirs -= episodes
+                .flatMap { provider.getValidEpisodeDirNames(it.name, it.scanlator, it.url) }
+                .toSet()
         }
 
         notifyChanges()
@@ -358,7 +351,7 @@ class DownloadCache(
             // AM (CUSTOM_INFORMATION) -->
             val oldAnimeDirName = provider.getAnimeDirName(anime.ogTitle)
             // <-- AM (CUSTOM_INFORMATION)
-            var oldEpisodeDirs: MutableSet<String>? = null
+            var oldEpisodeDirs: Set<String>? = null
             // Save the old name's cached episode dirs
             if (sourceDir.animeDirs.containsKey(oldAnimeDirName)) {
                 oldEpisodeDirs = sourceDir.animeDirs[oldAnimeDirName]?.episodeDirs
@@ -393,22 +386,22 @@ class DownloadCache(
     fun invalidateCache() {
         lastRenew = 0L
         renewalJob?.cancel()
-        diskCacheFile.delete()
-        renewCache()
+        renewCache(deleteDiskCache = true)
     }
 
     /**
      * Renews the downloads cache.
      */
-    private fun renewCache() {
+    private fun renewCache(deleteDiskCache: Boolean = false) {
         // Avoid renewing cache if in the process nor too often
         if (lastRenew + renewInterval >= System.currentTimeMillis() || renewalJob?.isActive == true) {
             return
         }
 
-        renewalJob = scope.launchIO {
+        renewalJob = scope.launch(Dispatchers.IO) {
             // The disk index is older than this scan and would replace it if read afterwards
             initJob.join()
+            if (deleteDiskCache) diskCacheFile.delete()
 
             if (lastRenew == 0L) {
                 _isInitializing.emit(true)
@@ -457,7 +450,7 @@ class DownloadCache(
                                         else -> null
                                     }
                                 }
-                                .toMutableSet()
+                                .toSet()
 
                             animeDir.episodeDirs = episodeDirs
                         }
@@ -474,7 +467,8 @@ class DownloadCache(
                 if (exception != null && exception !is CancellationException) {
                     logcat(LogPriority.ERROR, exception) { "DownloadCache: failed to create cache" }
                 }
-                lastRenew = System.currentTimeMillis()
+                // A cancelled renewal (e.g. from invalidateCache) must not hold off the one replacing it
+                if (exception !is CancellationException) lastRenew = System.currentTimeMillis()
                 notifyChanges()
             }
         }
@@ -488,16 +482,14 @@ class DownloadCache(
     }
 
     private fun notifyChanges() {
-        scope.launchNonCancellable {
-            _changes.send(Unit)
-        }
+        _changes.trySend(Unit)
         updateDiskCache()
     }
 
     private var updateDiskCacheJob: Job? = null
     private fun updateDiskCache() {
         updateDiskCacheJob?.cancel()
-        updateDiskCacheJob = scope.launchIO {
+        updateDiskCacheJob = scope.launch(Dispatchers.IO) {
             delay(1.seconds)
             val bytes = rootDownloadsDirMutex.withLock {
                 ProtoBuf.encodeToByteArray(rootDownloadsDir)
@@ -523,6 +515,7 @@ class DownloadCache(
 private class RootDirectory(
     @Serializable(with = UniFileAsStringSerializer::class)
     val dir: UniFile?,
+    @Volatile
     var sourceDirs: Map<Long, SourceDirectory> = mapOf(),
 )
 
@@ -533,6 +526,7 @@ private class RootDirectory(
 private class SourceDirectory(
     @Serializable(with = UniFileAsStringSerializer::class)
     val dir: UniFile?,
+    @Volatile
     var animeDirs: Map<String, AnimeDirectory> = mapOf(),
 )
 
@@ -543,7 +537,9 @@ private class SourceDirectory(
 private class AnimeDirectory(
     @Serializable(with = UniFileAsStringSerializer::class)
     val dir: UniFile?,
-    var episodeDirs: MutableSet<String> = mutableSetOf(),
+    // Replaced rather than changed in place, so the lock-free lookups always read a consistent set
+    @Volatile
+    var episodeDirs: Set<String> = emptySet(),
 )
 
 private object UniFileAsStringSerializer : KSerializer<UniFile?> {

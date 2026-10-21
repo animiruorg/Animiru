@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.lifecycle.lifecycleScope
+import androidx.preference.PreferenceManager
 import animiru.core.cache.ThumbnailCache
 import animiru.core.coil.EpisodeThumbnailFetcher
 import animiru.core.coil.EpisodeThumbnailKeyer
@@ -77,6 +77,7 @@ import tachiyomi.presentation.widget.WidgetManager
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.InjektScope
 import java.security.Security
+import kotlin.concurrent.thread
 import mihon.icons.materialsymbols.R as MaterialSymbolsR
 
 class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factory, GraphProvider<AppGraph> {
@@ -93,11 +94,12 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     @Inject private lateinit var uiPreferences: UiPreferences
 
-    @Inject private lateinit var coverCache: CoverCache
+    // Lazy: only the image loader uses these, and process starts without UI (workers, receivers) never build it
+    @Inject private lateinit var coverCache: Lazy<CoverCache>
 
-    @Inject private lateinit var networkHelper: NetworkHelper
+    @Inject private lateinit var networkHelper: Lazy<NetworkHelper>
 
-    @Inject private lateinit var sourceManager: SourceManager
+    @Inject private lateinit var sourceManager: Lazy<SourceManager>
 
     @Inject private lateinit var widgetManager: WidgetManager
 
@@ -130,6 +132,12 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             val process = getProcessName()
             if (packageName != process) WebView.setDataDirectorySuffix(process)
         }
+
+        // The graph and the code after it read the default preferences straight away. Loading them takes a disk
+        // read, so start it on another thread while the graph is built; the first read then waits less or not at all
+        thread(name = "PreferencesPreload") { PreferenceManager.getDefaultSharedPreferences(this) }
+        // The first use of Dispatchers.Main finds its factory with a ServiceLoader, which reads the APK
+        thread(name = "MainDispatcherPreload") { Dispatchers.Main }
 
         Injekt = InjektScope(MetroInjektRegistrar(application = this, graphProvider = this))
         graph.inject(this)
@@ -219,7 +227,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     override fun newImageLoader(context: Context): ImageLoader {
         return ImageLoader.Builder(this).apply {
-            val callFactoryLazy = lazy { networkHelper.client }
+            val callFactoryLazy = lazy { networkHelper.value.client }
+            val coverCache = coverCache.value
+            val sourceManager = sourceManager.value
             components {
                 // NetworkFetcher.Factory
                 add(OkHttpNetworkFetcherFactory(callFactoryLazy::value))

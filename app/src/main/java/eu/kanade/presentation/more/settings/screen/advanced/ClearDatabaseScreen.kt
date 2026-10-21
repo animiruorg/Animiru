@@ -43,18 +43,17 @@ import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import mihon.core.metro.AppCoroutineScope
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.FlipToBack
 import mihon.icons.materialsymbols.rounded.SelectAll
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchUI
-import tachiyomi.core.common.util.lang.toLong
-import tachiyomi.core.common.util.lang.withNonCancellableContext
-import tachiyomi.data.Database
 import tachiyomi.data.source.mapSourceToDomainSource
 import tachiyomi.domain.anime.repository.AnimeRepository
 import tachiyomi.domain.history.repository.HistoryRepository
@@ -124,7 +123,7 @@ class ClearDatabaseScreen : Screen() {
                         confirmButton = {
                             TextButton(
                                 onClick = {
-                                    scope.launchUI {
+                                    scope.launch(Dispatchers.Main) {
                                         model.removeAnimeBySourceId(keepSeenAnime)
                                         model.clearSelection()
                                         model.hideConfirmation()
@@ -236,6 +235,7 @@ class ClearDatabaseScreen : Screen() {
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class ClearDatabaseViewModel(
+    @AppCoroutineScope private val appScope: CoroutineScope,
     // AY -->
     private val getSourcesWithNonLibraryAnime: GetSourcesWithNonLibraryAnime,
     // <-- AY
@@ -248,7 +248,7 @@ class ClearDatabaseViewModel(
         field = MutableStateFlow<ClearDatabaseViewModel.State>(State.Loading)
 
     init {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             getSourcesWithNonLibraryAnime.subscribe()
                 .collectLatest { list ->
                     // AY -->
@@ -313,8 +313,8 @@ class ClearDatabaseViewModel(
     }
     // <-- AY
 
-    suspend fun removeAnimeBySourceId(keepSeenAnime: Boolean) = withNonCancellableContext {
-        val state = state.value as? State.Ready ?: return@withNonCancellableContext
+    suspend fun removeAnimeBySourceId(keepSeenAnime: Boolean) {
+        val state = state.value as? State.Ready ?: return
         // AY -->
         val selected = state.items.filter { it.id in state.selection }
 
@@ -322,10 +322,12 @@ class ClearDatabaseViewModel(
         val orphaned = selected.flatMap { it.orphaned }
             .filterNot { it in animeIds }
 
-        animeRepository.deleteNonLibraryAnime(animeIds, keepSeenAnime)
-        animeRepository.removeParentIdByIds(orphaned)
-        // <-- AY
-        historyRepository.deleteResetHistory()
+        appScope.launch {
+            animeRepository.deleteNonLibraryAnime(animeIds, keepSeenAnime)
+            animeRepository.removeParentIdByIds(orphaned)
+            // <-- AY
+            historyRepository.deleteResetHistory()
+        }.join()
     }
 
     fun toggleSelection(source: Source) = state.update { state ->

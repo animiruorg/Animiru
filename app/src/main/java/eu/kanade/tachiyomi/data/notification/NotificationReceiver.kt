@@ -17,16 +17,12 @@ import eu.kanade.tachiyomi.util.system.cancelNotification
 import eu.kanade.tachiyomi.util.system.getParcelableExtraCompat
 import eu.kanade.tachiyomi.util.system.notificationManager
 import eu.kanade.tachiyomi.util.system.toShareIntent
-import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import mihon.app.di.appGraph
 import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.Constants
-import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.download.service.DownloadPreferences
@@ -35,7 +31,6 @@ import tachiyomi.domain.episode.interactor.UpdateEpisode
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.source.service.SourceManager
-import tachiyomi.i18n.aniyomi.AYMR
 import eu.kanade.tachiyomi.BuildConfig.APPLICATION_ID as ID
 
 /**
@@ -69,9 +64,9 @@ class NotificationReceiver : BroadcastReceiver() {
             // Resume the download service
             ACTION_RESUME_DOWNLOADS -> downloadManager.startDownloads()
             // Pause the download service
-            ACTION_PAUSE_DOWNLOADS -> downloadManager.pauseDownloads()
+            ACTION_PAUSE_DOWNLOADS -> launchAsync { downloadManager.pauseDownloads() }
             // Clear the download queue
-            ACTION_CLEAR_DOWNLOADS -> downloadManager.clearQueue()
+            ACTION_CLEAR_DOWNLOADS -> launchAsync { downloadManager.clearQueue() }
             // Launch share activity and dismiss notification
             ACTION_SHARE_IMAGE ->
                 shareImage(
@@ -92,14 +87,6 @@ class NotificationReceiver : BroadcastReceiver() {
             // <-- AM (DISCORD_RPC)
             // Cancel library update and dismiss notification
             ACTION_CANCEL_LIBRARY_UPDATE -> cancelLibraryUpdate(context)
-            // Open player activity
-            ACTION_OPEN_EPISODE -> {
-                openEpisode(
-                    context,
-                    intent.getLongExtra(EXTRA_ANIME_ID, -1),
-                    intent.getLongExtra(EXTRA_EPISODE_ID, -1),
-                )
-            }
             // Mark updated anime episodes as seen
             ACTION_MARK_AS_SEEN -> {
                 val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
@@ -157,26 +144,6 @@ class NotificationReceiver : BroadcastReceiver() {
     }
 
     /**
-     * Starts player activity
-     *
-     * @param context context of application
-     * @param animeId id of anime
-     * @param episodeId id of episode
-     */
-    private fun openEpisode(context: Context, animeId: Long, episodeId: Long) {
-        val anime = runBlocking { getAnime.await(animeId) }
-        val episode = runBlocking { getEpisode.await(episodeId) }
-        if (anime != null && episode != null) {
-            val intent = PlayerActivity.newIntent(context, anime.id, episode.id).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-            context.startActivity(intent)
-        } else {
-            context.toast(context.stringResource(AYMR.strings.download_error))
-        }
-    }
-
-    /**
      * Method called when user wants to stop a backup restore job.
      *
      * @param context context of application
@@ -191,7 +158,9 @@ class NotificationReceiver : BroadcastReceiver() {
      * @param context context of application
      */
     private fun cancelLibraryUpdate(context: Context) {
-        LibraryUpdateWorker.stop(context)
+        launchAsync {
+            LibraryUpdateWorker.stop(context)
+        }
     }
 
     /**
@@ -279,7 +248,6 @@ class NotificationReceiver : BroadcastReceiver() {
         private const val ACTION_CANCEL_LIBRARY_UPDATE = "$ID.$NAME.CANCEL_LIBRARY_UPDATE"
 
         private const val ACTION_MARK_AS_SEEN = "$ID.$NAME.MARK_AS_SEEN"
-        private const val ACTION_OPEN_EPISODE = "$ID.$NAME.ACTION_OPEN_EPISODE"
         private const val ACTION_DOWNLOAD_EPISODE = "$ID.$NAME.ACTION_DOWNLOAD_EPISODE"
 
         private const val ACTION_OPEN_ENTRY = "$ID.$NAME.ACTION_OPEN_ENTRY"
@@ -294,7 +262,6 @@ class NotificationReceiver : BroadcastReceiver() {
         private const val EXTRA_NOTIFICATION_ID = "$ID.$NAME.NOTIFICATION_ID"
         private const val EXTRA_GROUP_ID = "$ID.$NAME.EXTRA_GROUP_ID"
         private const val EXTRA_ANIME_ID = "$ID.$NAME.EXTRA_ANIME_ID"
-        private const val EXTRA_EPISODE_ID = "$ID.$NAME.EXTRA_EPISODE_ID"
         private const val EXTRA_EPISODE_URL = "$ID.$NAME.EXTRA_EPISODE_URL"
 
         /**

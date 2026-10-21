@@ -146,7 +146,7 @@ class SyncEpisodesWithSource(
         // The source no longer lists these, so their queued downloads could only fail
         removedEpisodes.mapNotNull { downloadManager.getQueuedDownloadOrNull(it.id) }
             .takeIf { it.isNotEmpty() }
-            ?.let(downloadManager::cancelQueuedDownloads)
+            ?.let { downloadManager.cancelQueuedDownloads(it) }
 
         // Return if there's nothing to add, delete, or update to avoid unnecessary db transactions.
         if (newEpisodes.isEmpty() && removedEpisodes.isEmpty() && updatedEpisodes.isEmpty()) {

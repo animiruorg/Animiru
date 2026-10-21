@@ -14,10 +14,11 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.domain.source.interactor.models.RemoteAnimeEpisodeUpdate
 import mihon.domain.source.interactor.models.RemoteAnimeSeasonUpdate
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.data.episode.EpisodeSanitizer
 import tachiyomi.domain.anime.model.Anime
@@ -69,18 +70,16 @@ class UpdateAnimeFromRemote(
         fetchEpisodes: Boolean = false,
         manualFetch: Boolean = false,
         fetchWindow: ClosedRange<Instant>? = null,
-    ): Result<RemoteAnimeEpisodeUpdate> {
-        return try {
+    ): Result<RemoteAnimeEpisodeUpdate> = withContext(Dispatchers.IO) {
+        try {
             val episodes = episodeRepository.getEpisodeByAnimeId(anime.id)
                 .sortedBy { it.sourceOrder }
-            val update = withIOContext {
-                source.getAnimeEpisodeUpdate(
-                    anime = anime.toSAnime(),
-                    episodes = episodes.map(Episode::toSEpisode),
-                    fetchDetails = fetchDetails,
-                    fetchEpisodes = fetchEpisodes,
-                )
-            }
+            val update = source.getAnimeEpisodeUpdate(
+                anime = anime.toSAnime(),
+                episodes = episodes.map(Episode::toSEpisode),
+                fetchDetails = fetchDetails,
+                fetchEpisodes = fetchEpisodes,
+            )
             awaitUpdateFromSource(anime, update.anime, manualFetch)
 
             // AM -->
@@ -155,18 +154,16 @@ class UpdateAnimeFromRemote(
         fetchSeasons: Boolean = false,
         manualFetch: Boolean = false,
         fetchWindow: ClosedRange<Instant>? = null,
-    ): Result<RemoteAnimeSeasonUpdate> {
-        return try {
+    ): Result<RemoteAnimeSeasonUpdate> = withContext(Dispatchers.IO) {
+        try {
             val seasons = animeRepository.getAnimeSeasonsById(anime.id)
                 .sortedBy { it.anime.seasonSourceOrder }
-            val update = withIOContext {
-                source.getAnimeSeasonUpdate(
-                    anime = anime.toSAnime(),
-                    seasons = seasons.map { it.anime.toSAnime() },
-                    fetchDetails = fetchDetails,
-                    fetchSeasons = fetchSeasons,
-                )
-            }
+            val update = source.getAnimeSeasonUpdate(
+                anime = anime.toSAnime(),
+                seasons = seasons.map { it.anime.toSAnime() },
+                fetchDetails = fetchDetails,
+                fetchSeasons = fetchSeasons,
+            )
             awaitUpdateFromSource(anime, update.anime, manualFetch)
             val newSeasons = syncSeasonsWithSource.await(
                 rawSourceSeasons = update.seasons,

@@ -31,13 +31,16 @@ import eu.kanade.tachiyomi.util.system.isRunning
 import eu.kanade.tachiyomi.util.system.setForegroundSafely
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import logcat.LogPriority
@@ -48,7 +51,6 @@ import mihon.domain.episode.interactor.FilterEpisodesForDownload
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.getAndSet
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.createFileInCacheDir
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.FetchInterval
@@ -150,7 +152,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
         addAnimeToQueue(categoryId, group, groupExtra)
         // <-- AM (GROUPING)
 
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             try {
                 updateEpisodeList()
                 Result.success()
@@ -381,7 +383,10 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                                 hasDownloads.store(true)
                                             }
 
-                                            libraryPreferences.newUpdatesCount.getAndSet { it + newEpisodes.size }
+                                            // Sources update concurrently, and getAndSet is a separate read and write
+                                            synchronized(libraryPreferences.newUpdatesCount) {
+                                                libraryPreferences.newUpdatesCount.getAndSet { it + newEpisodes.size }
+                                            }
 
                                             // Convert to the anime that contains new episodes
                                             newUpdates.add(anime to newEpisodes.toTypedArray())
@@ -591,7 +596,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
             }
         }
 
-        fun startNow(
+        suspend fun startNow(
             context: Context,
             category: Category? = null,
             // AM (GROUPING) -->
@@ -616,12 +621,12 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
             return true
         }
 
-        fun stop(context: Context) {
+        suspend fun stop(context: Context) {
             val wm = context.workManager
             val workQuery = WorkQuery.Builder.fromTags(listOf(TAG))
                 .addStates(listOf(WorkInfo.State.RUNNING))
                 .build()
-            wm.getWorkInfos(workQuery).get()
+            wm.getWorkInfosFlow(workQuery).first()
                 // Should only return one work but just in case
                 .forEach {
                     wm.cancelWorkById(it.id)

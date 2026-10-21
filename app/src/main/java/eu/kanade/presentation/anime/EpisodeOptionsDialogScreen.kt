@@ -62,6 +62,7 @@ import eu.kanade.tachiyomi.ui.player.components.getChangedAt
 import eu.kanade.tachiyomi.ui.player.loader.EpisodeLoader
 import eu.kanade.tachiyomi.ui.player.loader.HosterLoader
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,9 +77,6 @@ import mihon.icons.materialsymbols.rounded.ContentCopy
 import mihon.icons.materialsymbols.rounded.Download
 import mihon.icons.materialsymbols.rounded.Input
 import mihon.icons.materialsymbols.rounded.SystemUpdateAlt
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchUI
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.Anime
@@ -184,7 +182,7 @@ class EpisodeOptionsDialogViewModel(
     init {
         val hasFoundPreferredVideo = AtomicBoolean(false)
 
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val episode = getEpisode.await(episodeId)!!
             val anime = getAnime.await(animeId)!!
             val source = sourceManager.getOrStub(sourceId)
@@ -193,17 +191,15 @@ class EpisodeOptionsDialogViewModel(
             _anime.update { _ -> anime }
             _source.update { _ -> source }
 
-            val hosterListResult = withIOContext {
-                try {
-                    Result.success(episodeLoader.getHosters(episode, anime, source))
-                } catch (e: Exception) {
-                    Result.failure(e)
-                }
+            val hosterListResult = try {
+                Result.success(episodeLoader.getHosters(episode, anime, source))
+            } catch (e: Exception) {
+                Result.failure(e)
             }
 
             if (hosterListResult.isFailure) {
                 _hosterState.update { _ -> Result.failure(hosterListResult.exceptionOrNull()!!) }
-                return@launchIO
+                return@launch
             }
 
             val hosterList = hosterListResult.getOrThrow()
@@ -257,7 +253,7 @@ class EpisodeOptionsDialogViewModel(
                             _hosterState.update { _ ->
                                 Result.failure(NoSuchElementException("No available videos"))
                             }
-                            return@launchIO
+                            return@launch
                         }
 
                         val video = (hosterStateList[hosterIdx] as HosterState.Ready).videoList[videoIdx]
@@ -362,7 +358,7 @@ class EpisodeOptionsDialogViewModel(
                 val hosterName = hosterState.name
                 _hosterState.updateAt(hosterIndex, HosterState.Loading(hosterName))
 
-                viewModelScope.launchIO {
+                viewModelScope.launch(Dispatchers.IO) {
                     val newHosterState = episodeLoader.loadHosterVideos(
                         _source.value!!,
                         _hosterList.value[hosterIndex],
@@ -380,7 +376,7 @@ class EpisodeOptionsDialogViewModel(
             ?.getOrNull(videoIndex)
             ?: return
 
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val success = loadVideo(_source.value!!, video, hosterIndex, videoIndex)
             if (success) {
                 _showAllQualities.update { _ -> false }
@@ -409,7 +405,7 @@ class EpisodeOptionsDialogViewModel(
         val anime = anime.value ?: return
         val episode = episode.value ?: return
         val currentVideo = currentVideo.value ?: return
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             downloadManager.downloadEpisodes(
                 anime,
                 listOf(episode),
@@ -467,7 +463,7 @@ fun EpisodeOptionsDialog(
 
         val onError: () -> Unit = {
             logcat(LogPriority.ERROR) { "Error getting links" }
-            scope.launchUI { context.toast("No available videos") }
+            scope.launch(Dispatchers.Main) { context.toast("No available videos") }
             EpisodeOptionsDialogScreen.onDismissDialog()
         }
         if (resultList?.isFailure == true) {

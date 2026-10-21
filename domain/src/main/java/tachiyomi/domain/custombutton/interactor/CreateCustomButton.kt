@@ -3,7 +3,6 @@ package tachiyomi.domain.custombutton.interactor
 
 import dev.zacsweers.metro.Inject
 import logcat.LogPriority
-import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.custombutton.repository.CustomButtonRepository
 
@@ -16,11 +15,11 @@ class CreateCustomButton(
         content: String,
         longPressContent: String,
         onStartup: String,
-    ): Result = withNonCancellableContext {
+    ): Result {
         val customButtons = customButtonRepository.getAll()
         val nextSortIndex = customButtons.maxOfOrNull { it.sortIndex }?.plus(1) ?: 0
 
-        try {
+        return try {
             customButtonRepository.insertCustomButton(
                 name = name,
                 favorite = false,

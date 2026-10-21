@@ -8,7 +8,7 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.download.model.Download
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.drop
@@ -17,11 +17,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
-import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.Anime
@@ -44,7 +42,6 @@ import tachiyomi.source.local.isLocal
 @Inject
 @SingleIn(AppScope::class)
 class DownloadManager(
-    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     // AM (STORAGE_SCREEN) -->
     private val storageManager: StorageManager,
@@ -78,14 +75,14 @@ class DownloadManager(
     /**
      * Tells the downloader to pause downloads.
      */
-    fun pauseDownloads() {
-        downloader.stop()
+    suspend fun pauseDownloads() {
+        downloader.pause()
     }
 
     /**
      * Empties the download queue.
      */
-    fun clearQueue() {
+    suspend fun clearQueue() {
         downloader.clearQueue()
         downloader.stop()
     }
@@ -107,14 +104,12 @@ class DownloadManager(
         return queueState.value.associateBy { it.episode.id }
     }
 
-    fun startDownloadNow(episodeId: Long) {
-        val existingDownload = getQueuedDownloadOrNull(episodeId)
+    suspend fun startDownloadNow(episodeId: Long) {
         // If not in queue try to start a new download
-        val toAdd = existingDownload ?: runBlocking { downloadFromEpisodeId(episodeId) } ?: return
-        queueState.value.toMutableList().apply {
-            existingDownload?.let { remove(it) }
-            add(0, toAdd)
-            reorderQueue(this)
+        val toAdd = getQueuedDownloadOrNull(episodeId) ?: downloadFromEpisodeId(episodeId) ?: return
+        downloader.updateQueue { queue ->
+            val (existing, others) = queue.partition { it.episode.id == episodeId }
+            listOf(existing.firstOrNull() ?: toAdd) + others
         }
         startDownloads()
     }
@@ -130,10 +125,15 @@ class DownloadManager(
     /**
      * Reorders the download queue.
      *
-     * @param downloads value to set the download queue to
+     * @param downloads the queue in its new order. Downloads that left the queue since are dropped, and ones
+     * that joined it are kept at the end.
      */
-    fun reorderQueue(downloads: List<Download>) {
-        downloader.updateQueue(downloads)
+    suspend fun reorderQueue(downloads: List<Download>) {
+        downloader.updateQueue { queue ->
+            val queueById = queue.associateBy { it.episode.id }
+            val orderedIds = downloads.mapTo(HashSet()) { it.episode.id }
+            downloads.mapNotNull { queueById[it.episode.id] } + queue.filter { it.episode.id !in orderedIds }
+        }
     }
 
     /**
@@ -167,11 +167,11 @@ class DownloadManager(
      *
      * @param downloads the list of downloads to enqueue.
      */
-    fun addDownloadsToStartOfQueue(downloads: List<Download>) {
+    suspend fun addDownloadsToStartOfQueue(downloads: List<Download>) {
         if (downloads.isEmpty()) return
-        queueState.value.toMutableList().apply {
-            addAll(0, downloads)
-            reorderQueue(this)
+        downloader.updateQueue { queue ->
+            val episodeIds = downloads.mapTo(HashSet()) { it.episode.id }
+            downloads + queue.filter { it.episode.id !in episodeIds }
         }
         startDownloads()
     }
@@ -184,13 +184,15 @@ class DownloadManager(
      * @param episode the downloaded episode.
      * @return the video from the episode.
      */
-    fun buildVideo(source: AnimeSource, anime: Anime, episode: Episode): Video {
+    suspend fun buildVideo(source: AnimeSource, anime: Anime, episode: Episode): Video {
         // AM (CUSTOM_INFORMATION) -->
         val episodeDir = provider.findEpisodeDir(episode.name, episode.scanlator, episode.url, anime.ogTitle, source)
         // <-- AM (CUSTOM_INFORMATION)
         // AY -->
-        val file = episodeDir?.listFiles().orEmpty()
-            .firstOrNull { "video" in it.type.orEmpty() }
+        val file = withContext(Dispatchers.IO) {
+            episodeDir?.listFiles().orEmpty()
+                .firstOrNull { "video" in it.type.orEmpty() }
+        }
         // <-- AY
 
         if (file == null) {
@@ -234,7 +236,7 @@ class DownloadManager(
         return cache.isEpisodeDownloaded(episodeName, episodeScanlator, episodeUrl, animeTitle, sourceId)
     }
 
-    fun isEpisodeDownloadedOnDisk(
+    suspend fun isEpisodeDownloadedOnDisk(
         episodeName: String,
         episodeScanlator: String?,
         episodeUrl: String,
@@ -286,8 +288,8 @@ class DownloadManager(
     }
     // <-- AM (STORAGE_SCREEN)
 
-    fun cancelQueuedDownloads(downloads: List<Download>) {
-        removeFromDownloadQueue(downloads.map { it.episode })
+    suspend fun cancelQueuedDownloads(downloads: List<Download>) {
+        downloader.dequeue(downloads.map { it.episode })
     }
 
     /**
@@ -297,14 +299,14 @@ class DownloadManager(
      * @param anime the anime of the episodes.
      * @param source the source of the episodes.
      */
-    fun deleteEpisodes(episodes: List<Episode>, anime: Anime, source: AnimeSource) {
-        scope.launchIO {
+    suspend fun deleteEpisodes(episodes: List<Episode>, anime: Anime, source: AnimeSource) {
+        withContext(Dispatchers.IO) {
             val filteredEpisodes = getEpisodesToDelete(episodes, anime)
             if (filteredEpisodes.isEmpty()) {
-                return@launchIO
+                return@withContext
             }
 
-            removeFromDownloadQueue(filteredEpisodes)
+            downloader.dequeue(filteredEpisodes)
 
             val (animeDir, episodeDirs) = provider.findEpisodeDirs(filteredEpisodes, anime, source)
             episodeDirs.forEach { it.delete() }
@@ -324,8 +326,8 @@ class DownloadManager(
      * @param source the source of the anime.
      * @param removeQueued whether to also remove queued downloads.
      */
-    fun deleteAnime(anime: Anime, source: AnimeSource, removeQueued: Boolean = true) {
-        scope.launchIO {
+    suspend fun deleteAnime(anime: Anime, source: AnimeSource, removeQueued: Boolean = true) {
+        withContext(Dispatchers.IO) {
             if (removeQueued) {
                 downloader.removeFromQueue(anime)
             }
@@ -339,23 +341,6 @@ class DownloadManager(
             if (sourceDir?.listFiles()?.isEmpty() == true) {
                 sourceDir.delete()
                 cache.removeSource(source)
-            }
-        }
-    }
-
-    private fun removeFromDownloadQueue(episodes: List<Episode>) {
-        val wasRunning = downloader.isRunning
-        if (wasRunning) {
-            downloader.pause()
-        }
-
-        downloader.removeFromQueue(episodes)
-
-        if (wasRunning) {
-            if (queueState.value.isEmpty()) {
-                downloader.stop()
-            } else if (queueState.value.isNotEmpty()) {
-                downloader.start()
             }
         }
     }
@@ -387,18 +372,18 @@ class DownloadManager(
      * @param oldSource the old source.
      * @param newSource the new source.
      */
-    fun renameSource(oldSource: AnimeSource, newSource: AnimeSource) {
-        val oldFolder = provider.findSourceDir(oldSource) ?: return
+    suspend fun renameSource(oldSource: AnimeSource, newSource: AnimeSource) = withContext(Dispatchers.IO) {
+        val oldFolder = provider.findSourceDir(oldSource) ?: return@withContext
         val newName = provider.getSourceDirName(newSource)
 
-        if (oldFolder.name == newName) return
+        if (oldFolder.name == newName) return@withContext
 
         val capitalizationChanged = oldFolder.name.equals(newName, ignoreCase = true)
         if (capitalizationChanged) {
             val tempName = newName + Downloader.TMP_DIR_SUFFIX
             if (!oldFolder.renameTo(tempName)) {
                 logcat(LogPriority.ERROR) { "Failed to rename source download folder: ${oldFolder.name}" }
-                return
+                return@withContext
             }
         }
 
@@ -413,14 +398,14 @@ class DownloadManager(
      * @param anime the anime
      * @param newTitle the new anime title.
      */
-    suspend fun renameAnime(anime: Anime, newTitle: String) {
+    suspend fun renameAnime(anime: Anime, newTitle: String) = withContext(Dispatchers.IO) {
         val source = sourceManager.getOrStub(anime.source)
         // AM (CUSTOM_INFORMATION) -->
-        val oldFolder = provider.findAnimeDir(anime.ogTitle, source) ?: return
+        val oldFolder = provider.findAnimeDir(anime.ogTitle, source) ?: return@withContext
         // <-- AM (CUSTOM_INFORMATION)
         val newName = provider.getAnimeDirName(newTitle)
 
-        if (oldFolder.name == newName) return
+        if (oldFolder.name == newName) return@withContext
 
         // just to be safe, don't allow downloads for this anime while renaming it
         downloader.removeFromQueue(anime)
@@ -430,7 +415,7 @@ class DownloadManager(
             val tempName = newName + Downloader.TMP_DIR_SUFFIX
             if (!oldFolder.renameTo(tempName)) {
                 logcat(LogPriority.ERROR) { "Failed to rename anime download folder: ${oldFolder.name}" }
-                return
+                return@withContext
             }
         }
 
@@ -450,27 +435,31 @@ class DownloadManager(
      * @param newEpisode the target episode with the new name.
      */
     suspend fun renameEpisode(source: AnimeSource, anime: Anime, oldEpisode: Episode, newEpisode: Episode) {
-        val oldNames = provider.getValidEpisodeDirNames(oldEpisode.name, oldEpisode.scanlator, oldEpisode.url)
-        // AM (CUSTOM_INFORMATION) -->
-        val animeDir = provider.getAnimeDir(anime.ogTitle, source).getOrElse { e ->
-            logcat(LogPriority.ERROR, e) { "Anime download folder doesn't exist. Skipping renaming after source sync" }
-            return
-        }
-        // <-- AM (CUSTOM_INFORMATION)
+        withContext(Dispatchers.IO) {
+            val oldNames = provider.getValidEpisodeDirNames(oldEpisode.name, oldEpisode.scanlator, oldEpisode.url)
+            // AM (CUSTOM_INFORMATION) -->
+            val animeDir = provider.getAnimeDir(anime.ogTitle, source).getOrElse { e ->
+                logcat(LogPriority.ERROR, e) {
+                    "Anime download folder doesn't exist. Skipping renaming after source sync"
+                }
+                return@withContext
+            }
+            // <-- AM (CUSTOM_INFORMATION)
 
-        // Assume there's only 1 version of the episode name formats present
-        val oldDownload = oldNames.asSequence()
-            .mapNotNull { animeDir.findFile(it) }
-            .firstOrNull() ?: return
+            // Assume there's only 1 version of the episode name formats present
+            val oldDownload = oldNames.asSequence()
+                .mapNotNull { animeDir.findFile(it) }
+                .firstOrNull() ?: return@withContext
 
-        val newName = provider.getEpisodeDirName(newEpisode.name, newEpisode.scanlator, newEpisode.url)
-        if (oldDownload.name == newName) return
+            val newName = provider.getEpisodeDirName(newEpisode.name, newEpisode.scanlator, newEpisode.url)
+            if (oldDownload.name == newName) return@withContext
 
-        if (oldDownload.renameTo(newName)) {
-            cache.removeEpisode(oldEpisode, anime)
-            cache.addEpisode(newName, animeDir, anime)
-        } else {
-            logcat(LogPriority.ERROR) { "Could not rename downloaded episode: ${oldNames.joinToString()}" }
+            if (oldDownload.renameTo(newName)) {
+                cache.removeEpisode(oldEpisode, anime)
+                cache.addEpisode(newName, animeDir, anime)
+            } else {
+                logcat(LogPriority.ERROR) { "Could not rename downloaded episode: ${oldNames.joinToString()}" }
+            }
         }
     }
 

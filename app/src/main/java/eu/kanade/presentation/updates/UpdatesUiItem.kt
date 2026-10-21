@@ -40,12 +40,13 @@ import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.util.relativeTimeSpanString
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.ui.updates.UpdatesItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mihon.app.di.appGraph
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Label
 import mihon.icons.materialsymbols.roundedfilled.Bookmark
 import mihon.icons.materialsymbols.roundedfilled.Circle
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.updates.model.UpdatesWithRelations
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -277,7 +278,7 @@ private fun UpdatesUiItem(
             fileSizeAsync == null
         ) {
             LaunchedEffect(update, Unit) {
-                fileSizeAsync = withIOContext {
+                fileSizeAsync = withContext(Dispatchers.IO) {
                     context.appGraph.downloadProvider.getEpisodeFileSize(
                         update.episodeName,
                         null,

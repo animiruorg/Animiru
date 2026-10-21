@@ -22,7 +22,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mihon.domain.anime.model.toDomainAnime
 import tachiyomi.core.common.preference.toggle
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
@@ -139,7 +138,7 @@ abstract class SearchViewModel(
 
         searchJob?.cancel()
 
-        searchJob = viewModelScope.launchIO {
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
             val sources = getSelectedSources()
 
             // Reuse previous results if possible
@@ -205,8 +204,8 @@ abstract class SearchViewModel(
     }
 
     fun setMigrateDialog(currentId: Long, target: Anime) {
-        viewModelScope.launchIO {
-            val current = getAnime.await(currentId) ?: return@launchIO
+        viewModelScope.launch(Dispatchers.IO) {
+            val current = getAnime.await(currentId) ?: return@launch
             state.update { it.copy(dialog = Dialog.Migrate(target, current)) }
         }
     }

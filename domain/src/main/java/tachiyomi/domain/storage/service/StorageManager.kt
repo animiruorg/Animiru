@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.shareIn
 import mihon.core.metro.AppCoroutineScope
+import java.util.concurrent.ConcurrentHashMap
 
 @Inject
 @SingleIn(AppScope::class)
@@ -26,7 +27,14 @@ class StorageManager(
     storagePreferences: StoragePreferences,
 ) {
 
-    private var baseDir: UniFile? = getBaseDir(storagePreferences.baseStorageDirectory.get())
+    @Volatile
+    private var baseDirLazy: Lazy<UniFile?> = lazy { getBaseDir(storagePreferences.baseStorageDirectory.get()) }
+    private val baseDir: UniFile?
+        get() = baseDirLazy.value
+
+    // On SAF, createDirectory lists the whole base directory to find an existing child, so a resolved child
+    // is reused while it's under the current base directory and still exists; it can be deleted outside the app
+    private val childDirectories = ConcurrentHashMap<String, Pair<UniFile, UniFile>>()
 
     private val _changes: Channel<Unit> = Channel(Channel.UNLIMITED)
     val changes = _changes.receiveAsFlow()
@@ -37,7 +45,7 @@ class StorageManager(
             .drop(1)
             .distinctUntilChanged()
             .onEach { uri ->
-                baseDir = getBaseDir(uri)
+                baseDirLazy = lazyOf(getBaseDir(uri))
                 baseDir?.let { parent ->
                     parent.createDirectory(AUTOMATIC_BACKUPS_PATH)
                     parent.createDirectory(LOCAL_SOURCE_PATH)
@@ -64,38 +72,54 @@ class StorageManager(
     }
 
     fun getAutomaticBackupsDirectory(): UniFile? {
-        return baseDir?.createDirectory(AUTOMATIC_BACKUPS_PATH)
+        return getChildDirectory(AUTOMATIC_BACKUPS_PATH)
     }
 
     fun getDownloadsDirectory(): UniFile? {
-        return baseDir?.createDirectory(DOWNLOADS_PATH)
+        return getChildDirectory(DOWNLOADS_PATH)
     }
 
     fun getLocalSourceDirectory(): UniFile? {
-        return baseDir?.createDirectory(LOCAL_SOURCE_PATH)
+        return getChildDirectory(LOCAL_SOURCE_PATH)
     }
 
-    // AY -->
+    private fun getChildDirectory(name: String): UniFile? {
+        val parent = baseDir ?: return null
+        childDirectories[name]
+            ?.takeIf { (cachedParent, directory) -> cachedParent === parent && directory.exists() }
+            ?.let { (_, directory) -> return directory }
+        return parent.createDirectory(name)?.also { childDirectories[name] = parent to it }
+    }
+
+    // AM -->
+    fun getMPVConfigDirectory(): UniFile? {
+        return getChildDirectory(MPV_CONFIG_PATH)
+    }
+
+    private fun getMpvDirectory(name: String): UniFile? {
+        val parent = getMPVConfigDirectory() ?: return null
+        childDirectories[name]
+            ?.takeIf { (cachedParent, directory) -> cachedParent == parent && directory.exists() }
+            ?.let { (_, directory) -> return directory }
+        return parent.createDirectory(name)?.also { childDirectories[name] = parent to it }
+    }
+
     fun getFontsDirectory(): UniFile? {
-        return getMPVConfigDirectory()?.createDirectory(FONTS_PATH)
+        return getMpvDirectory(FONTS_PATH)
     }
 
     fun getScriptsDirectory(): UniFile? {
-        return getMPVConfigDirectory()?.createDirectory(SCRIPTS_PATH)
+        return getMpvDirectory(SCRIPTS_PATH)
     }
 
     fun getScriptOptsDirectory(): UniFile? {
-        return getMPVConfigDirectory()?.createDirectory(SCRIPT_OPTS_PATH)
+        return getMpvDirectory(SCRIPT_OPTS_PATH)
     }
 
     fun getShadersDirectory(): UniFile? {
-        return getMPVConfigDirectory()?.createDirectory(SHADERS_PATH)
+        return getMpvDirectory(SHADERS_PATH)
     }
-
-    fun getMPVConfigDirectory(): UniFile? {
-        return baseDir?.createDirectory(MPV_CONFIG_PATH)
-    }
-    // <-- AY
+    // <-- AM
 }
 
 private const val AUTOMATIC_BACKUPS_PATH = "autobackup"

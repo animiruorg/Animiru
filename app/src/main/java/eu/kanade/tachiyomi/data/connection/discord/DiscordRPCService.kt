@@ -23,14 +23,14 @@ import eu.kanade.tachiyomi.util.system.notificationBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import mihon.app.di.AppGraph
 import mihon.app.di.appGraph
 import mihon.core.metro.metroGraph
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.model.Category.Companion.UNCATEGORIZED_ID
 import tachiyomi.i18n.MR
@@ -69,7 +69,7 @@ class DiscordRPCService : Service() {
         try {
             rpc = if (token.isNotBlank()) DiscordRPC(token, status) else null
             try {
-                discordScope.launchIO { setScreen(this@DiscordRPCService) }
+                discordScope.launch(Dispatchers.IO) { setScreen(this@DiscordRPCService) }
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e) { "Failed to set initial screen" }
                 stopSelf()
@@ -129,7 +129,7 @@ class DiscordRPCService : Service() {
 
             // Reinitialize RPC
             rpc = DiscordRPC(token, status)
-            discordScope.launchIO {
+            discordScope.launch(Dispatchers.IO) {
                 setScreen(this@DiscordRPCService)
             }
         } catch (e: Exception) {
@@ -397,7 +397,7 @@ class DiscordRPCService : Service() {
                 val episodeNumber = getFormattedEpisodeNumber(context, playerData, discordIncognito)
                 val (startTime, end) = getTimestamps(playerData)
 
-                withIOContext {
+                withContext(Dispatchers.IO) {
                     val rpcExternalAsset = getRPCExternalAsset(context)
                     val animeThumbnail =
                         getDiscordThumbnail(rpcExternalAsset, playerData.thumbnailUrl, discordIncognito)

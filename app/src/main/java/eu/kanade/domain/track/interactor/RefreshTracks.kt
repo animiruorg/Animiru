@@ -6,6 +6,7 @@ import eu.kanade.domain.track.model.toDomainTrack
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.Tracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
@@ -41,7 +42,7 @@ class RefreshTracks(
                 .filter { (_, service) -> !enhancedOnly || service is EnhancedTracker }
                 // <-- AM
                 .map { (track, service) ->
-                    async {
+                    async(Dispatchers.IO) {
                         return@async try {
                             // AM -->
                             if (!(skipCompleted && track.totalEpisodes == track.lastEpisodeSeen.toLong())) {

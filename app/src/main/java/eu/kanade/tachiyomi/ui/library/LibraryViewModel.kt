@@ -30,6 +30,7 @@ import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.util.episode.getNextUnseen
 import eu.kanade.tachiyomi.util.removeBackgrounds
 import eu.kanade.tachiyomi.util.removeCovers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,16 +46,17 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import mihon.core.common.utils.mutate
+import mihon.core.metro.AppCoroutineScope
 import mihon.domain.library.model.search.QueryNode
 import mihon.feature.library.matches
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.core.common.util.lang.compareToWithCollator
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.domain.anime.interactor.GetLibraryAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeUpdate
@@ -87,6 +89,7 @@ import kotlin.time.Duration.Companion.seconds
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class LibraryViewModel(
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val getLibraryAnime: GetLibraryAnime,
     // AY -->
     private val getVisibleCategories: GetVisibleCategories,
@@ -208,7 +211,7 @@ class LibraryViewModel(
                 // <-- AM (GROUPING)
             )
         }
-        .flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     val state: StateFlow<State> = combine(
@@ -580,7 +583,8 @@ class LibraryViewModel(
     }
 
     suspend fun getNextUnseenEpisode(anime: Anime): Episode? {
-        return getEpisodesByAnimeId.await(anime.id, applyScanlatorFilter = true).getNextUnseen(anime, downloadManager)
+        val episodes = getEpisodesByAnimeId.await(anime.id, applyScanlatorFilter = true)
+        return withContext(Dispatchers.Default) { episodes.getNextUnseen(anime, downloadManager) }
     }
 
     /**
@@ -601,7 +605,7 @@ class LibraryViewModel(
 
     private fun downloadNextEpisodes(amount: Int?) {
         val animes = selectedAnime
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             animes.forEach { anime ->
                 val episodes = getNextEpisodes.await(anime.id)
                     .fastFilterNot { episode ->
@@ -625,7 +629,7 @@ class LibraryViewModel(
 
     private fun downloadBookmarkedEpisodes() {
         val animes = selectedAnime
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             animes.forEach { anime ->
                 val episodes = getBookmarkedEpisodesByAnimeId.await(anime.id)
                     .fastFilterNot { episode ->
@@ -650,7 +654,7 @@ class LibraryViewModel(
      */
     fun markSeenSelection(seen: Boolean) {
         val selection = selectedAnime
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             selection.forEach { anime ->
                 setSeenStatus.await(
                     anime = anime,
@@ -669,7 +673,7 @@ class LibraryViewModel(
      * @param deleteEpisodes whether to delete downloaded episodes.
      */
     fun removeAnimes(animes: List<Anime>, deleteFromLibrary: Boolean, deleteEpisodes: Boolean) {
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             if (deleteFromLibrary) {
                 val toDelete = animes.map {
                     it.removeCovers(coverCache)
@@ -702,7 +706,7 @@ class LibraryViewModel(
      * @param removeCategories the categories to remove in all animes.
      */
     fun setAnimeCategories(animeList: List<Anime>, addCategories: List<Long>, removeCategories: List<Long>) {
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             animeList.forEach { anime ->
                 val categoryIds = getCategoryIds(anime)
                     .subtract(removeCategories.toSet())
@@ -827,7 +831,7 @@ class LibraryViewModel(
     }
 
     fun openChangeCategoryDialog() {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             // Create a copy of selected anime
             val animeList = selectedAnime
 

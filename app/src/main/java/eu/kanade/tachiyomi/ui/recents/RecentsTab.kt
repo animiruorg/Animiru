@@ -53,17 +53,18 @@ import eu.kanade.tachiyomi.ui.updates.AnimeUpdatesHalfTab
 import eu.kanade.tachiyomi.ui.updates.UpdatesSettingsViewModel
 import eu.kanade.tachiyomi.ui.updates.UpdatesViewModel
 import eu.kanade.tachiyomi.ui.updates.openEpisode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
 import mihon.feature.upcoming.UpcomingScreen
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.History
 import mihon.icons.materialsymbols.rounded.ReleaseAlert
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
@@ -137,7 +138,7 @@ data object RecentsTab : Tab {
         LaunchedEffect(Unit) {
             // AM (DISCORD_RPC) -->
             with(DiscordRPCService) {
-                discordScope.launchIO { setScreen(context.applicationContext, DiscordScreen.RECENTS) }
+                discordScope.launch(Dispatchers.IO) { setScreen(context.applicationContext, DiscordScreen.RECENTS) }
             }
             // <-- AM (DISCORD_RPC)
             (context as? MainActivity)?.ready = true
@@ -244,7 +245,7 @@ fun RecentsScaffold(
                     onMultiMarkAsSeenClicked = updatesViewModel::markUpdatesSeen,
                     onMultiDeleteClicked = updatesViewModel::showConfirmDeleteEpisodes,
                     onOpenEpisode = { updateItem, altPlayer ->
-                        scope.launchIO {
+                        scope.launch(Dispatchers.IO) {
                             openEpisode(context, updateItem, altPlayer)
                         }
                     },

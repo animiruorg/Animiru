@@ -18,6 +18,8 @@ import eu.kanade.tachiyomi.network.await
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.jsonMime
 import eu.kanade.tachiyomi.network.parseAs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -27,7 +29,6 @@ import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 class HikkaApi(
@@ -37,7 +38,7 @@ class HikkaApi(
     interceptor: HikkaInterceptor,
 ) {
     suspend fun getCurrentUser(): HKUser {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val request = Request.Builder()
                 .url("${BASE_API_URL}/user/me")
                 .get()
@@ -51,7 +52,7 @@ class HikkaApi(
     }
 
     suspend fun accessToken(reference: String): HKOAuth {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             with(json) {
                 client.newCall(authTokenCreate(reference))
                     .awaitSuccess()
@@ -61,7 +62,7 @@ class HikkaApi(
     }
 
     suspend fun searchAnime(query: String): List<TrackSearch> {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val url = "$BASE_API_URL/anime".toUri().buildUpon()
                 .appendQueryParameter("page", "1")
                 .appendQueryParameter("size", "50")
@@ -97,7 +98,7 @@ class HikkaApi(
     }
 
     suspend fun getSeen(track: Track): HKWatch? {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val slug = track.tracking_url.split("/")[4]
             val url = "$BASE_API_URL/watch/$slug".toUri().buildUpon().build()
             with(json) {
@@ -117,7 +118,7 @@ class HikkaApi(
     }
 
     suspend fun getAnimeDetails(slug: String): TrackSearch? {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val url = "$BASE_API_URL/anime/$slug"
 
             with(json) {
@@ -136,7 +137,7 @@ class HikkaApi(
     }
 
     suspend fun getAnime(track: Track): TrackSearch {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val slug = track.tracking_url.split("/")[4]
             val url = "$BASE_API_URL/anime/$slug".toUri().buildUpon()
                 .build()
@@ -151,19 +152,19 @@ class HikkaApi(
     }
 
     suspend fun deleteUserAnime(track: DomainTrack) {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val slug = track.remoteUrl.split("/")[4]
 
             val url = "$BASE_API_URL/watch/$slug".toUri().buildUpon()
                 .build()
 
             authClient.newCall(DELETE(url.toString()))
-                .awaitSuccess()
+                .awaitSuccess().close()
         }
     }
 
     suspend fun addUserAnime(track: Track): Track {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val slug = track.tracking_url.split("/")[4]
 
             val url = "$BASE_API_URL/watch/$slug".toUri().buildUpon()

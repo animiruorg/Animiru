@@ -9,6 +9,8 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.util.lang.Hash.md5
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import eu.kanade.tachiyomi.util.storage.size
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.storage.displayablePath
@@ -48,7 +50,10 @@ class DownloadProvider(
      * @param animeTitle the title of the anime to query.
      * @param source the source of the anime.
      */
-    internal fun getAnimeDir(animeTitle: String, source: AnimeSource): Result<UniFile> {
+    internal suspend fun getAnimeDir(animeTitle: String, source: AnimeSource): Result<UniFile> =
+        withContext(Dispatchers.IO) { createAnimeDir(animeTitle, source) }
+
+    private fun createAnimeDir(animeTitle: String, source: AnimeSource): Result<UniFile> {
         val downloadsDir = downloadsDir
         if (downloadsDir == null) {
             logcat(LogPriority.ERROR) { "Failed to create download directory" }
@@ -85,8 +90,8 @@ class DownloadProvider(
      *
      * @param source the source to query.
      */
-    fun findSourceDir(source: AnimeSource): UniFile? {
-        return downloadsDir?.findFile(getSourceDirName(source))
+    suspend fun findSourceDir(source: AnimeSource): UniFile? = withContext(Dispatchers.IO) {
+        downloadsDir?.findFile(getSourceDirName(source))
     }
 
     /**
@@ -95,9 +100,8 @@ class DownloadProvider(
      * @param animeTitle the title of the anime to query.
      * @param source the source of the anime.
      */
-    fun findAnimeDir(animeTitle: String, source: AnimeSource): UniFile? {
-        val sourceDir = findSourceDir(source)
-        return sourceDir?.findFile(getAnimeDirName(animeTitle))
+    suspend fun findAnimeDir(animeTitle: String, source: AnimeSource): UniFile? = withContext(Dispatchers.IO) {
+        findSourceDir(source)?.findFile(getAnimeDirName(animeTitle))
     }
 
     /**
@@ -109,15 +113,15 @@ class DownloadProvider(
      * @param animeTitle the title of the anime to query.
      * @param source the source of the episode.
      */
-    fun findEpisodeDir(
+    suspend fun findEpisodeDir(
         episodeName: String,
         episodeScanlator: String?,
         episodeUrl: String,
         animeTitle: String,
         source: AnimeSource,
-    ): UniFile? {
+    ): UniFile? = withContext(Dispatchers.IO) {
         val animeDir = findAnimeDir(animeTitle, source)
-        return getValidEpisodeDirNames(episodeName, episodeScanlator, episodeUrl).asSequence()
+        getValidEpisodeDirNames(episodeName, episodeScanlator, episodeUrl).asSequence()
             .mapNotNull { animeDir?.findFile(it) }
             .firstOrNull()
     }
@@ -129,11 +133,15 @@ class DownloadProvider(
      * @param anime the anime of the episode.
      * @param source the source of the episode.
      */
-    fun findEpisodeDirs(episodes: List<Episode>, anime: Anime, source: AnimeSource): Pair<UniFile?, List<UniFile>> {
+    suspend fun findEpisodeDirs(
+        episodes: List<Episode>,
+        anime: Anime,
+        source: AnimeSource,
+    ): Pair<UniFile?, List<UniFile>> = withContext(Dispatchers.IO) {
         // AM (CUSTOM_INFORMATION) -->
-        val animeDir = findAnimeDir(anime.ogTitle, source) ?: return null to emptyList()
+        val animeDir = findAnimeDir(anime.ogTitle, source) ?: return@withContext null to emptyList()
         // <-- AM (CUSTOM_INFORMATION)
-        return animeDir to episodes.mapNotNull { episode ->
+        animeDir to episodes.mapNotNull { episode ->
             getValidEpisodeDirNames(episode.name, episode.scanlator, episode.url).asSequence()
                 .mapNotNull { animeDir.findFile(it) }
                 .firstOrNull()
@@ -262,19 +270,19 @@ class DownloadProvider(
      * @param animeTitle the title of the anime
      * @param animeSource the source of the anime
      */
-    fun getEpisodeFileSize(
+    suspend fun getEpisodeFileSize(
         episodeName: String,
         episodeUrl: String?,
         episodeScanlator: String?,
         animeTitle: String,
         animeSource: AnimeSource?,
-    ): Long? {
-        if (animeSource == null) return null
-        return if (animeSource.isLocal()) {
-            val (animeDirName, episodeDirName) = episodeUrl?.split('/', limit = 2) ?: return null
+    ): Long? = withContext(Dispatchers.IO) {
+        if (animeSource == null) return@withContext null
+        if (animeSource.isLocal()) {
+            val (animeDirName, episodeDirName) = episodeUrl?.split('/', limit = 2) ?: return@withContext null
             localFileSystem.getBaseDirectory()?.findFile(animeDirName)?.findFile(episodeDirName)?.size()
         } else {
-            val episodeUrl = episodeUrl ?: return null
+            val episodeUrl = episodeUrl ?: return@withContext null
             findEpisodeDir(episodeName, episodeScanlator, episodeUrl, animeTitle, animeSource)?.size()
         }
     }

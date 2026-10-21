@@ -62,12 +62,12 @@ import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import eu.kanade.tachiyomi.util.system.toShareIntent
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.feature.migration.config.MigrationConfigScreen
 import mihon.feature.migration.dialog.MigrateAnimeDialog
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
@@ -110,7 +110,7 @@ class AnimeScreen(
         LaunchedEffect(successState.anime, viewModel.source) {
             if (isHttpSource) {
                 try {
-                    withIOContext {
+                    withContext(Dispatchers.IO) {
                         assistUrl = getAnimeUrl(viewModel.anime, viewModel.source)
                     }
                 } catch (e: Exception) {
@@ -146,7 +146,7 @@ class AnimeScreen(
             // <-- AM (FILE_SIZE)
             onEpisodeClicked = { episode, /* AY --> */ alt /* <-- AY */ ->
                 // AY -->
-                scope.launchIO {
+                scope.launch(Dispatchers.IO) {
                     if (viewModel.isTorrentEnabled() && successState.source.isSourceForTorrents()) {
                         TorrentServerService.start(context)
                     }
@@ -190,7 +190,7 @@ class AnimeScreen(
             onRefresh = viewModel::fetchAllFromSource,
             onContinueWatching = {
                 // AY -->
-                scope.launchIO {
+                scope.launch(Dispatchers.IO) {
                     val extPlayer = viewModel.alwaysUseExternalPlayer
                     continueWatching(context, viewModel.getNextUnseenEpisode(), extPlayer)
                 }
@@ -241,7 +241,7 @@ class AnimeScreen(
                 navigator.push(AnimeScreen(it.id))
             },
             onContinueWatchingClicked = {
-                scope.launchIO {
+                scope.launch(Dispatchers.IO) {
                     val episode = viewModel.getNextUnseenEpisode(it.anime)
                     episode?.let { ep ->
                         openEpisode(context, ep, viewModel.alwaysUseExternalPlayer)
@@ -421,7 +421,7 @@ class AnimeScreen(
             // AY -->
             AnimeViewModel.Dialog.ChangeAnimeSkipIntro -> {
                 fun updateSkipIntroLength(newLength: Long) {
-                    scope.launchIO {
+                    scope.launch {
                         viewModel.setAnimeViewerFlags.awaitSetSkipIntroLength(animeId, newLength)
                     }
                 }
@@ -489,7 +489,7 @@ class AnimeScreen(
 
     private suspend fun openEpisode(context: Context, episode: Episode, useExternalPlayer: Boolean) {
         // AY -->
-        withIOContext {
+        withContext(Dispatchers.IO) {
             MainActivity.startPlayerActivity(
                 context,
                 episode.animeId,

@@ -51,7 +51,7 @@ fun UpdateScreen(
     state: UpdatesViewModel.State,
     lastUpdated: Long,
     onClickCover: (UpdatesItem) -> Unit,
-    onUpdateLibrary: () -> Boolean,
+    onUpdateLibrary: suspend () -> Boolean,
     onDownloadEpisode: (List<UpdatesItem>, EpisodeDownloadAction) -> Unit,
     onUpdateSelected: (UpdatesItem, Boolean, Boolean) -> Unit,
     onOpenEpisode: (UpdatesItem, altPlayer: Boolean) -> Unit,
@@ -67,9 +67,8 @@ fun UpdateScreen(
             PullRefresh(
                 refreshing = isRefreshing,
                 onRefresh = {
-                    val started = onUpdateLibrary()
-                    if (!started) return@PullRefresh
                     scope.launch {
+                        if (!onUpdateLibrary()) return@launch
                         // Fake refresh status but hide it after a second as it's a long running task
                         isRefreshing = true
                         delay(1.seconds)
@@ -119,7 +118,7 @@ fun UpdateScreen(
 @Composable
 fun UpdatesTopBar(
     onCalendarClicked: () -> Unit,
-    onUpdateLibrary: () -> Unit,
+    onUpdateLibrary: suspend () -> Unit,
     onFilterClicked: () -> Unit,
     hasFilters: Boolean,
     // For action mode
@@ -130,6 +129,8 @@ fun UpdatesTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
 ) {
+    val scope = rememberCoroutineScope()
+
     AppBar(
         modifier = modifier,
         title = stringResource(MR.strings.label_recent_updates),
@@ -150,7 +151,7 @@ fun UpdatesTopBar(
                     AppBar.Action(
                         title = stringResource(MR.strings.action_update_library),
                         icon = MaterialSymbols.Rounded.Refresh,
-                        onClick = onUpdateLibrary,
+                        onClick = { scope.launch { onUpdateLibrary() } },
                     ),
                 ),
             )

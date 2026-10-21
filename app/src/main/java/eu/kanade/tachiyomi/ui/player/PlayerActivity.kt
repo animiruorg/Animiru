@@ -76,15 +76,15 @@ import eu.kanade.tachiyomi.ui.player.components.MAX_BRIGHTNESS
 import eu.kanade.tachiyomi.util.system.powerManager
 import eu.kanade.tachiyomi.util.system.toShareIntent
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.app.di.AppGraph
 import mihon.core.metro.metroGraph
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -181,7 +181,7 @@ class PlayerActivity : BaseActivity() {
                 val exception = initResult.second.exceptionOrNull() ?: IllegalStateException(
                     "Unknown error",
                 )
-                withUIContext {
+                withContext(Dispatchers.Main) {
                     setInitialEpisodeError(exception)
                 }
             }
@@ -740,12 +740,12 @@ class PlayerActivity : BaseActivity() {
     private fun updateDiscordRPC(exitingPlayer: Boolean, paused: Boolean = false, position: Int? = null) {
         if (!connectionPreferences.enableDiscordRPC.get()) return
 
-        lifecycleScope.launchIO {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 if (!exitingPlayer) {
                     val playbackData = viewModel.playbackData.value
                     val stateData = viewModel.stateData.value
-                    if (playbackData.duration == 0) return@launchIO
+                    if (playbackData.duration == 0) return@launch
 
                     val timePos = position?.seconds ?: playbackData.position.seconds
                     val duration = playbackData.duration.seconds
@@ -753,8 +753,8 @@ class PlayerActivity : BaseActivity() {
                     val startTimestamp = Clock.System.now() - timePos
                     val endTimestamp = startTimestamp + duration
 
-                    val anime = stateData.currentAnime ?: return@launchIO
-                    val episode = stateData.currentEpisode ?: return@launchIO
+                    val anime = stateData.currentAnime ?: return@launch
+                    val episode = stateData.currentEpisode ?: return@launch
 
                     DiscordRPCService.setPlayerActivity(
                         context = this@PlayerActivity,

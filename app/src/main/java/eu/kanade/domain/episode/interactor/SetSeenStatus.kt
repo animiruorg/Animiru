@@ -3,7 +3,6 @@ package eu.kanade.domain.episode.interactor
 import dev.zacsweers.metro.Inject
 import eu.kanade.domain.download.interactor.DeleteDownload
 import logcat.LogPriority
-import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.repository.AnimeRepository
@@ -27,7 +26,7 @@ class SetSeenStatus(
         }
     }
 
-    suspend fun await(seen: Boolean, vararg episodes: Episode): Result = withNonCancellableContext {
+    suspend fun await(seen: Boolean, vararg episodes: Episode): Result {
         val episodesToUpdate = episodes.filter {
             when (seen) {
                 true -> !it.seen
@@ -35,7 +34,7 @@ class SetSeenStatus(
             }
         }
         if (episodesToUpdate.isEmpty()) {
-            return@withNonCancellableContext Result.NoEpisodes
+            return Result.NoEpisodes
         }
 
         try {
@@ -44,7 +43,7 @@ class SetSeenStatus(
             )
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
-            return@withNonCancellableContext Result.InternalError(e)
+            return Result.InternalError(e)
         }
 
         if (seen && downloadPreferences.removeAfterMarkedAsSeen.get()) {
@@ -61,11 +60,11 @@ class SetSeenStatus(
                 }
         }
 
-        Result.Success
+        return Result.Success
     }
 
-    suspend fun await(animeId: Long, seen: Boolean): Result = withNonCancellableContext {
-        await(
+    suspend fun await(animeId: Long, seen: Boolean): Result {
+        return await(
             seen = seen,
             episodes = episodeRepository
                 .getEpisodeByAnimeId(animeId)

@@ -29,12 +29,9 @@ import eu.kanade.tachiyomi.util.system.cancelNotification
 import eu.kanade.tachiyomi.util.system.getBitmapOrNull
 import eu.kanade.tachiyomi.util.system.notificationBuilder
 import eu.kanade.tachiyomi.util.system.notify
-import kotlinx.coroutines.CoroutineScope
-import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.Constants
 import tachiyomi.core.common.i18n.pluralStringResource
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.library.model.LibraryAnime
@@ -48,7 +45,6 @@ import mihon.icons.materialsymbols.R as MaterialSymbolsR
 
 @Inject
 class LibraryUpdateNotifier(
-    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     private val securityPreferences: SecurityPreferences,
     private val sourceManager: SourceManager,
@@ -175,7 +171,7 @@ class LibraryUpdateNotifier(
      *
      * @param updates a list of anime with new updates.
      */
-    fun showUpdateNotifications(updates: List<Pair<Anime, Array<Episode>>>) {
+    suspend fun showUpdateNotifications(updates: List<Pair<Anime, Array<Episode>>>) {
         // Parent group notification
         context.notify(
             Notifications.ID_NEW_EPISODES,
@@ -218,16 +214,14 @@ class LibraryUpdateNotifier(
 
         // Per-anime notification
         if (!securityPreferences.hideNotificationContent.get()) {
-            scope.launchUI {
-                context.notify(
-                    updates.map { (anime, episodes) ->
-                        NotificationManagerCompat.NotificationWithIdAndTag(
-                            anime.id.hashCode(),
-                            createNewEpisodesNotification(anime, episodes),
-                        )
-                    },
-                )
-            }
+            context.notify(
+                updates.map { (anime, episodes) ->
+                    NotificationManagerCompat.NotificationWithIdAndTag(
+                        anime.id.hashCode(),
+                        createNewEpisodesNotification(anime, episodes),
+                    )
+                },
+            )
         }
     }
 

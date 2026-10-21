@@ -1,7 +1,6 @@
 package tachiyomi.domain.episode.interactor
 
 import dev.zacsweers.metro.Inject
-import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.domain.anime.interactor.GetFavorites
 import tachiyomi.domain.anime.interactor.SetAnimeEpisodeFlags
 import tachiyomi.domain.anime.model.Anime
@@ -15,15 +14,11 @@ class SetAnimeDefaultEpisodeFlags(
 ) {
 
     suspend fun await(anime: Anime) {
-        withNonCancellableContext {
-            setDefaultFlags(listOf(anime.id))
-        }
+        setDefaultFlags(listOf(anime.id))
     }
 
     suspend fun awaitAll() {
-        withNonCancellableContext {
-            setDefaultFlags(getFavorites.await().map { it.id })
-        }
+        setDefaultFlags(getFavorites.await().map { it.id })
     }
 
     private suspend fun setDefaultFlags(animeIds: List<Long>) {

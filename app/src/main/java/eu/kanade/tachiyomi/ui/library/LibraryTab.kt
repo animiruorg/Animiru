@@ -43,6 +43,7 @@ import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen
 import eu.kanade.tachiyomi.ui.category.CategoryScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.main.MainActivity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -52,7 +53,6 @@ import mihon.feature.migration.config.MigrationConfigScreen
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Help
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.episode.model.Episode
@@ -104,7 +104,7 @@ data object LibraryTab : Tab {
         val snackbarHostState = remember { SnackbarHostState() }
 
         // AM (GROUPING) -->
-        val onClickRefresh: (Category?) -> Boolean = { category ->
+        val onClickRefresh: suspend (Category?) -> Boolean = { category ->
             val started = LibraryUpdateWorker.startNow(
                 context = context,
                 category = if (state.groupType == LibraryGroup.BY_DEFAULT) category else null,
@@ -167,8 +167,8 @@ data object LibraryTab : Tab {
                     onClickSelectAll = viewModel::selectAll,
                     onClickInvertSelection = viewModel::invertSelection,
                     onClickFilter = viewModel::showSettingsDialog,
-                    onClickRefresh = { onClickRefresh(state.activeCategory) },
-                    onClickGlobalUpdate = { onClickRefresh(null) },
+                    onClickRefresh = { scope.launch { onClickRefresh(state.activeCategory) } },
+                    onClickGlobalUpdate = { scope.launch { onClickRefresh(null) } },
                     // AM (TAB_HOLD) -->
                     onClickOpenRandomAnime = ::openRandomAnime,
                     // <-- AM (TAB_HOLD)
@@ -226,7 +226,7 @@ data object LibraryTab : Tab {
                         onChangeCurrentPage = viewModel::updateActiveCategoryIndex,
                         onClickAnime = { navigator.push(AnimeScreen(it)) },
                         onContinueWatchingClicked = { it: LibraryAnime ->
-                            scope.launchIO {
+                            scope.launch {
                                 val episode = viewModel.getNextUnseenEpisode(it.anime)
                                 // AY -->
                                 if (episode != null) openEpisode(episode)
@@ -311,7 +311,7 @@ data object LibraryTab : Tab {
         LaunchedEffect(Unit) {
             // AM (DISCORD_RPC) -->
             with(DiscordRPCService) {
-                discordScope.launchIO { setScreen(context.applicationContext, DiscordScreen.LIBRARY) }
+                discordScope.launch(Dispatchers.IO) { setScreen(context.applicationContext, DiscordScreen.LIBRARY) }
             }
             // <-- AM (DISCORD_RPC)
             launch { queryEvent.receiveAsFlow().collect(viewModel::search) }

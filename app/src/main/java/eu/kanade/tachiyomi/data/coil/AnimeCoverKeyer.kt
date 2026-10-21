@@ -25,7 +25,7 @@ class AnimeCoverKeyer(
     private val coverCache: CoverCache,
 ) : Keyer<AnimeCover> {
     override fun key(data: AnimeCover, options: Options): String {
-        return if (coverCache.getCustomCoverFile(data.animeId).exists()) {
+        return if (coverCache.hasCustomCover(data.animeId)) {
             "anime;${data.animeId};${data.lastModified}"
         } else {
             "anime;${data.url};${data.lastModified}"

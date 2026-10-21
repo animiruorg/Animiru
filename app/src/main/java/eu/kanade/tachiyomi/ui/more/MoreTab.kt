@@ -35,12 +35,13 @@ import eu.kanade.tachiyomi.ui.setting.PlayerSettingsScreen
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import eu.kanade.tachiyomi.ui.stats.StatsScreen
 import eu.kanade.tachiyomi.ui.storage.StorageScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import tachiyomi.core.common.util.lang.launchIO
+import kotlinx.coroutines.launch
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
@@ -96,7 +97,7 @@ data object MoreTab : Tab {
         // AM (DISCORD_RPC) -->
         LaunchedEffect(Unit) {
             with(DiscordRPCService) {
-                discordScope.launchIO { setScreen(context.applicationContext, DiscordScreen.MORE) }
+                discordScope.launch(Dispatchers.IO) { setScreen(context.applicationContext, DiscordScreen.MORE) }
             }
         }
         // <-- AM (DISCORD_RPC)
@@ -119,7 +120,7 @@ class MoreViewModel(
 
     init {
         // Handle running/paused status change and queue progress updating
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             combine(
                 downloadManager.isDownloaderRunning,
                 downloadManager.queueState,

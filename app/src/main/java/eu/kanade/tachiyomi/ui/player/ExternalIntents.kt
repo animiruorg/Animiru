@@ -34,15 +34,14 @@ import eu.kanade.tachiyomi.util.system.isOnline
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.app.di.appGraph
 import mihon.core.metro.AppCoroutineScope
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchUI
-import tachiyomi.core.common.util.lang.withIOContext
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.Anime
@@ -120,7 +119,7 @@ class ExternalIntents(
         if (video.usesHttpServer()) {
             val (success, port) = MainActivity.startHttpServerService(context, source.id)
             if (!success) {
-                scope.launchUI {
+                scope.launch(Dispatchers.Main) {
                     context.toast(AYMR.strings.http_server_start_failure)
                 }
                 return null
@@ -133,7 +132,7 @@ class ExternalIntents(
 
         // AM (DISCORD_RPC) -->
         with(DiscordRPCService) {
-            discordScope.launchIO {
+            discordScope.launch(Dispatchers.IO) {
                 setPlayerActivity(
                     context = context,
                     playerData = PlayerData(
@@ -234,7 +233,7 @@ class ExternalIntents(
      * @param e the exception error to be displayed.
      */
     private suspend fun makeErrorToast(context: Context, e: Exception?) {
-        withUIContext { context.toast(e?.message ?: "Cannot open episode") }
+        withContext(Dispatchers.Main) { context.toast(e?.message ?: "Cannot open episode") }
     }
 
     /**
@@ -452,12 +451,12 @@ class ExternalIntents(
 
         // AM (DISCORD_RPC) -->
         with(DiscordRPCService) {
-            discordScope.launchIO { setScreen(context.applicationContext, lastUsedScreen) }
+            discordScope.launch(Dispatchers.IO) { setScreen(context.applicationContext, lastUsedScreen) }
         }
         // <-- AM (DISCORD_RPC)
 
         // Update the episode's progress and history
-        scope.launchIO {
+        scope.launch(Dispatchers.IO) {
             if (cause == "playback_completion" || (currentPosition == duration && duration == 0L)) {
                 saveEpisodeProgress(
                     currentExtEpisode,
@@ -569,7 +568,7 @@ class ExternalIntents(
     private suspend fun updateTrackEpisodeSeen(episodeNumber: Double, anime: Anime) {
         if (!trackPreferences.autoUpdateTrack.get()) return
 
-        withIOContext {
+        withContext(Dispatchers.IO) {
             getTracks.await(anime.id)
                 .mapNotNull { track ->
                     val tracker = trackerManager.get(track.trackerId)
@@ -610,7 +609,7 @@ class ExternalIntents(
      */
     private suspend fun enqueueDeleteSeenEpisodes(episode: Episode, anime: Anime) {
         if (episode.seen) {
-            withIOContext {
+            withContext(Dispatchers.IO) {
                 downloadManager.enqueueEpisodesToDelete(
                     listOf(episode),
                     anime,

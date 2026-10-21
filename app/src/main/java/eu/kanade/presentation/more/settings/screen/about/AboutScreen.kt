@@ -35,7 +35,9 @@ import eu.kanade.tachiyomi.util.system.isFossBuildType
 import eu.kanade.tachiyomi.util.system.isPreviewBuildType
 import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.system.updaterEnabled
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import logcat.LogPriority
@@ -45,8 +47,6 @@ import mihon.icons.materialsymbols.rounded.Public
 import mihon.icons.simpleicons.Discord
 import mihon.icons.simpleicons.Github
 import mihon.icons.simpleicons.SimpleIcons
-import tachiyomi.core.common.util.lang.withIOContext
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.release.interactor.GetApplicationRelease
 import tachiyomi.i18n.MR
@@ -209,9 +209,9 @@ object AboutScreen : Screen() {
         onFinish: () -> Unit,
     ) {
         val updateChecker = context.appGraph.updateChecker
-        withUIContext {
+        withContext(Dispatchers.Main) {
             try {
-                when (val result = withIOContext { updateChecker.checkForUpdate(forceCheck = true) }) {
+                when (val result = updateChecker.checkForUpdate(forceCheck = true)) {
                     is GetApplicationRelease.Result.NewUpdate -> {
                         onAvailableUpdate(result)
                     }

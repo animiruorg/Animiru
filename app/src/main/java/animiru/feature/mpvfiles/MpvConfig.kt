@@ -11,9 +11,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import logcat.LogPriority
 import mihon.core.metro.AppCoroutineScope
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.custombutton.interactor.GetCustomButtons
 import tachiyomi.domain.custombutton.model.CustomButton
@@ -35,7 +35,7 @@ class MpvConfig(
     fun copyFiles() {
         if (copyJob?.isActive == true) return
 
-        copyJob = scope.launchIO {
+        copyJob = scope.launch(Dispatchers.IO) {
             val mpvDir = getMpvDir()
             copyUserFiles(mpvDir)
             copyFontsDirectory(mpvDir)
