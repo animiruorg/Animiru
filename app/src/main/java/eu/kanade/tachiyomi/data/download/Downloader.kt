@@ -61,6 +61,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -93,6 +94,7 @@ import kotlin.time.Duration.Companion.seconds
 @Inject
 @SingleIn(AppScope::class)
 class Downloader(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     private val provider: DownloadProvider,
     private val cache: DownloadCache,
@@ -119,8 +121,6 @@ class Downloader(
     private val _queueState = MutableStateFlow<List<Download>>(emptyList())
     val queueState = _queueState.asStateFlow()
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     // Kept when canceled, so the next job can wait for it to finish
     private var downloaderJob: Job? = null
 
@@ -142,9 +142,8 @@ class Downloader(
     var isPaused: Boolean = false
 
     init {
-        launchNow {
-            val episodes = async { store.restore() }
-            addAllToQueue(episodes.await())
+        scope.launch {
+            addAllToQueue(store.restore())
         }
     }
 

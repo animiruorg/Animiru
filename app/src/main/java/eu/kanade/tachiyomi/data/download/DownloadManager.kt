@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.download.model.Download
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.drop
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.runBlocking
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
@@ -42,6 +44,7 @@ import tachiyomi.source.local.isLocal
 @Inject
 @SingleIn(AppScope::class)
 class DownloadManager(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     // AM (STORAGE_SCREEN) -->
     private val storageManager: StorageManager,
@@ -295,7 +298,7 @@ class DownloadManager(
      * @param source the source of the episodes.
      */
     fun deleteEpisodes(episodes: List<Episode>, anime: Anime, source: AnimeSource) {
-        launchIO {
+        scope.launchIO {
             val filteredEpisodes = getEpisodesToDelete(episodes, anime)
             if (filteredEpisodes.isEmpty()) {
                 return@launchIO
@@ -322,7 +325,7 @@ class DownloadManager(
      * @param removeQueued whether to also remove queued downloads.
      */
     fun deleteAnime(anime: Anime, source: AnimeSource, removeQueued: Boolean = true) {
-        launchIO {
+        scope.launchIO {
             if (removeQueued) {
                 downloader.removeFromQueue(anime)
             }

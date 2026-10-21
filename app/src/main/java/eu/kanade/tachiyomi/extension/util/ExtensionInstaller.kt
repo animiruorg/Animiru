@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import tachiyomi.core.common.util.system.logcat
@@ -34,12 +35,12 @@ import java.io.File
  */
 @Inject
 class ExtensionInstaller(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     basePreferences: BasePreferences,
     networkHelper: NetworkHelper,
 ) {
 
-    private val scope = CoroutineScope(Dispatchers.IO)
     private val activeJobs = mutableMapOf<String, Job>()
     private val activeSteps = mutableMapOf<Long, MutableStateFlow<InstallStep>>()
     private val extensionInstaller = basePreferences.extensionInstaller

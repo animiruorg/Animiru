@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import mihon.domain.extension.interactor.UpdateExtensionStores
 import mihon.domain.extension.model.ExtensionStore
 import mihon.domain.extension.repository.ExtensionStoreRepository
@@ -53,6 +54,7 @@ import java.util.Locale
 @Inject
 @SingleIn(AppScope::class)
 class ExtensionManager(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     private val preferences: SourcePreferences,
     private val trustExtension: TrustExtension,
@@ -61,8 +63,6 @@ class ExtensionManager(
     private val installer: ExtensionInstaller,
     private val extensionUpdateNotifier: ExtensionUpdateNotifier,
 ) {
-
-    val scope = CoroutineScope(SupervisorJob())
 
     private val initialized = CompletableDeferred<Unit>()
 
@@ -96,7 +96,7 @@ class ExtensionManager(
     init {
         scope.launch(Dispatchers.IO) {
             loadExtensions()
-            ExtensionInstallReceiver(InstallationListener()).register(context)
+            ExtensionInstallReceiver(InstallationListener(), scope).register(context)
 
             // Everything the load decision rests on can change while running, so decide again
             merge(

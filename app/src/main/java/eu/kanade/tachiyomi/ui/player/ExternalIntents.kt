@@ -32,11 +32,13 @@ import eu.kanade.tachiyomi.ui.player.loader.HosterLoader
 import eu.kanade.tachiyomi.util.system.LocaleHelper
 import eu.kanade.tachiyomi.util.system.isOnline
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import logcat.LogPriority
 import mihon.app.di.appGraph
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.core.common.util.lang.withIOContext
@@ -62,6 +64,7 @@ import kotlin.time.Clock
 @Inject
 @SingleIn(AppScope::class)
 class ExternalIntents(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     private val upsertHistory: UpsertHistory,
     private val updateEpisode: UpdateEpisode,
@@ -117,7 +120,7 @@ class ExternalIntents(
         if (video.usesHttpServer()) {
             val (success, port) = MainActivity.startHttpServerService(context, source.id)
             if (!success) {
-                launchUI {
+                scope.launchUI {
                     context.toast(AYMR.strings.http_server_start_failure)
                 }
                 return null
@@ -454,7 +457,7 @@ class ExternalIntents(
         // <-- AM (DISCORD_RPC)
 
         // Update the episode's progress and history
-        launchIO {
+        scope.launchIO {
             if (cause == "playback_completion" || (currentPosition == duration && duration == 0L)) {
                 saveEpisodeProgress(
                     currentExtEpisode,

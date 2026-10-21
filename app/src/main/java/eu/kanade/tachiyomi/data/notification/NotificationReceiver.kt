@@ -19,8 +19,11 @@ import eu.kanade.tachiyomi.util.system.notificationManager
 import eu.kanade.tachiyomi.util.system.toShareIntent
 import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.system.workManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mihon.app.di.appGraph
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.Constants
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
@@ -53,6 +56,9 @@ class NotificationReceiver : BroadcastReceiver() {
     @Inject private lateinit var downloadPreferences: DownloadPreferences
 
     @Inject private lateinit var sourceManager: SourceManager
+
+    @Inject @AppCoroutineScope
+    private lateinit var scope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
         context.appGraph.inject(this)
@@ -195,7 +201,7 @@ class NotificationReceiver : BroadcastReceiver() {
      * @param animeId id of anime
      */
     private fun markAsSeen(episodeUrls: Array<String>, animeId: Long) {
-        launchIO {
+        launchAsync {
             val toUpdate = episodeUrls.mapNotNull { getEpisode.await(it, animeId) }
                 .map {
                     if (downloadPreferences.removeAfterMarkedAsSeen.get()) {
@@ -220,8 +226,8 @@ class NotificationReceiver : BroadcastReceiver() {
      * @param animeId id of anime
      */
     private fun downloadEpisodes(episodeUrls: Array<String>, animeId: Long) {
-        launchIO {
-            val anime = getAnime.await(animeId) ?: return@launchIO
+        launchAsync {
+            val anime = getAnime.await(animeId) ?: return@launchAsync
             val episodes = episodeUrls.mapNotNull { getEpisode.await(it, animeId) }
             downloadManager.downloadEpisodes(anime, episodes)
         }
@@ -240,6 +246,21 @@ class NotificationReceiver : BroadcastReceiver() {
         context.cancelNotification(Notifications.ID_DISCORD_RPC)
     }
     // <-- AM (DISCORD_RPC)
+
+    /**
+     * Runs [block] on the application scope while keeping the broadcast alive, so the process isn't torn down before
+     * the work finishes.
+     */
+    private fun launchAsync(block: suspend CoroutineScope.() -> Unit) {
+        val pendingResult = goAsync()
+        scope.launch {
+            try {
+                block()
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
 
     companion object {
         private const val NAME = "NotificationReceiver"

@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.custombutton.interactor.GetCustomButtons
@@ -23,12 +24,12 @@ import java.io.OutputStream
 
 @Inject
 class MpvConfig(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     private val storageManager: StorageManager,
     private val advancedPlayerPreferences: AdvancedPlayerPreferences,
     private val getCustomButtons: GetCustomButtons,
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO)
     private var copyJob: Job? = null
 
     fun copyFiles() {

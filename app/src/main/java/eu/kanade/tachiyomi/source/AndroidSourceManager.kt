@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.domain.source.model.StubSource
 import tachiyomi.domain.source.repository.StubSourceRepository
 import tachiyomi.domain.source.service.SourceManager
@@ -29,13 +29,12 @@ import java.util.concurrent.ConcurrentHashMap
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class AndroidSourceManager(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val extensionManager: ExtensionManager,
     private val sourceRepository: StubSourceRepository,
     private val localSource: LocalSource,
     private val downloadManager: Lazy<DownloadManager>,
 ) : SourceManager {
-
-    private val scope = CoroutineScope(Job() + Dispatchers.IO)
 
     /**
      * Null until the extensions have loaded, so that nothing observes the empty seed value.
@@ -86,7 +85,7 @@ class AndroidSourceManager(
 
     override suspend fun getOrStub(sourceKey: Long): AnimeSource {
         return sourcesMap()[sourceKey] ?: stubSourcesMap.getOrPut(sourceKey) {
-            runBlocking { createStubSource(sourceKey) }
+            createStubSource(sourceKey)
         }
     }
 

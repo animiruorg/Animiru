@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.cast.domain.CodecInformation
 import tachiyomi.cast.domain.TrackInformation
 import tachiyomi.core.common.util.system.logcat
@@ -48,10 +49,9 @@ import kotlin.time.Duration.Companion.milliseconds
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class CastManagerImpl(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val gesturePreferences: GesturePreferences,
 ) : CastManager {
-
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     lateinit var castContext: CastContext
     private var castSession: CastSession? = null
