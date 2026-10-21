@@ -41,8 +41,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,7 +66,6 @@ import okhttp3.Request
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.storage.extension
 import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchNow
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.createFileInCacheDir
@@ -393,6 +390,16 @@ class Downloader(
             download.episode.scanlator,
             download.episode.url,
         )
+
+        // Being stopped after the download is moved into place but before it's indexed leaves a finished download
+        // on disk that is still queued, and downloading it again would save a second copy next to it
+        if (animeDir.findFile("$episodeDirname.mkv") != null || animeDir.findFile(episodeDirname) != null) {
+            animeDir.findFile(episodeDirname + TMP_DIR_SUFFIX)?.delete()
+            cache.addEpisode(episodeDirname, animeDir, download.anime)
+            download.status = Download.State.DOWNLOADED
+            return
+        }
+
         val tmpDir = animeDir.createDirectory(episodeDirname + TMP_DIR_SUFFIX)!!
 
         try {
