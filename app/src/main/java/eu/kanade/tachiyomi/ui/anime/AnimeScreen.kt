@@ -160,6 +160,7 @@ class AnimeScreen(
                 !successState.source.isLocalOrStub() && successState.anime.fetchType == FetchType.Episodes
                 // <-- AY
             },
+            downloadProgressProvider = viewModel::getDownloadProgress,
             onAddToLibraryClicked = {
                 viewModel.toggleFavorite()
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)

@@ -5,7 +5,10 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastFilter
+import androidx.compose.ui.util.fastMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import animiru.core.cache.ThumbnailCache
@@ -74,9 +77,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -88,10 +89,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -130,6 +129,7 @@ import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.episode.model.NoEpisodesException
 import tachiyomi.domain.episode.service.calculateEpisodeGap
 import tachiyomi.domain.episode.service.getEpisodeSort
+import tachiyomi.domain.episode.service.missingEntriesCount
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.season.interactor.SetAnimeDefaultSeasonFlags
 import tachiyomi.domain.season.service.getSeasonSortComparator
@@ -271,7 +271,11 @@ class AnimeViewModel(
     private val isSyncingTrackers = MutableStateFlow(false)
     // <-- AM
 
-    private val downloadStates = MutableStateFlow(emptyMap<Long, DownloadProgress>())
+    private val downloadStates = MutableStateFlow(emptyMap<Long, Download.State>())
+
+    // Progress ticks often, so only the download indicators that read it recompose instead of every tick rebuilding
+    // the episode list
+    private val downloadProgress = mutableStateMapOf<Long, Int>()
 
     // A finished episode leaves the queue, and its last status change can be lost with it, so its state is left to
     // the queried item once it's no longer queued
@@ -374,12 +378,11 @@ class AnimeViewModel(
             source = animeAndEpisodesAndSeasons.source,
             isFromSource = isFromSource,
             episodes = animeAndEpisodesAndSeasons.episodes.map { item ->
-                val download = downloads[item.id]
+                val downloadState = downloads[item.id]
                 val selected = item.id in selectedIds
-                if (download == null && !selected) return@map item
+                if (downloadState == null && !selected) return@map item
                 item.copy(
-                    downloadState = download?.status ?: item.downloadState,
-                    downloadProgress = download?.progress ?: item.downloadProgress,
+                    downloadState = downloadState ?: item.downloadState,
                     selected = selected,
                 )
             },
@@ -408,12 +411,16 @@ class AnimeViewModel(
             // <-- AM
         )
     }
-        // Composition would otherwise build these on first read, on the main thread, for every download progress tick
+        // Composition would otherwise build these on first read, on the main thread, for every new state
         .onEach {
             it.processedEpisodes
             it.processedSeasons
             it.episodeListItems
             it.isAnySelected
+            it.selectedEpisodes
+            it.hasUnseenItems
+            it.hasSeenItems
+            it.missingItemCount
         }
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope + subscriberGate, subscriberGate.whileSubscribed(5.seconds), State.Loading)
@@ -423,16 +430,17 @@ class AnimeViewModel(
         observeTrackers()
         // <-- AM
 
-        // Progress ticks often, and each one copies the map of download states
         viewModelScope.launch(Dispatchers.Default) {
-            merge(
-                downloadManager.statusFlow(),
-                // Each tick rebuilds the shown episode items, so cap how often that happens
-                downloadManager.progressFlow().sample(200.milliseconds),
-            )
+            downloadManager.statusFlow()
                 .filter { it.anime.id == animeId }
                 .catch { logcat(LogPriority.ERROR, it) }
                 .collect(::updateDownloadState)
+        }
+        viewModelScope.launch(Dispatchers.Default) {
+            downloadManager.progressFlow()
+                .filter { it.anime.id == animeId }
+                .catch { logcat(LogPriority.ERROR, it) }
+                .collect { downloadProgress[it.episode.id] = it.progress }
         }
 
         viewModelScope.launch {
@@ -861,9 +869,18 @@ class AnimeViewModel(
             if (download.status == Download.State.NOT_DOWNLOADED || download.status == Download.State.DOWNLOADED) {
                 it - episodeId
             } else {
-                it + (episodeId to DownloadProgress(download.status, download.progress))
+                it + (episodeId to download.status)
             }
         }
+        if (download.status == Download.State.DOWNLOADING) {
+            downloadProgress[episodeId] = download.progress
+        } else {
+            downloadProgress.remove(episodeId)
+        }
+    }
+
+    fun getDownloadProgress(episodeId: Long): Int {
+        return downloadProgress[episodeId] ?: 0
     }
 
     private fun List<Episode>.toEpisodeListItems(anime: Anime): List<EpisodeList.Item> {
@@ -882,7 +899,6 @@ class AnimeViewModel(
             EpisodeList.Item(
                 episode = episode,
                 downloadState = downloadState,
-                downloadProgress = activeDownload?.progress ?: 0,
             )
         }
     }
@@ -1896,8 +1912,6 @@ class AnimeViewModel(
         val seasons: List<AnimeSeasonItem>,
     )
 
-    private data class DownloadProgress(val status: Download.State, val progress: Int)
-
     sealed interface State {
         @Immutable
         data object Loading : State
@@ -1945,6 +1959,42 @@ class AnimeViewModel(
 
             val isAnySelected by lazy {
                 episodes.fastAny { it.selected }
+            }
+
+            val selectedEpisodes by lazy {
+                processedEpisodes.fastFilter { it.selected }
+            }
+
+            val hasUnseenItems by lazy {
+                // AM -->
+                when (anime.fetchType) {
+                    FetchType.Seasons -> processedSeasons.fastAny { !it.seasonAnime.seen }
+                    FetchType.Episodes -> processedEpisodes.fastAny { !it.episode.seen }
+                }
+                // <-- AM
+            }
+
+            val hasSeenItems by lazy {
+                // AM -->
+                when (anime.fetchType) {
+                    FetchType.Seasons -> processedSeasons.fastAny { it.seasonAnime.seen }
+                    FetchType.Episodes -> processedEpisodes.fastAny { it.episode.seen }
+                }
+                // <-- AM
+            }
+
+            val missingItemCount by lazy {
+                if (hideMissingEpisodes) return@lazy 0
+                // AM -->
+                when (anime.fetchType) {
+                    FetchType.Seasons -> {
+                        processedSeasons.fastMap { it.seasonAnime.anime.seasonNumber }.missingEntriesCount()
+                    }
+                    FetchType.Episodes -> {
+                        processedEpisodes.fastMap { it.episode.episodeNumber }.missingEntriesCount()
+                    }
+                }
+                // <-- AM
             }
 
             val episodeListItems by lazy {
@@ -2085,7 +2135,6 @@ sealed class EpisodeList {
     data class Item(
         val episode: Episode,
         val downloadState: Download.State,
-        val downloadProgress: Int,
         // AM (FILE_SIZE) -->
         var fileSize: Long? = null,
         // <-- AM (FILE_SIZE)
