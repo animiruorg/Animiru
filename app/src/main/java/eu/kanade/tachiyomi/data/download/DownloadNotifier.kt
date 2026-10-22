@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.data.download
 import android.app.PendingIntent
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.R
@@ -64,14 +65,23 @@ class DownloadNotifier(
         context.cancelNotification(Notifications.ID_DOWNLOAD_EPISODE_PAUSED)
     }
 
+    private var lastProgressNotificationTime = 0L
+
     /**
      * Called when download progress changes.
      *
+     * Called for every downloaded video from parallel downloads, so it shares the builder under a lock and skips
+     * updates that come faster than the system would show them anyway.
+     *
      * @param download download object containing download information.
      */
-    // Episodes report their progress from several threads, and they share the builder
     @Synchronized
     fun onProgressChange(download: Download) {
+        val now = SystemClock.elapsedRealtime()
+        val isComplete = download.status == Download.State.DOWNLOADED
+        if (!isComplete && now - lastProgressNotificationTime < PROGRESS_NOTIFICATION_INTERVAL_MS) return
+        lastProgressNotificationTime = now
+
         with(progressNotificationBuilder) {
             if (!isDownloading) {
                 context.cancelNotification(Notifications.ID_DOWNLOAD_EPISODE_PAUSED)
@@ -162,6 +172,7 @@ class DownloadNotifier(
     /**
      * Resets the state once downloads are completed.
      */
+    @Synchronized
     fun onComplete() {
         dismissProgress()
 
@@ -235,3 +246,5 @@ class DownloadNotifier(
         isDownloading = false
     }
 }
+
+private const val PROGRESS_NOTIFICATION_INTERVAL_MS = 500L

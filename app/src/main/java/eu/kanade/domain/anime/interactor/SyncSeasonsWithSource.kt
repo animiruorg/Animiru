@@ -124,7 +124,7 @@ class SyncSeasonsWithSource(
             added = newSeasons,
             updated = updatedSeasons,
         )
-        updateAnime.awaitUpdateLastUpdate(anime.id)
+        updateAnime.awaitUpdateFetchIntervalAndLastUpdate(anime, timeZone, now, fetchWindow)
 
         return added
     }

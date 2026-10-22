@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mihon.core.common.utils.mutate
@@ -56,7 +57,9 @@ import mihon.feature.library.matches
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.TriState
+import tachiyomi.core.common.util.lang.SubscriberGate
 import tachiyomi.core.common.util.lang.compareToWithCollator
+import tachiyomi.core.common.util.lang.pausedWhileUnsubscribed
 import tachiyomi.domain.anime.interactor.GetLibraryAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeUpdate
@@ -116,6 +119,8 @@ class LibraryViewModel(
     // <-- AM (GROUPING)
 ) : ViewModel() {
 
+    private val subscriberGate = SubscriberGate()
+
     private val searchQuery = MutableStateFlow<String?>(null)
 
     private val selection = MutableStateFlow(emptySet</* Anime */ Long>())
@@ -161,7 +166,7 @@ class LibraryViewModel(
         .flatMapLatest { needsTracks -> if (needsTracks) getTracksPerAnime.subscribe() else flowOf(emptyMap()) }
 
     // Shared separately so search, selection and dialog changes still reach [state] before the
-    // first query result, and so returning to the tab doesn't flash empty while it restarts.
+    // first query result
     private val library = eu.kanade.core.util.combine(
         searchQuery.debounce(0.25.seconds),
         // AY -->
@@ -212,7 +217,7 @@ class LibraryViewModel(
             )
         }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+        .stateIn(viewModelScope + subscriberGate, SharingStarted.Eagerly, null)
 
     val state: StateFlow<State> = combine(
         library,
@@ -247,7 +252,7 @@ class LibraryViewModel(
             groupedFavorites = library?.groupedFavorites.orEmpty(),
         )
     }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State())
+        .stateIn(viewModelScope + subscriberGate, subscriberGate.whileSubscribed(5.seconds), State())
 
     private data class DisplayPreferences(
         val showCategoryTabs: Boolean,
@@ -379,10 +384,9 @@ class LibraryViewModel(
         groupSort: LibrarySort? = null,
         // <-- AM (GROUPING)
     ): Map<Category, List</* LibraryItem */ Long>> {
+        // The collator already ignores case, and lowercasing on every comparison is slow on large libraries
         val sortAlphabetically: (LibraryItem, LibraryItem) -> Int = { anime1, anime2 ->
-            val title1 = anime1.libraryAnime.anime.title.lowercase()
-            val title2 = anime2.libraryAnime.anime.title.lowercase()
-            title1.compareToWithCollator(title2)
+            anime1.libraryAnime.anime.title.compareToWithCollator(anime2.libraryAnime.anime.title)
         }
 
         val defaultTrackerScoreSortValue = -1.0
@@ -510,14 +514,15 @@ class LibraryViewModel(
         return combine(
             getLibraryAnime.subscribe(),
             getLibraryItemPreferencesFlow(),
-            downloadCache.changes,
+            downloadCache.changes.pausedWhileUnsubscribed(),
         ) { libraryAnime, preferences, _ ->
             val sources = libraryAnime
                 .mapTo(mutableSetOf()) { it.anime.source }
                 .associateWith { sourceManager.getOrStub(it) }
+            val downloadCounts = downloadManager.getDownloadCounts(libraryAnime.map { it.anime })
             libraryAnime.map { anime ->
                 val source = sources.getValue(anime.anime.source)
-                val downloadCount = downloadManager.getDownloadCount(anime.anime)
+                val downloadCount = downloadCounts.getValue(anime.id)
                 LibraryItem(
                     libraryAnime = anime,
                     downloadCount = downloadCount,

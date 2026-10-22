@@ -166,8 +166,6 @@ class PlayerActivity : BaseActivity() {
             Notifications.ID_NEW_EPISODES,
         )
 
-        viewModel.saveCurrentEpisodeWatchingProgress()
-
         lifecycleScope.launch {
             viewModel.updateIsLoadingEpisode(true)
             viewModel.updateIsLoadingHosters(true)
@@ -319,7 +317,6 @@ class PlayerActivity : BaseActivity() {
     }
 
     override fun onPause() {
-        viewModel.saveCurrentEpisodeWatchingProgress()
         updateDiscordRPC(exitingPlayer = false)
 
         if (isInPictureInPictureMode) {
@@ -649,13 +646,6 @@ class PlayerActivity : BaseActivity() {
     }
 
     // ==== END MPVKT ====
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        if (!isChangingConfigurations) {
-            viewModel.onSaveInstanceStateNonConfigurationChange()
-        }
-        super.onSaveInstanceState(outState)
-    }
 
     /**
      * Called from the presenter if the initial load couldn't load the videos of the episode. In

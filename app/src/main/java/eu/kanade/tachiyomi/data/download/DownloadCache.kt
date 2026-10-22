@@ -246,6 +246,27 @@ class DownloadCache(
     // <-- AM (STORAGE_SCREEN)
 
     /**
+     * Returns the amount of downloaded episodes for each of the given anime, keyed by anime id.
+     *
+     * @param anime the anime to check.
+     */
+    fun getDownloadCounts(anime: List<Anime>): Map<Long, Int> {
+        renewCache()
+
+        val sourceDirs = rootDownloadsDir.sourceDirs
+        return anime.associate {
+            val animeDirs = sourceDirs[it.source]?.animeDirs
+            // Building the directory name is the costly part, so it's skipped for sources without downloads
+            val animeDir = if (animeDirs.isNullOrEmpty()) {
+                null
+            } else {
+                animeDirs[provider.getAnimeDirName(it.title)]
+            }
+            it.id to (animeDir?.episodeDirs?.size ?: 0)
+        }
+    }
+
+    /**
      * Adds an episode that has just been download to this cache.
      *
      * @param episodeDirName the downloaded episodes's directory name.

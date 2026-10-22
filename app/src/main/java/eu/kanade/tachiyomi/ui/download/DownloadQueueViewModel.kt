@@ -16,10 +16,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Inject
@@ -183,7 +187,7 @@ class DownloadQueueViewModel(
     fun onStatusChange(download: Download) {
         when (download.status) {
             Download.State.DOWNLOADING -> {
-                onUpdateProgress(download)
+                launchProgressJob(download)
                 // Initial update of the downloaded pages
                 onUpdateDownloadProgress(download)
             }
@@ -197,6 +201,27 @@ class DownloadQueueViewModel(
                 /* unused */
             }
         }
+    }
+
+    /**
+     * Observe the progress of a download and notify the view.
+     *
+     * @param download the download to observe its progress.
+     */
+    private fun launchProgressJob(download: Download) {
+        val job = viewModelScope.launch {
+            download.progressFlow
+                .distinctUntilChanged()
+                .debounce(50.milliseconds)
+                .collectLatest {
+                    onUpdateProgress(download)
+                }
+        }
+
+        // Avoid leaking jobs
+        progressJobs.remove(download)?.cancel()
+
+        progressJobs[download] = job
     }
 
     /**

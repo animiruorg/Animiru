@@ -44,6 +44,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
+import tachiyomi.domain.episode.interactor.GetEpisodeSummaryByAnimeId
 import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.source.service.SourceManager
 
@@ -55,11 +56,7 @@ class MigrationListViewModel(
     private val sourceManager: SourceManager,
     private val getAnime: GetAnime,
     private val networkToLocalAnime: NetworkToLocalAnime,
-    private val syncEpisodesWithSource: SyncEpisodesWithSource,
-    // AY -->
-    private val syncSeasonsWithSource: SyncSeasonsWithSource,
-    // <-- AY
-    private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
+    private val getEpisodeSummaryByAnimeId: GetEpisodeSummaryByAnimeId,
     private val migrateAnime: MigrateAnimeUseCase,
     private val updateAnimeFromRemote: UpdateAnimeFromRemote,
 ) : ViewModel() {
@@ -110,10 +107,10 @@ class MigrationListViewModel(
         }
     }
 
-    private suspend fun getEpisodeInfo(id: Long) = getEpisodesByAnimeId.await(id).let { episodes ->
+    private suspend fun getEpisodeInfo(id: Long) = getEpisodeSummaryByAnimeId.await(id).let { summary ->
         EpisodeInfo(
-            latestEpisode = episodes.maxOfOrNull { it.episodeNumber },
-            episodeCount = episodes.size,
+            latestEpisode = summary.latestEpisodeNumber,
+            episodeCount = summary.episodeCount.toInt(),
         )
     }
 

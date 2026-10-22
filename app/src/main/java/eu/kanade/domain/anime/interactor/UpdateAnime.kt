@@ -36,9 +36,17 @@ class UpdateAnime(
         )
     }
 
-    suspend fun awaitUpdateLastUpdate(animeId: Long): Boolean {
+    /**
+     * Updates the fetch interval and marks the episode list as changed in a single write.
+     */
+    suspend fun awaitUpdateFetchIntervalAndLastUpdate(
+        anime: Anime,
+        timeZone: TimeZone,
+        dateTime: LocalDateTime,
+        window: ClosedRange<Instant>?,
+    ): Boolean {
         return animeRepository.update(
-            AnimeUpdate(animeId) {
+            fetchInterval.withFetchInterval(anime, dateTime, timeZone, window).apply {
                 lastUpdate = Clock.System.now()
             },
         )

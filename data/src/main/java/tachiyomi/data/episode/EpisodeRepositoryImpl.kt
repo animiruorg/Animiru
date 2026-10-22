@@ -14,6 +14,7 @@ import tachiyomi.data.Database
 import tachiyomi.data.subscribeToList
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
+import tachiyomi.domain.episode.model.EpisodeSummary
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.episode.repository.EpisodeRepository
 import kotlin.time.Instant
@@ -133,6 +134,14 @@ class EpisodeRepositoryImpl(
             applyScanlatorFilter = applyScanlatorFilter.toLong(),
             mapper = ::mapEpisode,
         ).awaitAsList()
+    }
+
+    override suspend fun getEpisodeSummaryByAnimeId(animeId: Long): EpisodeSummary {
+        return database.episodeQueries
+            .getEpisodeSummaryByAnimeId(animeId) { total, latestEpisodeNumber ->
+                EpisodeSummary(episodeCount = total, latestEpisodeNumber = latestEpisodeNumber)
+            }
+            .awaitAsOne()
     }
 
     override suspend fun getScanlatorsByAnimeId(animeId: Long): List<String> {

@@ -32,15 +32,15 @@ data class Download(
 
     // AY -->
     @Transient
-    private val progressStateFlow = MutableStateFlow(0)
+    private val _progressFlow = MutableStateFlow(0)
 
     @Transient
-    val progressFlow = progressStateFlow.asStateFlow()
+    val progressFlow = _progressFlow.asStateFlow()
         .debounce(50.milliseconds)
     var progress: Int
-        get() = progressStateFlow.value
+        get() = _progressFlow.value
         set(value) {
-            progressStateFlow.value = value
+            _progressFlow.value = value
         }
     // <-- AY
 

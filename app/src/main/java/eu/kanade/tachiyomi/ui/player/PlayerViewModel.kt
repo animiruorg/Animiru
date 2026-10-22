@@ -171,6 +171,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @AssistedInject
 class PlayerViewModel(
@@ -337,6 +338,11 @@ class PlayerViewModel(
 
     // Serializes the progress writes, which outlive the player, so they are applied in order
     private val progressWrites = Mutex()
+
+    // Set on Main, flushed from the episode load too
+    @Volatile
+    private var pendingProgressEpisode: Episode? = null
+    private var pendingProgressSave: Job? = null
 
     private var httpServer: HttpServer? = null
     private var timerJob: Job? = null
@@ -3023,20 +3029,9 @@ class PlayerViewModel(
 
     // === Aniyomi ===
 
-    /**
-     * Called when the activity is saved and not changing configurations. It updates the database
-     * to persist the current progress of the active episode.
-     */
-    fun onSaveInstanceStateNonConfigurationChange() {
-        val currentEpisode = stateData.value.currentEpisode ?: return
-        appScope.launch {
-            saveCurrentEpisodeWatchingProgress(currentEpisode)
-        }
-    }
-
     override fun onCleared() {
         stateData.value.currentEpisode?.let {
-            saveCurrentEpisodeWatchingProgress(it)
+            updateEpisodeProgress(it)
             episodeToDownload?.let { toDownload ->
                 // viewModelScope is already cancelled here
                 appScope.launch { downloadManager.addDownloadsToStartOfQueue(listOf(toDownload)) }
@@ -3084,20 +3079,88 @@ class PlayerViewModel(
             }
         }
 
-        episodePosition = position.toLong()
-        val shouldTrack = !stateData.value.incognitoMode || stateData.value.hasTrackers
-        if (position >= duration * progress && shouldTrack) {
-            appScope.launch {
-                updateEpisodeProgressOnComplete(currentEpisode)
-            }
-        }
-
-        saveWatchingProgress(currentEpisode, position * 1000, duration * 1000)
+        updateEpisodeProgress(currentEpisode)
 
         val inDownloadRange = position.toDouble() / duration > 0.35
         if (inDownloadRange) {
             appScope.launch {
                 downloadNextEpisodes()
+            }
+        }
+    }
+
+    private fun updateTrackEpisodeSeen(episode: Episode) {
+        if (basePreferences.incognitoMode.get() || !stateData.value.hasTrackers) return
+        if (!trackPreferences.autoUpdateTrack.get()) return
+
+        val anime = stateData.value.currentAnime ?: return
+
+        appScope.launch {
+            trackEpisode.await(context, anime.id, episode.episodeNumber)
+        }
+    }
+
+    private var lastUpdateTime: Instant = Instant.DISTANT_PAST
+
+    /**
+     * Saves this [episodeUpdate] progress (last second seen and whether it's seen).
+     * If incognito mode isn't on
+     *
+     * Completing an episode is saved right away. Other changes are saved once the player settles on a second, or
+     * when [saveWatchingProgress] is called, so going through the video doesn't write to the database on every second.
+     */
+    private fun updateEpisodeProgress(episode: Episode) {
+        val stateData = stateData.value
+        val position = playbackData.value.position * 1000
+        val duration = playbackData.value.duration * 1000
+        if (stateData.incognitoMode) return
+
+        if (pendingProgressEpisode != episode) saveEpisodeProgress()
+        val updatedEpisode = stateData.currentEpisode?.copy(
+            lastSecondSeen = position.takeIf { it > 0 } ?: episode.lastSecondSeen,
+            totalSeconds = duration.takeIf { it > 0 } ?: episode.totalSeconds,
+            seen = episode.seen,
+        )
+        updateStateData { it.copy(currentEpisode = updatedEpisode) }
+
+        if (episode.lastSecondSeen >= episode.totalSeconds * progress) {
+            pendingProgressEpisode = null
+            writeEpisodeProgress(episode, onComplete = true)
+        } else {
+            pendingProgressEpisode = updatedEpisode
+
+            val now = Clock.System.now()
+            if (now - lastUpdateTime > PROGRESS_SAVE_DELAY) {
+                lastUpdateTime = now
+                saveEpisodeProgress()
+            }
+        }
+    }
+
+    /**
+     * Writes the progress of the episode whose position change hasn't been saved yet.
+     */
+    private fun saveEpisodeProgress() {
+        val playerEpisode = pendingProgressEpisode ?: return
+        pendingProgressEpisode = null
+        writeEpisodeProgress(playerEpisode, onComplete = false)
+    }
+
+    /**
+     * Writes the progress of [episode] on the app scope, so it's saved even when the player is closing.
+     */
+    private fun writeEpisodeProgress(episode: Episode, onComplete: Boolean) {
+        // Immediate and through the mutex, which is fair, so the writes land in the order they were made
+        appScope.launch(Dispatchers.Main.immediate) {
+            progressWrites.withLock {
+                if (onComplete) updateEpisodeProgressOnComplete(episode)
+                updateEpisode.await(
+                    EpisodeUpdate(episode.id) {
+                        seen = episode.seen
+                        lastSecondSeen = episode.lastSecondSeen
+                        totalSeconds = episode.totalSeconds
+                    },
+                )
             }
         }
     }
@@ -3125,63 +3188,11 @@ class PlayerViewModel(
         updateEpisode.awaitAll(duplicateUnseenEpisodes)
     }
 
-    private fun updateTrackEpisodeSeen(episode: Episode) {
-        if (basePreferences.incognitoMode.get() || !stateData.value.hasTrackers) return
-        if (!trackPreferences.autoUpdateTrack.get()) return
-
-        val anime = stateData.value.currentAnime ?: return
-
-        appScope.launch {
-            trackEpisode.await(context, anime.id, episode.episodeNumber)
-        }
-    }
-
-    fun saveCurrentEpisodeWatchingProgress() {
-        saveCurrentEpisodeWatchingProgress(stateData.value.currentEpisode)
-    }
-
-    fun saveCurrentEpisodeWatchingProgress(episode: Episode?) {
-        val position = playbackData.value.position
-        val duration = playbackData.value.duration
-        episode?.let {
-            saveWatchingProgress(it, position * 1000, duration * 1000)
-        }
-    }
-
-    /**
-     * Called when episode is changed in player or when activity is paused.
-     */
-    private fun saveWatchingProgress(episode: Episode, positionMs: Int, durationMs: Int) {
-        appScope.launch {
-            saveEpisodeProgress(
-                EpisodeUpdate(episode.id) {
-                    lastSecondSeen = positionMs
-                    totalSeconds = durationMs
-                },
-            )
-            saveEpisodeHistory(episode)
-        }
-    }
-
-    /**
-     * Saves this [episode] progress (last second seen and whether it's seen).
-     * If incognito mode isn't on or has at least 1 tracker
-     */
-    private suspend fun saveEpisodeProgress(episodeUpdate: EpisodeUpdate) {
-        val stateData = stateData.value
-        if (!stateData.incognitoMode || stateData.hasTrackers) {
-            // Taken before the first suspension, and the mutex is fair, so the writes land in the order the seconds
-            // were reached even when one of them suspends longer
-            progressWrites.withLock {
-                updateEpisode.await(episodeUpdate)
-            }
-        }
-    }
-
     /**
      * Saves this [episode] last seen history if incognito mode isn't on.
      */
     private suspend fun saveEpisodeHistory(episode: Episode) {
+        saveEpisodeProgress()
         if (!stateData.value.incognitoMode) {
             val episodeId = episode.id
             val seenAt = Clock.System.now()
@@ -3756,3 +3767,5 @@ class PlayerViewModel(
         data class UpdateDiscordRPC(val paused: Boolean, val position: Int? = null) : Event
     }
 }
+
+private val PROGRESS_SAVE_DELAY = 2.seconds

@@ -91,9 +91,11 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
@@ -104,6 +106,8 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.core.common.preference.mapAsCheckboxState
+import tachiyomi.core.common.util.lang.SubscriberGate
+import tachiyomi.core.common.util.lang.pausedWhileUnsubscribed
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnimeWithEpisodesAndSeasons
 import tachiyomi.domain.anime.interactor.GetDuplicateLibraryAnime
@@ -203,6 +207,8 @@ class AnimeViewModel(
     // <-- AM (FILE_SIZE)
 ) : ViewModel() {
 
+    private val subscriberGate = SubscriberGate()
+
     @AssistedFactory
     @ManualViewModelAssistedFactoryKey
     @ContributesIntoMap(AppScope::class)
@@ -292,8 +298,8 @@ class AnimeViewModel(
             emitAll(getAnimeAndEpisodesAndSeasons.subscribe(animeId, applyScanlatorFilter = true))
         }
             .distinctUntilChanged(),
-        downloadCache.changes,
-        downloadManager.queueState,
+        downloadCache.changes.pausedWhileUnsubscribed(),
+        downloadManager.queueState.pausedWhileUnsubscribed(),
     ) { (anime, episodes, seasons), _, _ ->
         AnimeAndEpisodesAndSeasons(
             anime = anime,
@@ -350,7 +356,7 @@ class AnimeViewModel(
         animeAndEpisodesAndSeasons,
         scanlators,
         trackers,
-        combine(selectedEpisodeIds, queuedDownloadStates, ::Pair),
+        combine(selectedEpisodeIds, queuedDownloadStates.pausedWhileUnsubscribed(), ::Pair),
         combine(dialog, isRefreshingData, isSyncingTrackers, ::Triple),
         // AM -->
         combine(nextAiringEpisode, isLoadingRelatedAnime, relations, ::Triple),
@@ -410,7 +416,7 @@ class AnimeViewModel(
             it.isAnySelected
         }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State.Loading)
+        .stateIn(viewModelScope + subscriberGate, subscriberGate.whileSubscribed(5.seconds), State.Loading)
 
     init {
         // AM -->
@@ -419,7 +425,11 @@ class AnimeViewModel(
 
         // Progress ticks often, and each one copies the map of download states
         viewModelScope.launch(Dispatchers.Default) {
-            merge(downloadManager.statusFlow(), downloadManager.progressFlow())
+            merge(
+                downloadManager.statusFlow(),
+                // Each tick rebuilds the shown episode items, so cap how often that happens
+                downloadManager.progressFlow().sample(200.milliseconds),
+            )
                 .filter { it.anime.id == animeId }
                 .catch { logcat(LogPriority.ERROR, it) }
                 .collect(::updateDownloadState)

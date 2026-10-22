@@ -220,11 +220,10 @@ class SyncEpisodesWithSource(
             added = toAdd,
             updated = updatedEpisodes,
         )
-        updateAnime.awaitUpdateFetchInterval(anime, timeZone, now, fetchWindow)
 
         // Set this anime as updated since episodes were changed
         // Note that last_update actually represents last time the episode list changed at all
-        updateAnime.awaitUpdateLastUpdate(anime.id)
+        updateAnime.awaitUpdateFetchIntervalAndLastUpdate(anime, timeZone, now, fetchWindow)
 
         val excludedScanlators = getExcludedScanlators.await(anime.id).toHashSet()
 

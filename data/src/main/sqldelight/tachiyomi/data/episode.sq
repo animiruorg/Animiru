@@ -59,6 +59,11 @@ AND (
     OR ES.scanlator IS NULL
 );
 
+getEpisodeSummaryByAnimeId:
+SELECT count(*) AS total, max(remote_episode_number) AS latestEpisodeNumber
+FROM episode
+WHERE anime_id = :animeId;
+
 getScanlatorsByAnimeId:
 SELECT DISTINCT remote_scanlator
 FROM episode
