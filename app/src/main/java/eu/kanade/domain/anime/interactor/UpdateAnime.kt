@@ -44,9 +44,10 @@ class UpdateAnime(
         timeZone: TimeZone,
         dateTime: LocalDateTime,
         window: ClosedRange<Instant>?,
+        foundRelease: Boolean,
     ): Boolean {
         return animeRepository.update(
-            fetchInterval.withFetchInterval(anime, dateTime, timeZone, window).apply {
+            fetchInterval.withFetchInterval(anime, dateTime, timeZone, window, foundRelease).apply {
                 lastUpdate = Clock.System.now()
             },
         )

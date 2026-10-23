@@ -221,11 +221,18 @@ class SyncEpisodesWithSource(
             updated = updatedEpisodes,
         )
 
+        val excludedScanlators = getExcludedScanlators.await(anime.id).toHashSet()
+
+        // A first fetch lists the back catalogue, and episodes coming back under a deleted number were out already
+        val foundRelease = dbEpisodes.isNotEmpty() &&
+            toAdd.any { episode ->
+                episode.scanlator !in excludedScanlators &&
+                    !(episode.isRecognizedNumber && episode.episodeNumber in deletedEpisodeNumbers)
+            }
+
         // Set this anime as updated since episodes were changed
         // Note that last_update actually represents last time the episode list changed at all
-        updateAnime.awaitUpdateFetchIntervalAndLastUpdate(anime, timeZone, now, fetchWindow)
-
-        val excludedScanlators = getExcludedScanlators.await(anime.id).toHashSet()
+        updateAnime.awaitUpdateFetchIntervalAndLastUpdate(anime, timeZone, now, fetchWindow, foundRelease)
 
         return added.filterNot { it.url in changedOrDuplicateSeenUrls || it.scanlator in excludedScanlators }
     }
