@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.download
 
+import android.content.ContentResolver
 import android.content.Context
 import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
@@ -10,6 +11,9 @@ import eu.kanade.tachiyomi.util.lang.Hash.md5
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import eu.kanade.tachiyomi.util.storage.size
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
@@ -141,11 +145,62 @@ class DownloadProvider(
         // AM (CUSTOM_INFORMATION) -->
         val animeDir = findAnimeDir(anime.ogTitle, source) ?: return@withContext null to emptyList()
         // <-- AM (CUSTOM_INFORMATION)
-        animeDir to episodes.mapNotNull { episode ->
-            getValidEpisodeDirNames(episode.name, episode.scanlator, episode.url).asSequence()
-                .mapNotNull { animeDir.findFile(it) }
-                .firstOrNull()
+        animeDir to findEpisodeDirs(episodes, animeDir).values.toList()
+    }
+
+    /**
+     * Returns the ids of the episodes whose download directory exists.
+     *
+     * @param episodes the episodes to query.
+     * @param anime the anime of the episodes.
+     * @param source the source of the episodes.
+     */
+    suspend fun findDownloadedEpisodeIds(
+        episodes: List<Episode>,
+        anime: Anime,
+        source: AnimeSource,
+    ): Set<Long> = withContext(Dispatchers.IO) {
+        // AM -->
+        val animeDir = findAnimeDir(anime.ogTitle, source) ?: return@withContext emptySet()
+        // <-- AM
+        findEpisodeDirs(episodes, animeDir).keys
+    }
+
+    /**
+     * Returns the download directory of each episode that has one, keyed by episode id.
+     *
+     * An episde is looked for under every name it may have been downloaded with, with the episodes looked up in
+     * parallel. On a storage access framework directory each lookup is a content resolver query, so from
+     * [LIST_EPISODE_DIRS_MIN_EPISODES] episodes on the directory is listed once instead and the names are matched
+     * against the listing, ignoring case as the lookups do. Plain file directories are always looked up by name, as
+     * their listing can leave out files another app created.
+     *
+     * @param episodes the episodes to query.
+     * @param animeDir the download directory of the episodes' anime.
+     */
+    private suspend fun findEpisodeDirs(episodes: List<Episode>, animeDir: UniFile): Map<Long, UniFile> {
+        val isDocumentTree = animeDir.uri.scheme == ContentResolver.SCHEME_CONTENT
+        if (isDocumentTree && episodes.size >= LIST_EPISODE_DIRS_MIN_EPISODES) {
+            val chapterDirs = animeDir.listFiles().orEmpty()
+                .filter { it.name != null }
+                .associateByTo(sortedMapOf(String.CASE_INSENSITIVE_ORDER)) { it.name!! }
+            return episodes
+                .mapNotNull { episode -> episode.findDir { chapterDirs[it] }?.let { episode.id to it } }
+                .toMap()
         }
+        return coroutineScope {
+            episodes
+                .map { episode ->
+                    async(episodeDirLookupDispatcher) { episode.findDir(animeDir::findFile)?.let { episode.id to it } }
+                }
+                .awaitAll()
+                .filterNotNull()
+                .toMap()
+        }
+    }
+
+    private fun Episode.findDir(find: (String) -> UniFile?): UniFile? {
+        return getValidEpisodeDirNames(name, scanlator, url).firstNotNullOfOrNull(find)
     }
 
     /**
@@ -288,6 +343,12 @@ class DownloadProvider(
     }
     // <-- AM (FILE_SIZE)
 }
+
+private const val LIST_EPISODE_DIRS_MIN_EPISODES = 50
+
+private const val EPISODE_DIR_LOOKUP_PARALLELISM = 8
+
+private val episodeDirLookupDispatcher = Dispatchers.IO.limitedParallelism(EPISODE_DIR_LOOKUP_PARALLELISM)
 
 /**
  * The parts of a episode's directory name, each computed once however many name variations are built from them.

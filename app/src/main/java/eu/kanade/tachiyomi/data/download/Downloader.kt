@@ -344,16 +344,16 @@ class Downloader(
         val source = sourceManager.get(anime.source) as? AnimeHttpSource ?: return false
         val wasEmpty = queueState.value.isEmpty()
         val episodesToQueue = withContext(Dispatchers.IO) {
+            val downloadedEpisodeIds = provider.findDownloadedEpisodeIds(episodes, anime, source)
+            val queuedEpisodeIds = queueState.value.mapTo(HashSet()) { it.episode.id }
             episodes
                 // Filter out those already downloaded.
-                // AM (CUSTOM_INFORMATION) -->
-                .filter { provider.findEpisodeDir(it.name, it.scanlator, it.url, anime.ogTitle, source) == null }
-                // <-- AM (CUSTOM_INFORMATION)
+                .filter { it.id !in downloadedEpisodeIds }
                 .asSequence()
                 // Add episodes to queue from the start.
                 .sortedByDescending { it.sourceOrder }
                 // Filter out those already enqueued.
-                .filter { episode -> queueState.value.none { it.episode.id == episode.id } }
+                .filter { it.id !in queuedEpisodeIds }
                 // Create a download for each one.
                 .map { Download(source, anime, it, changeDownloader, video) }
                 .toList()
@@ -954,7 +954,8 @@ class Downloader(
     private fun addAllToQueue(downloads: List<Download>) {
         _queueState.update { queue ->
             // Callers filter off the queue's thread, so an episode may have been queued in the meantime
-            val toAdd = downloads.filter { download -> queue.none { it.episode.id == download.episode.id } }
+            val queuedEpisodeIds = queue.mapTo(HashSet()) { it.episode.id }
+            val toAdd = downloads.filter { it.episode.id !in queuedEpisodeIds }
             toAdd.forEach { download ->
                 download.status = Download.State.QUEUE
             }

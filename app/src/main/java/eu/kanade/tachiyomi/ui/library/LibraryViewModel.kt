@@ -36,7 +36,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -613,18 +612,7 @@ class LibraryViewModel(
         appScope.launch {
             animes.forEach { anime ->
                 val episodes = getNextEpisodes.await(anime.id)
-                    .fastFilterNot { episode ->
-                        downloadManager.getQueuedDownloadOrNull(episode.id) != null ||
-                            downloadManager.isEpisodeDownloaded(
-                                episode.name,
-                                episode.scanlator,
-                                episode.url,
-                                // AM (CUSTOM_INFORMATION) -->
-                                anime.ogTitle,
-                                // <-- AM (CUSTOM_INFORMATION),
-                                anime.source,
-                            )
-                    }
+                    .filterNotQueuedOrDownloaded(anime)
                     .let { if (amount != null) it.take(amount) else it }
 
                 downloadManager.downloadEpisodes(anime, episodes)
@@ -637,21 +625,16 @@ class LibraryViewModel(
         appScope.launch {
             animes.forEach { anime ->
                 val episodes = getBookmarkedEpisodesByAnimeId.await(anime.id)
-                    .fastFilterNot { episode ->
-                        downloadManager.getQueuedDownloadOrNull(episode.id) != null ||
-                            downloadManager.isEpisodeDownloaded(
-                                episode.name,
-                                episode.scanlator,
-                                episode.url,
-                                // AM (CUSTOM_INFORMATION) -->
-                                anime.ogTitle,
-                                // <-- AM (CUSTOM_INFORMATION)
-                                anime.source,
-                            )
-                    }
+                    .filterNotQueuedOrDownloaded(anime)
                 downloadManager.downloadEpisodes(anime, episodes)
             }
         }
+    }
+
+    private fun List<Episode>.filterNotQueuedOrDownloaded(anime: Anime): List<Episode> {
+        val queuedDownloads = downloadManager.getQueuedDownloadsByEpisodeId()
+        val downloadedEpisodeIds = downloadManager.getDownloadedEpisodeIds(this, anime)
+        return fastFilterNot { it.id in queuedDownloads || it.id in downloadedEpisodeIds }
     }
 
     /**
