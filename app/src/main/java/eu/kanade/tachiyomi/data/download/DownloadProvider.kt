@@ -242,7 +242,7 @@ class DownloadProvider(
         enableEpisodeNameHash: Boolean = libraryPreferences.enableEpisodeNameHash.get(),
     ): String {
         return EpisodeDirNameParts(episodeName, episodeScanlator, episodeUrl)
-            .dirName(disallowNonAsciiFilenames, enableEpisodeNameHash, sanitizeScanlator = true)
+            .dirName(disallowNonAsciiFilenames, enableEpisodeNameHash)
     }
 
     /**
@@ -265,14 +265,18 @@ class DownloadProvider(
         val booleanPairPermutation = listOf(false to false, false to true, true to false, true to true)
         val othersEpisodeDirNames = booleanPairPermutation
             .map { (disallowNonAsciiFilenames, enableEpisodeNameHash) ->
-                parts.dirName(disallowNonAsciiFilenames, enableEpisodeNameHash, sanitizeScanlator = true)
+                parts.dirName(disallowNonAsciiFilenames, enableEpisodeNameHash)
+            }
+        val splitEpisodeDirNames = booleanPairPermutation
+            .map { (disallowNonAsciiFilenames, enableEpisodeNameHash) ->
+                parts.splitDirName(disallowNonAsciiFilenames, enableEpisodeNameHash, sanitizeScanlator = true)
             }
 
         // Scanlators weren't sanitized for a while. One with a "/" nested its folder, so it was never found anyway.
         val scanlator = parts.episodeScanlator
         val unsanitizedScanlatorEpisodeDirNames = if (scanlator != null && '/' !in scanlator) {
             booleanPairPermutation.map { (disallowNonAsciiFilenames, enableChapterNameHash) ->
-                parts.dirName(disallowNonAsciiFilenames, enableChapterNameHash, sanitizeScanlator = false)
+                parts.splitDirName(disallowNonAsciiFilenames, enableChapterNameHash, sanitizeScanlator = false)
             }
         } else {
             emptyList()
@@ -283,6 +287,7 @@ class DownloadProvider(
             // episode names)
             add(episodeNameV1)
             addAll(othersEpisodeDirNames)
+            addAll(splitEpisodeDirNames)
             addAll(unsanitizedScanlatorEpisodeDirNames)
         }
     }
@@ -304,7 +309,6 @@ class DownloadProvider(
         val episodeDirName = parts.dirName(
             disallowNonAscii = libraryPreferences.disallowNonAsciiFilenames.get(),
             enableHash = libraryPreferences.enableEpisodeNameHash.get(),
-            sanitizeScanlator = true,
         )
         val legacyEpisodeDirNames = getLegacyEpisodeDirNames(parts)
 
@@ -364,9 +368,25 @@ private class EpisodeDirNameParts(episodeName: String, val episodeScanlator: Str
         episodeScanlator?.let { DiskUtil.buildValidFilename(it) }
     }
 
+    private val validDirNames = arrayOfNulls<String>(2)
+
     private val validEpisodeNames = arrayOfNulls<String>(2)
 
-    fun dirName(disallowNonAscii: Boolean, enableHash: Boolean, sanitizeScanlator: Boolean): String {
+    fun dirName(disallowNonAscii: Boolean, enableHash: Boolean): String {
+        val index = if (disallowNonAscii) 1 else 0
+        val dirName = validDirNames[index]
+            // The scanlator and the name are made valid together, as every version before 0.21.0.0 did
+            ?: DiskUtil.buildValidFilename(
+                if (episodeScanlator.isNullOrBlank()) episodeName else "${episodeScanlator}_$episodeName",
+                // Subtract 7 bytes for hash and underscore, 4 bytes for .mkv
+                DiskUtil.MAX_FILE_NAME_BYTES - 11,
+                disallowNonAscii,
+            )
+                .also { validDirNames[index] = it }
+        return if (enableHash) dirName + hashSuffix else dirName
+    }
+
+    fun splitDirName(disallowNonAscii: Boolean, enableHash: Boolean, sanitizeScanlator: Boolean): String {
         return buildString {
             if (!episodeScanlator.isNullOrBlank()) {
                 // A "/" in the scanlator would otherwise nest the episode in a folder of its own
