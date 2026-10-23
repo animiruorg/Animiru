@@ -6,6 +6,19 @@ import kotlin.collections.List;
 import kotlinx.serialization.json.JsonObject;
 
 -- ---------------------------------------------------------------------------------------------------------
+-- orphans
+-- ---------------------------------------------------------------------------------------------------------
+
+-- Rows pointing at an entry, episode, or category that no longer exists were written while foreign keys weren't
+-- enforced. Nothing can reach them, and copied over they'd fail the foreign key check that ends the migration.
+DELETE FROM episodes WHERE anime_id NOT IN (SELECT _id FROM animes);
+DELETE FROM history WHERE episode_id NOT IN (SELECT _id FROM episodes);
+DELETE FROM animes_categories
+WHERE anime_id NOT IN (SELECT _id FROM animes) OR category_id NOT IN (SELECT _id FROM categories);
+DELETE FROM anime_sync WHERE anime_id NOT IN (SELECT _id FROM animes);
+DELETE FROM excluded_scanlators WHERE anime_id NOT IN (SELECT _id FROM animes);
+
+-- ---------------------------------------------------------------------------------------------------------
 -- table - anime
 -- ---------------------------------------------------------------------------------------------------------
 

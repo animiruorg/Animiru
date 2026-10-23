@@ -13,4 +13,9 @@ interface DatabaseRepository {
     // AM -->
     fun updateIsMigrating(value: Boolean)
     // <-- AM
+
+    /**
+     * Opens the database, migrating it if needed, and throws what made the migration fail.
+     */
+    suspend fun awaitOpen()
 }
