@@ -761,6 +761,10 @@ class AnimeViewModel(
         }
     }
 
+    fun showRemoveFromLibraryDialog() {
+        if (successState?.anime?.favorite == true) dialog.value = Dialog.RemoveFromLibrary
+    }
+
     fun showChangeCategoryDialog() {
         val anime = successState?.anime ?: return
         viewModelScope.launch {
@@ -1832,6 +1836,7 @@ class AnimeViewModel(
         data class DuplicateAnime(val anime: Anime, val duplicates: List<AnimeWithEpisodeCount>) : Dialog
         data class Migrate(val target: Anime, val current: Anime) : Dialog
         data class SetFetchInterval(val anime: Anime) : Dialog
+        data object RemoveFromLibrary : Dialog
 
         // AY -->
         data class ShowQualities(val episode: Episode, val anime: Anime, val source: AnimeSource) : Dialog

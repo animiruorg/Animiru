@@ -34,6 +34,7 @@ import eu.kanade.presentation.anime.components.AnimeImagesDialog
 import eu.kanade.presentation.anime.components.DeleteEpisodesDialog
 import eu.kanade.presentation.anime.components.ScanlatorFilterDialog
 import eu.kanade.presentation.anime.components.SetIntervalDialog
+import eu.kanade.presentation.browse.components.RemoveAnimeDialog
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.components.NavigatorAdaptiveSheet
 import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsGesturesScreen.SkipIntroLengthDialog
@@ -162,7 +163,11 @@ class AnimeScreen(
             },
             downloadProgressProvider = viewModel::getDownloadProgress,
             onAddToLibraryClicked = {
-                viewModel.toggleFavorite()
+                if (successState.anime.favorite) {
+                    viewModel.showRemoveFromLibraryDialog()
+                } else {
+                    viewModel.toggleFavorite()
+                }
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             },
             onWebViewClicked = {
@@ -274,6 +279,15 @@ class AnimeScreen(
         }
         when (val dialog = successState.dialog) {
             null -> {}
+            AnimeViewModel.Dialog.RemoveFromLibrary -> {
+                RemoveAnimeDialog(
+                    onDismissRequest = onDismissRequest,
+                    onConfirm = {
+                        if (successState.anime.favorite) viewModel.toggleFavorite()
+                    },
+                    animeToRemove = successState.anime,
+                )
+            }
             is AnimeViewModel.Dialog.ChangeCategory -> {
                 ChangeCategoryDialog(
                     initialSelection = dialog.initialSelection,
