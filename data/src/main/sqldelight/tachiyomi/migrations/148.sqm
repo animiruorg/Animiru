@@ -5,6 +5,76 @@ import kotlin.String;
 import kotlin.collections.List;
 import kotlinx.serialization.json.JsonObject;
 
+-- Most views reads `animes`, so they are dropped here and recreated against the new tables at the end
+DROP VIEW animedeletableView;
+DROP VIEW animeseasonstatsView;
+DROP VIEW animeseasonsView;
+DROP VIEW episodestatsView;
+DROP VIEW historystatsView;
+DROP VIEW historyView;
+DROP VIEW libraryView;
+DROP VIEW updatesView;
+
+-- ---------------------------------------------------------------------------------------------------------
+-- damaged indexes
+-- ---------------------------------------------------------------------------------------------------------
+
+-- Some databases hold rows their unique constraints should have rejected, which a damaged index explains. A
+-- write to a table also writes its indexes and fails on a damaged one, and a read through one can miss rows,
+-- so each table changed in place below is first copied from its rows alone, leaving its indexes behind.
+CREATE TABLE animes_copy AS
+SELECT
+    _id, source, url, author, artist, description, genre, title, status, thumbnail_url, last_update, next_update,
+    initialized, viewer, episode_flags, cover_last_modified, update_strategy, calculate_interval, notes,
+    fetch_type, parent_id, season_flags, season_number, season_source_order, background_url, background_last_modified,
+    memo, favorite_at, custom_artist, custom_author, custom_description, custom_genre, custom_title, custom_status
+FROM animes NOT INDEXED;
+DROP TABLE animes;
+ALTER TABLE animes_copy RENAME TO mangas;
+
+CREATE TABLE episodes_copy AS
+SELECT
+    _id, anime_id, url, name, scanlator, seen, bookmark, fillermark, last_second_seen, total_seconds, episode_number,
+    source_order, date_fetch, date_upload, summary, preview_url, memo, thumbnail_last_modified_at
+FROM episodes NOT INDEXED;
+DROP TABLE episodes;
+ALTER TABLE episodes_copy RENAME TO episodes;
+
+CREATE TABLE history_copy AS
+SELECT _id, episode_id, last_seen
+FROM history NOT INDEXED;
+DROP TABLE history;
+ALTER TABLE history_copy RENAME TO history;
+
+CREATE TABLE animes_categories_copy AS
+SELECT _id, anime_id, category_id
+FROM animes_categories NOT INDEXED;
+DROP TABLE animes_categories;
+ALTER TABLE animes_categories_copy RENAME TO animes_categories;
+
+CREATE TABLE anime_sync_copy AS
+SELECT
+    _id, anime_id, sync_id, remote_id, library_id, title, last_episode_seen, total_episodes, status, score,
+    remote_url, start_date, finish_date, private
+FROM anime_sync NOT INDEXED;
+DROP TABLE anime_sync;
+ALTER TABLE anime_sync_copy RENAME TO anime_sync;
+
+CREATE TABLE excluded_scanlators_copy AS
+SELECT anime_id, scanlator
+FROM excluded_scanlators NOT INDEXED;
+DROP TABLE excluded_scanlators;
+ALTER TABLE excluded_scanlators_copy RENAME TO excluded_scanlators;
+
+CREATE TABLE anime_relations_copy AS
+SELECT anime_id, related_anime_id, name, sort_order, last_fetched_at
+FROM anime_relations NOT INDEXED;
+DROP TABLE anime_relations;
+ALTER TABLE anime_relations_copy RENAME TO anime_relations;
+
+-- Merging duplicate episodes looks their history up by episode
+CREATE INDEX history_episode_id_index ON history(episode_id);
+
 -- ---------------------------------------------------------------------------------------------------------
 -- orphans
 -- ---------------------------------------------------------------------------------------------------------
@@ -21,16 +91,6 @@ DELETE FROM excluded_scanlators WHERE anime_id NOT IN (SELECT _id FROM animes);
 -- ---------------------------------------------------------------------------------------------------------
 -- table - anime
 -- ---------------------------------------------------------------------------------------------------------
-
--- Most views reads `animes`, so they are dropped here and recreated against the new table below
-DROP VIEW animedeletableView;
-DROP VIEW animeseasonstatsView;
-DROP VIEW animeseasonsView;
-DROP VIEW episodestatsView;
-DROP VIEW historystatsView;
-DROP VIEW historyView;
-DROP VIEW libraryView;
-DROP VIEW updatesView;
 
 -- Entries sharing a source and url are merged into one, since the new table won't hold both. The copies are
 -- ranked with the ones in the library first, since that is the entry the user has, then by age. The first
@@ -394,8 +454,8 @@ CREATE INDEX anime_category_category_id_index ON anime_category(category_id);
 -- table - history
 -- ---------------------------------------------------------------------------------------------------------
 
--- `last_seen` is when the episode was last seen. The episode it belongs to is already unique, which leaves
--- `history_history_episode_id_index` a prefix of that constraint.
+-- `last_seen` is when the episode was last seen. The episode it belongs to is already unique,
+-- so the constraint indexes it.
 -- The table keeps its name, so the original is renamed aside and the new one built under
 -- the real name; renaming a table into place makes SQLite rewrite its stored definition,
 -- leaving it spelled differently from the same table on a fresh install. The views were
@@ -416,11 +476,14 @@ CREATE TABLE history(
 -- Reaching the entry a row belongs to meant going through its episode; it names the entry
 -- itself now, taken from that same episode. A row whose episode is already gone cannot name
 -- one and is dropped, which is what the foreign key would do to it once it is enforced again.
+-- Some databases hold more than one row for an episode despite the old unique constraint, and the new one
+-- rejects them, so they merge the way the history of duplicate episodes does above.
 INSERT INTO history(id, anime_id, episode_id, seen_at)
-SELECT H._id, EP.anime_id, H.episode_id, H.last_seen
+SELECT min(H._id), EP.anime_id, H.episode_id, max(H.last_seen)
 FROM history_temp H
 JOIN episode EP
-ON EP.id = H.episode_id;
+ON EP.id = H.episode_id
+GROUP BY H.episode_id;
 
 DROP TABLE history_temp;
 
@@ -454,19 +517,20 @@ DROP TABLE excluded_scanlators;
 -- ---------------------------------------------------------------------------------------------------------
 
 -- `anime_sync` is what tracking was called when it was still called syncing; `sync_id` is the tracker.
--- An entry that merged can leave two rows for the same tracker on the survivor, which the unique constraint
--- rejects, so the one to keep is chosen first: one on a copy in the library, then the one furthest seen, then
--- the one on the copy ranked first, then the oldest. A track is taken whole rather than merged field by field,
--- because two rows on the same tracker can point at different remote entries.
+-- An entry that merged can leave two rows for the same tracker on the survivor, and an entry that didn't can
+-- still hold two despite the old unique constraint. The new one rejects both, so the one to keep is chosen
+-- first: one on a copy in the library, then the one furthest read, then the one on the copy ranked first, then
+-- the oldest. A track is taken whole rather than merged field by field, because two rows on the same tracker
+-- can point at different remote entries.
 CREATE TEMP TABLE duplicate_tracks AS
 SELECT
     T._id,
     first_value(T._id) OVER (
-        PARTITION BY D.keep_id, T.sync_id
+        PARTITION BY coalesce(D.keep_id, T.anime_id), T.sync_id
         ORDER BY D.favorite DESC, T.last_episode_seen DESC, D.precedence ASC, T._id ASC
     ) AS keep_track_id
 FROM anime_sync T
-JOIN duplicate_animes D
+LEFT JOIN duplicate_animes D
 ON D._id = T.anime_id;
 
 DELETE FROM anime_sync
