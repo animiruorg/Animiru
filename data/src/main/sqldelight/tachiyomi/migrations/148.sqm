@@ -37,6 +37,9 @@ WHERE (source, url) IN (
     HAVING count(*) > 1
 );
 
+-- Moving the episodes looks each one's entry up here, which without an index scans the whole table per episode
+CREATE INDEX duplicate_animes_id_index ON duplicate_animes(_id);
+
 UPDATE animes
 SET favorite_at = merged.favorite_at,
     initialized = merged.initialized,
