@@ -12,7 +12,9 @@ class AnimeKeyer : Keyer<DomainAnime> {
     override fun key(data: DomainAnime, options: Options): String {
         // AY -->
         return when {
-            options.useBackground && data.favorite && data.hasCustomBackground() -> "anime;${data.id};${data.backgroundLastModified}"
+            options.useBackground &&
+                data.favorite &&
+                data.hasCustomBackground() -> "anime;${data.id};${data.backgroundLastModified}"
             options.useBackground -> "anime;${data.backgroundUrl};${data.backgroundLastModified}"
             data.favorite && data.hasCustomCover() -> "anime;${data.id};${data.coverLastModified}"
             else -> "anime;${data.thumbnailUrl};${data.coverLastModified}"

@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.data.backup.create.creators
 
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.animesource.AnimeSource
-import eu.kanade.tachiyomi.data.backup.models.BackupAnime
 import eu.kanade.tachiyomi.data.backup.models.BackupSource
 import tachiyomi.domain.source.service.SourceManager
 

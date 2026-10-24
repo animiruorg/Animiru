@@ -14,7 +14,6 @@ import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.image.LocalEpisodeThumbnailManager
 import tachiyomi.source.local.isLocal
 import java.io.InputStream
-import kotlin.time.Clock
 
 fun Anime.removeCovers(coverCache: CoverCache) {
     if (isLocal()) return

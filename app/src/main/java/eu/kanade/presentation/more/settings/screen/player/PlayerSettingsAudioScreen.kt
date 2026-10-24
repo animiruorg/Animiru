@@ -2,7 +2,6 @@ package eu.kanade.presentation.more.settings.screen.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import animiru.domain.player.model.AudioChannels
@@ -11,7 +10,6 @@ import eu.kanade.presentation.more.settings.screen.SearchableSettings
 import mihon.app.di.appGraph
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.stringResource
-import tachiyomi.presentation.core.util.collectAsState
 import java.util.Locale
 import java.util.MissingResourceException
 

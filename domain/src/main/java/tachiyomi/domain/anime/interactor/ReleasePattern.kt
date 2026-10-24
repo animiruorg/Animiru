@@ -7,6 +7,8 @@ import kotlinx.datetime.daysUntil
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import tachiyomi.domain.anime.interactor.ReleasePattern.Companion.COVERAGE
+import tachiyomi.domain.anime.interactor.ReleasePattern.Companion.LAST_WEEK
 import kotlin.math.abs
 
 /** The days an entry is expected to release on. */

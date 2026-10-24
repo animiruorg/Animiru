@@ -173,7 +173,6 @@ class FetchIntervalTest {
         nextUpdate(today = "2020-02-05", episodes) shouldBe LocalDate.parse("2020-02-29")
     }
 
-
     @Test
     fun `follows releases on two days of the month`() = runTest {
         val days =
@@ -371,7 +370,6 @@ class FetchIntervalTest {
             .takeWhile { it <= LocalDate.parse(to) }
             .toList()
     }
-
 
     private fun afterGaps(from: String, vararg gaps: Int): List<LocalDate> {
         return gaps.runningFold(LocalDate.parse(from)) { day, gap -> day.plus(DatePeriod(days = gap)) }

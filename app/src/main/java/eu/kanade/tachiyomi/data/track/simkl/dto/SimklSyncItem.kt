@@ -2,7 +2,6 @@
 package eu.kanade.tachiyomi.data.track.simkl.dto
 
 import eu.kanade.tachiyomi.data.database.models.Track
-import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.simkl.toTrackStatus
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

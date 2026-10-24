@@ -425,7 +425,6 @@ class MainActivity : BaseActivity() {
                         throw e
                     } catch (e: Exception) {
                         logcat(LogPriority.ERROR, e)
-
                     }
                 }
             }
