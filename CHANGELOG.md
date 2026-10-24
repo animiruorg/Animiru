@@ -32,7 +32,7 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Fix custom titles not being updated in library ([@Secozzi](https://github.com/Secozzi)) ([#241](https://github.com/animiruorg/Animiru/pull/241))
 
 ### Other
-- Merged from mihon ([@Secozzi](https://github.com/Secozzi)) ([#239](https://github.com/animiruorg/Animiru/pull/239))
+- Merged from mihon ([@Secozzi](https://github.com/Secozzi)) ([#239](https://github.com/animiruorg/Animiru/pull/239), [#245](https://github.com/animiruorg/Animiru/pull/245))
 
 ## [v0.20.0.1] - 2026-09-14
 ### Fixed
