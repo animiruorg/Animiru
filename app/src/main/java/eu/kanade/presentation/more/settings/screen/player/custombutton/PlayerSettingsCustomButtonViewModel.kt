@@ -10,6 +10,8 @@ import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +20,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import tachiyomi.core.common.util.lang.launchIO
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.domain.custombutton.interactor.CreateCustomButton
 import tachiyomi.domain.custombutton.interactor.DeleteCustomButton
 import tachiyomi.domain.custombutton.interactor.GetCustomButtons
@@ -33,6 +35,7 @@ import tachiyomi.i18n.MR
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class PlayerSettingsCustomButtonViewModel(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val getCustomButtons: GetCustomButtons,
     private val createCustomButton: CreateCustomButton,
     private val deleteCustomButton: DeleteCustomButton,
@@ -63,7 +66,7 @@ class PlayerSettingsCustomButtonViewModel(
         }
 
         // AM -->
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             getCustomButtons.subscribeAll()
                 .distinctUntilChanged()
                 .collectLatest { customButtons ->
@@ -74,7 +77,7 @@ class PlayerSettingsCustomButtonViewModel(
     }
 
     fun createCustomButton(name: String, content: String, longPressContent: String, onStartup: String) {
-        viewModelScope.launch {
+        scope.launch {
             when (createCustomButton.await(name, content, longPressContent, onStartup)) {
                 is CreateCustomButton.Result.InternalError -> _events.send(
                     CustomButtonEvent.InternalError,
@@ -85,7 +88,7 @@ class PlayerSettingsCustomButtonViewModel(
     }
 
     fun togglePrimaryButton(customButton: CustomButton) {
-        viewModelScope.launch {
+        scope.launch {
             when (toggleFavoriteCustomButton.await(customButton)) {
                 is ToggleFavoriteCustomButton.Result.InternalError -> _events.send(
                     CustomButtonEvent.InternalError,
@@ -96,7 +99,7 @@ class PlayerSettingsCustomButtonViewModel(
     }
 
     fun editCustomButton(customButtonUpdate: CustomButtonUpdate) {
-        viewModelScope.launch {
+        scope.launch {
             when (updateCustomButton.await(customButtonUpdate)) {
                 is UpdateCustomButton.Result.InternalError -> _events.send(
                     CustomButtonEvent.InternalError,
@@ -107,7 +110,7 @@ class PlayerSettingsCustomButtonViewModel(
     }
 
     fun deleteCustomButton(customButton: CustomButton) {
-        viewModelScope.launch {
+        scope.launch {
             when (deleteCustomButton.await(customButton.id)) {
                 is DeleteCustomButton.Result.InternalError -> _events.send(
                     CustomButtonEvent.InternalError,
@@ -118,7 +121,7 @@ class PlayerSettingsCustomButtonViewModel(
     }
 
     fun changeOrder(customButton: CustomButton, newIndex: Int) {
-        viewModelScope.launch {
+        scope.launch {
             when (reorderCustomButton.changeOrder(customButton, newIndex)) {
                 is ReorderCustomButton.Result.InternalError -> _events.send(
                     CustomButtonEvent.InternalError,

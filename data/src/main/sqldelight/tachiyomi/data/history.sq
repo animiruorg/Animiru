@@ -1,67 +1,51 @@
-import java.util.Date;
+import kotlin.time.Instant;
 
 CREATE TABLE history(
-    _id INTEGER NOT NULL PRIMARY KEY,
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
     episode_id INTEGER NOT NULL UNIQUE,
-    last_seen INTEGER AS Date,
-    FOREIGN KEY(episode_id) REFERENCES episodes (_id)
+    seen_at INTEGER AS Instant,
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(episode_id) REFERENCES episode (id)
     ON DELETE CASCADE
 );
 
-CREATE INDEX history_history_episode_id_index ON history(episode_id);
-CREATE INDEX idx_history_last_seen ON history(last_seen);
+CREATE INDEX history_anime_id_index ON history(anime_id);
+CREATE INDEX history_seen_at_index ON history(seen_at);
 
 getHistoryByAnimeId:
-SELECT
-H._id,
-H.episode_id,
-H.last_seen
-FROM history H
-JOIN episodes EP
-ON H.episode_id = EP._id
-WHERE EP.anime_id = :animeId AND EP._id = H.episode_id;
+SELECT id, episode_id, seen_at
+FROM history
+WHERE anime_id = :animeId;
 
-getHistoryByEpisodeUrlAndAnimeId:
-SELECT
-H._id,
-H.episode_id,
-H.last_seen
-FROM history H
-JOIN episodes EP
-ON H.episode_id = EP._id
-WHERE EP.url = :episodeUrl AND EP.anime_id = :animeId AND EP._id = H.episode_id
-LIMIT 1;
+getHistoryByAnimeIds:
+SELECT anime_id, id, episode_id, seen_at
+FROM history
+WHERE anime_id IN :animeIds
+ORDER BY anime_id, id;
 
 resetHistoryById:
 UPDATE history
-SET last_seen = 0
-WHERE _id = :historyId;
+SET seen_at = NULL
+WHERE id = :id;
 
 resetHistoryByAnimeId:
 UPDATE history
-SET last_seen = 0
-WHERE _id IN (
-    SELECT H._id
-    FROM animes A
-    INNER JOIN episodes EP
-    ON A._id = EP.anime_id
-    INNER JOIN history H
-    ON EP._id = H.episode_id
-    WHERE A._id = :animeId
-);
+SET seen_at = NULL
+WHERE anime_id = :animeId;
 
 removeAllHistory:
 DELETE FROM history;
 
 removeResettedHistory:
 DELETE FROM history
-WHERE last_seen = 0;
+WHERE seen_at IS NULL;
 
 upsert:
-INSERT INTO history(episode_id, last_seen)
-VALUES (:episodeId, :seenAt)
-ON CONFLICT(episode_id)
-DO UPDATE
-SET
-    last_seen = :seenAt
-WHERE episode_id = :episodeId;
+INSERT INTO history(anime_id, episode_id, seen_at)
+SELECT anime_id, id, :seenAt
+FROM episode
+WHERE id = :episodeId
+ON CONFLICT(episode_id) DO UPDATE SET
+    seen_at = excluded.seen_at;

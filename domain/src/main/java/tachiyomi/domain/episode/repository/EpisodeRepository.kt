@@ -3,6 +3,7 @@ package tachiyomi.domain.episode.repository
 import kotlinx.coroutines.flow.Flow
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.model.EpisodeRemoteUpdate
+import tachiyomi.domain.episode.model.EpisodeSummary
 import tachiyomi.domain.episode.model.EpisodeUpdate
 
 interface EpisodeRepository {
@@ -18,6 +19,10 @@ interface EpisodeRepository {
     ): List<Episode>
 
     suspend fun getEpisodeByAnimeId(animeId: Long, applyScanlatorFilter: Boolean = false): List<Episode>
+
+    suspend fun getEpisodesByAnimeIds(animeIds: List<Long>): Map<Long, List<Episode>>
+
+    suspend fun getEpisodeSummaryByAnimeId(animeId: Long): EpisodeSummary
 
     suspend fun getScanlatorsByAnimeId(animeId: Long): List<String>
 

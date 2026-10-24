@@ -34,11 +34,9 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withIOContext
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.Anime
@@ -124,7 +122,7 @@ class AnimeImageViewModel(
         viewModelScope.launch {
             try {
                 val uri = saveImageInternal(context, temp = true) ?: return@launch
-                withUIContext {
+                withContext(Dispatchers.Main) {
                     context.startActivity(uri.toShareIntent(context))
                 }
             } catch (e: Throwable) {
@@ -150,11 +148,11 @@ class AnimeImageViewModel(
             .size(Size.ORIGINAL)
             .build()
 
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val result = context.imageLoader.execute(req).image?.asDrawable(context.resources)
 
             // TODO: Handle animated image
-            val bitmap = result?.getBitmapOrNull() ?: return@withIOContext null
+            val bitmap = result?.getBitmapOrNull() ?: return@withContext null
             imageSaver.save(
                 Image.Cover(
                     bitmap = bitmap,
@@ -175,7 +173,7 @@ class AnimeImageViewModel(
      */
     fun editImage(context: Context, data: Uri) {
         val anime = state.value ?: return
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             context.contentResolver.openInputStream(data)?.use {
                 try {
                     if (isCover) {
@@ -194,7 +192,7 @@ class AnimeImageViewModel(
     }
 
     fun deleteCustomImage(context: Context) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (isCover) {
                     coverCache.deleteCustomCover(animeId)
@@ -207,6 +205,15 @@ class AnimeImageViewModel(
             } catch (e: Exception) {
                 notifyFailedImageUpdate(context, e)
             }
+        }
+    }
+
+    fun addToLibraryWarning(context: Context) {
+        viewModelScope.launch {
+            snackbarHostState.showSnackbar(
+                context.stringResource(MR.strings.notification_first_add_to_library),
+                withDismissAction = true,
+            )
         }
     }
 

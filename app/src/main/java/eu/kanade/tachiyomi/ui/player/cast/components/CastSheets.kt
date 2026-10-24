@@ -2,13 +2,13 @@ package eu.kanade.tachiyomi.ui.player.cast.components
 
 import androidx.compose.runtime.Composable
 import dev.vivvvek.seeker.Segment
-import eu.kanade.tachiyomi.data.database.models.Episode
 import eu.kanade.tachiyomi.ui.player.cast.CastSheet
 import eu.kanade.tachiyomi.ui.player.cast.CastUiData
 import eu.kanade.tachiyomi.ui.player.components.ChaptersSheet
 import eu.kanade.tachiyomi.ui.player.components.HosterState
 import eu.kanade.tachiyomi.ui.player.components.QualitySheet
 import tachiyomi.cast.domain.TrackInformation
+import tachiyomi.domain.episode.model.Episode
 
 @Composable
 fun CastSheets(

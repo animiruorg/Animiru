@@ -1,0 +1,172 @@
+import kotlin.Boolean;
+import kotlin.Int;
+import kotlin.time.Instant;
+import kotlinx.serialization.json.JsonObject;
+
+CREATE TABLE episode(
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
+    remote_name TEXT NOT NULL,
+    remote_scanlator TEXT,
+    remote_episode_number REAL NOT NULL,
+    remote_date_upload INTEGER AS Instant,
+    remote_order INTEGER NOT NULL,
+    -- AM -->
+    remote_fillermark INTEGER AS Boolean NOT NULL,
+    remote_summary TEXT,
+    remote_preview_url TEXT,
+    -- <-- AM
+    remote_memo BLOB AS JsonObject NOT NULL DEFAULT '{}',
+    user_seen INTEGER AS Boolean NOT NULL,
+    user_bookmark INTEGER AS Boolean NOT NULL,
+    user_last_second_seen INTEGER AS Int NOT NULL,
+    state_date_fetch INTEGER AS Instant NOT NULL,
+    -- AM -->
+    state_thumbnail_last_modified_at INTEGER AS Instant,
+    state_total_seconds INTEGER AS Int NOT NULL,
+    -- <-- AM
+    UNIQUE(anime_id, remote_url),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX episode_state_date_fetch_index ON episode(state_date_fetch);
+CREATE INDEX episode_unseen_state_date_fetch ON episode(state_date_fetch) WHERE user_seen = 0;
+
+getEpisodeById:
+SELECT
+    id, anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    remote_date_upload, remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, state_thumbnail_last_modified_at, state_total_seconds
+FROM episode
+WHERE id = :id;
+
+getEpisodesByAnimeId:
+SELECT
+    EP.id, EP.anime_id, EP.remote_url, EP.remote_name, EP.remote_scanlator, EP.remote_episode_number,
+    EP.remote_date_upload, EP.remote_order, EP.remote_fillermark, EP.remote_summary,
+    EP.remote_preview_url, EP.remote_memo, EP.user_seen, EP.user_bookmark, EP.user_last_second_seen,
+    EP.state_date_fetch, EP.state_thumbnail_last_modified_at, EP.state_total_seconds
+FROM episode EP
+LEFT JOIN excluded_scanlator ES
+ON EP.anime_id = ES.anime_id
+AND EP.remote_scanlator = ES.scanlator
+WHERE EP.anime_id = :animeId
+AND (
+    :applyScanlatorFilter = 0
+    OR ES.scanlator IS NULL
+);
+
+getEpisodesByAnimeIds:
+-- The unique index's order, which getEpisodesByAnimeId returns too, so backups keep their episode order
+SELECT
+    id, anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    remote_date_upload, remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, state_thumbnail_last_modified_at, state_total_seconds
+FROM episode
+WHERE anime_id IN :animeIds
+ORDER BY anime_id, remote_url;
+
+getEpisodeSummaryByAnimeId:
+SELECT count(*) AS total, max(remote_episode_number) AS latestEpisodeNumber
+FROM episode
+WHERE anime_id = :animeId;
+
+getScanlatorsByAnimeId:
+SELECT DISTINCT remote_scanlator
+FROM episode
+WHERE anime_id = :animeId;
+
+getBookmarkedEpisodesByAnimeId:
+SELECT
+    id, anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    remote_date_upload, remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, state_thumbnail_last_modified_at, state_total_seconds
+FROM episode
+WHERE anime_id = :animeId
+AND user_bookmark;
+
+getEpisodeByUrlAndAnimeId:
+SELECT
+    id, anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    remote_date_upload, remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, state_thumbnail_last_modified_at, state_total_seconds
+FROM episode
+WHERE anime_id = :animeId
+AND remote_url = :remoteUrl;
+
+removeEpisodesWithIds:
+DELETE FROM episode
+WHERE id IN :episodeIds;
+
+insertReturningId:
+INSERT INTO episode(
+    anime_id, remote_url, remote_name, remote_scanlator, remote_episode_number,
+    remote_date_upload, remote_order, remote_fillermark, remote_summary,
+    remote_preview_url, remote_memo, user_seen, user_bookmark, user_last_second_seen,
+    state_date_fetch, state_thumbnail_last_modified_at, state_total_seconds
+)
+VALUES (
+    :animeId, :remoteUrl, :remoteName, :remoteScanlator, :remoteEpisodeNumber,
+    :remoteDateUpload, :remoteOrder, :remoteFillermark, :remoteSummary,
+    :remotePreviewUrl, :remoteMemo, :userSeen, :userBookmark, :userLastSecondSeen,
+    :stateDateFetch, 0, :stateTotalSeconds
+)
+RETURNING id;
+
+update:
+UPDATE episode
+SET user_seen = coalesce(:userSeen, user_seen),
+    user_bookmark = coalesce(:userBookmark, user_bookmark),
+    -- AM -->
+    remote_fillermark = coalesce(:remoteFillermark, remote_fillermark),
+    -- <-- AM
+    user_last_second_seen = coalesce(:userLastSecondSeen, user_last_second_seen),
+    -- AM -->
+    state_total_seconds = coalesce(:stateTotalSeconds, state_total_seconds),
+    -- <-- AM
+    state_date_fetch = coalesce(:stateDateFetch, state_date_fetch),
+    -- AM -->
+    state_thumbnail_last_modified_at = coalesce(:stateThumbnailLastModifiedAt, state_thumbnail_last_modified_at)
+    -- <-- AM
+WHERE id = :id;
+
+updateFromBackup:
+UPDATE episode
+SET user_seen = coalesce(:userSeen, user_seen),
+    user_bookmark = coalesce(:userBookmark, user_bookmark),
+    -- AM -->
+    remote_fillermark = coalesce(:remoteFillermark, remote_fillermark),
+    -- <-- AM
+    user_last_second_seen = coalesce(:userLastSecondSeen, user_last_second_seen),
+    -- AM -->
+    state_total_seconds = coalesce(:stateTotalSeconds, state_total_seconds),
+    -- <-- AM
+    remote_memo = coalesce(:remoteMemo, remote_memo),
+    -- AM -->
+    state_thumbnail_last_modified_at = coalesce(:stateThumbnailLastModifiedAt, state_thumbnail_last_modified_at)
+    -- <-- AM
+WHERE id = :id;
+
+updateRemote:
+UPDATE episode
+SET remote_name = :remoteName,
+    remote_scanlator = coalesce(:remoteScanlator, remote_scanlator),
+    remote_episode_number = :remoteEpisodeNumber,
+    remote_order = :remoteOrder,
+    remote_date_upload = coalesce(:remoteDateUpload, remote_date_upload),
+    -- AM -->
+    remote_fillermark = coalesce(:remoteFillermark, remote_fillermark),
+    remote_summary = coalesce(:remoteSummary, remote_summary),
+    remote_preview_url = coalesce(:remotePreviewUrl, remote_preview_url),
+    -- <-- AM
+    remote_memo = :remoteMemo,
+    -- AM -->
+    state_thumbnail_last_modified_at = coalesce(:stateThumbnailLastModifiedAt, state_thumbnail_last_modified_at)
+    -- <-- AM
+WHERE id = :id;

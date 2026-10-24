@@ -1,0 +1,12 @@
+query KitsuSearchAnimeByTitle(
+  $query: String!,
+) {
+  searchAnimeByTitle(
+    title: $query,
+    first: 20,
+  ) {
+    nodes {
+      ...AnimeFragment
+    }
+  }
+}

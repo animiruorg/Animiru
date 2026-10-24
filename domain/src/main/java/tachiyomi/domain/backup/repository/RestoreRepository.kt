@@ -6,7 +6,7 @@ import tachiyomi.domain.backup.model.RestoredAnime
 
 interface RestoreRepository {
 
-    suspend fun getAnimeUrlsBySourceId(): Map<Long, List<String>>
+    suspend fun getAnimeUrlsBySourceId(): Map<Long, Set<String>>
 
     /**
      * Restores [entries] all together: either every one of them is restored or none is. [update] is what to change on each

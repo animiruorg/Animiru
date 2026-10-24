@@ -1,0 +1,12 @@
+query AniListGetAnimeDetails(
+  $anime_id: Int!,
+) {
+  Page (perPage: 1) {
+    media(
+      id: $anime_id,
+      type: ANIME,
+    ) {
+      ...AnimeFragment
+    }
+  }
+}

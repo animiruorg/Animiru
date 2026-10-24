@@ -1,0 +1,10 @@
+query ShikimoriSearchAnime(
+  $search: String!
+) {
+  animes(
+    search: $search,
+    limit: 20,
+  ) {
+    ...AnimeFragment
+  }
+}

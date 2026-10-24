@@ -13,7 +13,8 @@ import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.ui.player.components.HosterState
 import kotlinx.coroutines.CancellationException
-import tachiyomi.core.common.util.lang.withIOContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.source.local.LocalSource
@@ -55,7 +56,7 @@ class EpisodeLoader(
      * @param episode the episode being parsed.
      * @param anime the anime of the episode.
      */
-    fun isDownload(episode: Episode, anime: Anime, source: AnimeSource): Boolean {
+    suspend fun isDownload(episode: Episode, anime: Anime, source: AnimeSource): Boolean {
         return downloadManager.isEpisodeDownloadedOnDisk(
             episode.name,
             episode.scanlator,
@@ -95,7 +96,7 @@ class EpisodeLoader(
      */
     private suspend fun getHostersOnHttp(episode: Episode, source: AnimeHttpSource): List<Hoster> {
         // TODO(16): Remove else block when dropping support for ext lib <1.6
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             if (checkHasHosters(source)) {
                 source.getHosterList(episode.toSEpisode())
                     .let { source.run { it.sortHosters() } }
@@ -114,7 +115,7 @@ class EpisodeLoader(
      * @param anime the anime of the episode.
      * @param source the source of the anime.
      */
-    private fun getHostersOnDownloaded(
+    private suspend fun getHostersOnDownloaded(
         episode: Episode,
         anime: Anime,
         source: AnimeSource,
@@ -182,7 +183,7 @@ class EpisodeLoader(
      * @param hoster the hoster.
      */
     private suspend fun getVideosOnHttp(source: AnimeHttpSource, hoster: Hoster): List<Video> {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             source.getVideoList(hoster).parseVideoUrls(source)
         }
     }

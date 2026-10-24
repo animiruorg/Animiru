@@ -1,19 +1,33 @@
 -- AY -->
 CREATE VIEW animeseasonstatsView AS
 SELECT
-    season.parent_id,
+    season.state_parent_id,
     count(*) AS child_count,
-    sum(CASE WHEN season.fetch_type = 1 AND
+    sum(CASE WHEN season.remote_fetch_type = 1 AND
                  coalesce(ES.total, 0) = coalesce(ES.seenCount, 0)
             THEN 1 ELSE 0 END) AS fully_seen_seasons,
-    max(coalesce(ES.latestUpload, 0)) AS max_latest_upload,
-    max(coalesce(ES.fetchedAt, 0)) AS max_fetched_at,
-    max(coalesce(HS.lastSeen, 0)) AS max_last_seen,
+    max(ES.latestUpload) AS max_latest_upload,
+    max(ES.fetchedAt) AS max_fetched_at,
+    max(
+        CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = season.id)
+        THEN (
+            SELECT max(history.seen_at)
+            FROM history
+            JOIN episode
+            ON episode.id = history.episode_id
+            AND NOT EXISTS (
+                SELECT 0 FROM excluded_scanlator
+                WHERE excluded_scanlator.anime_id != season.id
+                AND excluded_scanlator.scanlator = episode.remote_scanlator
+            )
+        )
+        ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = season.id)
+        END
+    ) AS max_last_seen,
     sum(coalesce(ES.bookmarkCount, 0)) AS total_bookmarks,
     sum(coalesce(ES.fillermarkCount, 0)) AS total_fillermarks
-FROM animes season
-LEFT JOIN episodestatsView ES ON season._id = ES.anime_id
-LEFT JOIN historystatsView HS ON season._id = HS.anime_id
-WHERE season.parent_id IS NOT NULL
-GROUP BY season.parent_id;
+FROM anime season
+LEFT JOIN episodestatsView ES ON season.id = ES.anime_id
+WHERE season.state_parent_id IS NOT NULL
+GROUP BY season.state_parent_id;
 -- <-- AY

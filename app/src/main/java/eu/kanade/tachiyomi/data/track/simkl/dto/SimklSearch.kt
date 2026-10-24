@@ -1,7 +1,6 @@
 // AY -->
 package eu.kanade.tachiyomi.data.track.simkl.dto
 
-import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.model.TrackSearch
 import eu.kanade.tachiyomi.data.track.simkl.SimklApi.Companion.POSTERS_URL
 import kotlinx.serialization.SerialName

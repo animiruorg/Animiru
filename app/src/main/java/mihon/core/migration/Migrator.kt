@@ -5,7 +5,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.runBlocking
 
 object Migrator {
 
@@ -19,7 +18,7 @@ object Migrator {
         dryrun: Boolean = false,
         onMigrationComplete: () -> Unit,
     ) {
-        val migrationContext = MigrationContext(dryrun)
+        val migrationContext = MigrationContext(dryrun, old)
         val migrationJobFactory = MigrationJobFactory(migrationContext, scope)
         val migrationStrategyFactory = MigrationStrategyFactory(migrationJobFactory, onMigrationComplete)
         val strategy = migrationStrategyFactory.create(old, new)
@@ -35,7 +34,10 @@ object Migrator {
         result = null
     }
 
-    fun awaitAndRelease(): Boolean = runBlocking {
-        await().also { release() }
+    val isRunning: Boolean
+        get() = result?.isCompleted == false
+
+    suspend fun awaitAndRelease(): Boolean {
+        return await().also { release() }
     }
 }

@@ -1,17 +1,18 @@
 -- AY -->
 CREATE VIEW episodestatsView AS
 SELECT
-    episodes.anime_id,
+    episode.anime_id,
     count(*) AS total,
-    sum(seen) AS seenCount,
-    coalesce(max(episodes.date_upload), 0) AS latestUpload,
-    coalesce(max(episodes.date_fetch), 0) AS fetchedAt,
-    sum(episodes.bookmark) AS bookmarkCount,
-    sum(episodes.fillermark) AS fillermarkCount
-FROM episodes
-LEFT JOIN excluded_scanlators
-    ON episodes.anime_id = excluded_scanlators.anime_id
-    AND episodes.scanlator = excluded_scanlators.scanlator
-WHERE excluded_scanlators.scanlator IS NULL
-GROUP BY episodes.anime_id;
+    sum(user_seen) AS seenCount,
+    max(episode.remote_date_upload) AS latestUpload,
+    max(episode.state_date_fetch) AS fetchedAt,
+    sum(episode.user_bookmark) AS bookmarkCount,
+    sum(episode.remote_fillermark) AS fillermarkCount
+FROM episode
+LEFT JOIN excluded_scanlator
+    ON episode.anime_id = excluded_scanlator.anime_id
+    AND episode.remote_scanlator = excluded_scanlator.scanlator
+WHERE excluded_scanlator.scanlator IS NULL
+AND episode.anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
+GROUP BY episode.anime_id;
 -- <-- AY

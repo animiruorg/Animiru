@@ -1,0 +1,31 @@
+query AniListGetLibAnime(
+  $user_id: Int!,
+  $anime_id: Int!,
+) {
+  Page {
+    mediaList(
+      userId: $user_id,
+      type: ANIME
+      mediaId: $anime_id,
+    ) {
+      id
+      status
+      scoreRaw: score(format: POINT_100)
+      progress
+      private
+      startedAt {
+        year
+        month
+        day
+      }
+      completedAt {
+        year
+        month
+        day
+      }
+      media {
+        ...AnimeFragment
+      }
+    }
+  }
+}

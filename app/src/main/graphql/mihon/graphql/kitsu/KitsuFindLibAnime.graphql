@@ -1,0 +1,18 @@
+query KitsuFindLibAnime(
+  $remote_id: ID!,
+) {
+  findAnimeById(
+    id: $remote_id,
+  ) {
+    ...AnimeFragment
+    myLibraryEntry {
+      id
+      private
+      progress
+      rating
+      status
+      startedAt
+      finishedAt
+    }
+  }
+}

@@ -8,8 +8,8 @@ import androidx.lifecycle.viewModelScope
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.extension.ExtensionManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,12 +22,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mihon.domain.anime.model.toDomainAnime
 import tachiyomi.core.common.preference.toggle
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.source.service.SourceManager
-import java.util.concurrent.Executors
+import tachiyomi.source.local.isLocal
 
 abstract class SearchViewModel(
     initialState: State = State(),
@@ -48,7 +47,7 @@ abstract class SearchViewModel(
         state.update(function)
     }
 
-    private val coroutineDispatcher = Executors.newFixedThreadPool(5).asCoroutineDispatcher()
+    private val coroutineDispatcher = Dispatchers.IO.limitedParallelism(5)
     private var searchJob: Job? = null
 
     private val enabledLanguages = sourcePreferences.enabledLanguages.get()
@@ -89,7 +88,7 @@ abstract class SearchViewModel(
 
     open suspend fun getEnabledSources(): List<AnimeSource> {
         return sourceManager.getAll()
-            .filter { it.lang in enabledLanguages && "${it.id}" !in disabledSources }
+            .filter { (it.lang in enabledLanguages || it.isLocal()) && "${it.id}" !in disabledSources }
             .sortedWith(
                 compareBy(
                     { "${it.id}" !in pinnedSources },
@@ -139,7 +138,7 @@ abstract class SearchViewModel(
 
         searchJob?.cancel()
 
-        searchJob = viewModelScope.launchIO {
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
             val sources = getSelectedSources()
 
             // Reuse previous results if possible
@@ -196,12 +195,17 @@ abstract class SearchViewModel(
     }
 
     private fun updateItem(source: AnimeSource, result: SearchItemResult) {
-        updateItems(state.value.items + (source to result))
+        state.update { currentState ->
+            val newItems = currentState.items + (source to result)
+            currentState.copy(
+                items = newItems.toSortedMap(sortComparator(newItems)),
+            )
+        }
     }
 
     fun setMigrateDialog(currentId: Long, target: Anime) {
-        viewModelScope.launchIO {
-            val current = getAnime.await(currentId) ?: return@launchIO
+        viewModelScope.launch(Dispatchers.IO) {
+            val current = getAnime.await(currentId) ?: return@launch
             state.update { it.copy(dialog = Dialog.Migrate(target, current)) }
         }
     }

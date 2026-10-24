@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.util.fastFilter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,33 +22,34 @@ import eu.kanade.presentation.updates.UpdatesUiModel
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.model.Download
-import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
+import eu.kanade.tachiyomi.data.library.LibraryUpdateWorker
 import eu.kanade.tachiyomi.util.lang.toLocalDate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.preference.TriState
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchNonCancellable
+import tachiyomi.core.common.util.lang.SubscriberGate
+import tachiyomi.core.common.util.lang.pausedWhileUnsubscribed
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.applyFilter
@@ -67,6 +69,7 @@ import kotlin.time.Duration.Companion.seconds
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class UpdatesViewModel(
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val context: Context,
     private val sourceManager: SourceManager,
     private val downloadManager: DownloadManager,
@@ -82,6 +85,8 @@ class UpdatesViewModel(
     downloadPreferences: DownloadPreferences,
     // <-- AY
 ) : ViewModel() {
+
+    private val subscriberGate = SubscriberGate()
 
     val snackbarHostState: SnackbarHostState = SnackbarHostState()
 
@@ -100,13 +105,29 @@ class UpdatesViewModel(
 
     private val dialog = MutableStateFlow<Dialog?>(null)
 
-    private val downloadStates = MutableStateFlow(emptyMap<Long, DownloadProgress>())
+    private val downloadStates = MutableStateFlow(emptyMap<Long, Download.State>())
+
+    // Progress ticks often, so only the download indicators that read it recompose instead of every tick rebuilding
+    // the list
+    private val downloadProgress = mutableStateMapOf<Long, Int>()
+
+    // A finished episode leaves the queue, and its last status change can be lost with it, so its state is left to
+    // the queried item once it's no longer queued
+    private val queuedDownloadStates = combine(downloadStates, downloadManager.queueState) { states, queue ->
+        val queuedEpisodeIds = queue.mapTo(HashSet()) { it.episode.id }
+        states.filterKeys { it in queuedEpisodeIds }
+    }
 
     init {
-        viewModelScope.launchIO {
-            merge(downloadManager.statusFlow(), downloadManager.progressFlow())
+        viewModelScope.launch {
+            downloadManager.statusFlow()
                 .catch { logcat(LogPriority.ERROR, it) }
                 .collect(this@UpdatesViewModel::updateDownloadState)
+        }
+        viewModelScope.launch {
+            downloadManager.progressFlow()
+                .catch { logcat(LogPriority.ERROR, it) }
+                .collect { downloadProgress[it.episode.id] = it.progress }
         }
     }
 
@@ -118,8 +139,13 @@ class UpdatesViewModel(
             if (download.status == Download.State.NOT_DOWNLOADED || download.status == Download.State.DOWNLOADED) {
                 it - episodeId
             } else {
-                it + (episodeId to DownloadProgress(download.status, download.progress))
+                it + (episodeId to download.status)
             }
+        }
+        if (download.status == Download.State.DOWNLOADING) {
+            downloadProgress[episodeId] = download.progress
+        } else {
+            downloadProgress.remove(episodeId)
         }
     }
 
@@ -162,8 +188,8 @@ class UpdatesViewModel(
                     excludedCategories = it.filterExcludedCategories,
                 ).distinctUntilChanged()
             },
-        downloadCache.changes,
-        downloadManager.queueState,
+        downloadCache.changes.pausedWhileUnsubscribed(),
+        downloadManager.queueState.pausedWhileUnsubscribed(),
         // needed for Kotlin filters (downloaded)
         getUpdatesItemPreferenceFlow().distinctUntilChanged { old, new ->
             old.filterDownloaded == new.filterDownloaded
@@ -173,13 +199,13 @@ class UpdatesViewModel(
             .toUpdateItems()
             .applyFilters(itemPreferences)
     }
-        .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope + subscriberGate, SharingStarted.Eagerly, null)
 
     val state: StateFlow<State> = combine(
         updateItems,
         selectedEpisodeIds,
-        downloadStates,
+        queuedDownloadStates,
         dialog,
         hasActiveFilters,
     ) { items, selectedIds, downloads, dialog, hasActiveFilters ->
@@ -187,25 +213,21 @@ class UpdatesViewModel(
             isLoading = items == null,
             hasActiveFilters = hasActiveFilters,
             items = items.orEmpty().map { item ->
-                val download = downloads[item.update.episodeId]
+                val downloadState = downloads[item.update.episodeId]
                 item.copy(
                     selected = item.update.episodeId in selectedIds,
-                    downloadStateProvider = if (download != null) {
-                        { download.status }
+                    downloadStateProvider = if (downloadState != null) {
+                        { downloadState }
                     } else {
                         item.downloadStateProvider
-                    },
-                    downloadProgressProvider = if (download != null) {
-                        { download.progress }
-                    } else {
-                        item.downloadProgressProvider
                     },
                 )
             },
             dialog = dialog,
         )
     }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State())
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope + subscriberGate, subscriberGate.whileSubscribed(5.seconds), State())
 
     private fun List<UpdatesItem>.applyFilters(
         preferences: ItemPreferences,
@@ -224,9 +246,10 @@ class UpdatesViewModel(
     }
 
     private fun List<UpdatesWithRelations>.toUpdateItems(): List<UpdatesItem> {
+        val queuedDownloads = downloadManager.getQueuedDownloadsByEpisodeId()
         return this
             .map { update ->
-                val activeDownload = downloadManager.getQueuedDownloadOrNull(update.episodeId)
+                val activeDownload = queuedDownloads[update.episodeId]
                 val downloaded = downloadManager.isEpisodeDownloaded(
                     update.episodeName,
                     update.scanlator,
@@ -244,7 +267,7 @@ class UpdatesViewModel(
                 UpdatesItem(
                     update = update,
                     downloadStateProvider = { downloadState },
-                    downloadProgressProvider = { activeDownload?.progress ?: 0 },
+                    downloadProgressProvider = { downloadProgress[update.episodeId] ?: 0 },
                     // AM (FILE_SIZE) -->
                     fileSize = null,
                     // <-- AM (FILE_SIZE)
@@ -252,11 +275,9 @@ class UpdatesViewModel(
             }
     }
 
-    fun updateLibrary(): Boolean {
-        val started = LibraryUpdateJob.startNow(context)
-        viewModelScope.launch {
-            _events.send(Event.LibraryUpdateTriggered(started))
-        }
+    suspend fun updateLibrary(): Boolean {
+        val started = LibraryUpdateWorker.startNow(context)
+        _events.send(Event.LibraryUpdateTriggered(started))
         return started
     }
 
@@ -292,11 +313,11 @@ class UpdatesViewModel(
         }
     }
 
-    private fun startDownloadingNow(episodeId: Long) {
+    private suspend fun startDownloadingNow(episodeId: Long) {
         downloadManager.startDownloadNow(episodeId)
     }
 
-    private fun cancelDownload(episodeId: Long) {
+    private suspend fun cancelDownload(episodeId: Long) {
         val activeDownload = downloadManager.getQueuedDownloadOrNull(episodeId) ?: return
         downloadManager.cancelQueuedDownloads(listOf(activeDownload))
         updateDownloadState(activeDownload.apply { status = Download.State.NOT_DOWNLOADED })
@@ -308,7 +329,7 @@ class UpdatesViewModel(
      * @param seen whether to mark episodes as seen or unseen.
      */
     fun markUpdatesSeen(updates: List<UpdatesItem>, seen: Boolean) {
-        viewModelScope.launchIO {
+        appScope.launch {
             setSeenStatus.await(
                 seen = seen,
                 episodes = updates
@@ -324,7 +345,7 @@ class UpdatesViewModel(
      * @param updates the list of episodes to bookmark.
      */
     fun bookmarkUpdates(updates: List<UpdatesItem>, bookmark: Boolean) {
-        viewModelScope.launchIO {
+        appScope.launch {
             updates
                 .filterNot { it.update.bookmark == bookmark }
                 .map { EpisodeUpdate(it.update.episodeId) { this.bookmark = bookmark } }
@@ -340,7 +361,7 @@ class UpdatesViewModel(
      * @param updates the list of episodes to fillermark.
      */
     fun fillermarkUpdates(updates: List<UpdatesItem>, fillermark: Boolean) {
-        viewModelScope.launchIO {
+        appScope.launch {
             updates
                 .filterNot { it.update.fillermark == fillermark }
                 .map { EpisodeUpdate(it.update.episodeId) { this.fillermark = fillermark } }
@@ -355,7 +376,7 @@ class UpdatesViewModel(
      * @param updatesItem the list of episodes to download.
      */
     private fun downloadEpisodes(updatesItem: List<UpdatesItem>, alt: Boolean = false) {
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             val groupedUpdates = updatesItem.groupBy { it.update.animeId }.values
             for (updates in groupedUpdates) {
                 val animeId = updates.first().update.animeId
@@ -374,7 +395,7 @@ class UpdatesViewModel(
      * @param updatesItem list of episodes
      */
     fun deleteEpisodes(updatesItem: List<UpdatesItem>) {
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             updatesItem
                 .groupBy { it.update.animeId }
                 .entries
@@ -418,8 +439,8 @@ class UpdatesViewModel(
         val currentSelection = selectedEpisodeIds.value
         if ((item.update.episodeId in currentSelection) == selected) return
 
-        // Off the visible items, not the id set, which can retain ids filtered out of the list
-        val firstSelection = items.none { it.selected }
+        // Only visible items count, since the id set can retain ids filtered out of the list
+        val firstSelection = items.none { it.update.episodeId in currentSelection }
         val newSelection = currentSelection.toHashSet()
         newSelection.addOrRemove(item.update.episodeId, selected)
 
@@ -532,8 +553,6 @@ class UpdatesViewModel(
         val filterIncludedCategories: List<Long>,
         val filterExcludedCategories: List<Long>,
     )
-
-    private data class DownloadProgress(val status: Download.State, val progress: Int)
 
     @Immutable
     data class State(

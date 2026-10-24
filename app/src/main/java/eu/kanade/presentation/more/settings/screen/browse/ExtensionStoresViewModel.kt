@@ -18,12 +18,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import mihon.domain.extension.interactor.AddExtensionStore
 import mihon.domain.extension.interactor.GetExtensionStores
 import mihon.domain.extension.interactor.RemoveExtensionStore
 import mihon.domain.extension.interactor.UpdateExtensionStores
 import mihon.domain.extension.model.ExtensionStore
-import tachiyomi.core.common.util.lang.launchIO
 import kotlin.time.Duration.Companion.seconds
 
 @Inject
@@ -54,7 +54,7 @@ class ExtensionStoresViewModel(
      * @param baseUrl The baseUrl of the repo to create.
      */
     fun createRepo(baseUrl: String) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             dialog.update {
                 when (it) {
                     is ExtensionStoreDialog.Create -> it.copy(processing = true)
@@ -89,7 +89,7 @@ class ExtensionStoresViewModel(
      * Refreshes information for each repository.
      */
     fun refreshRepos() {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             updateExtensionStores()
         }
     }
@@ -98,14 +98,14 @@ class ExtensionStoresViewModel(
      * Deletes the given repo from the database
      */
     fun deleteRepo(baseUrl: String) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             removeExtensionStore(baseUrl)
             extensionManager.findAvailableExtensions()
         }
     }
 
     fun addFromDeeplink(storeIndexUrl: String) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val alreadyExists = getExtensionStores.get().any { it.indexUrl == storeIndexUrl }
             dialog.update { ExtensionStoreDialog.Confirm(url = storeIndexUrl, alreadyExists = alreadyExists) }
         }

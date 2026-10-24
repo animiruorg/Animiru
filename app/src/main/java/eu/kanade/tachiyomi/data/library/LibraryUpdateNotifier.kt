@@ -7,6 +7,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import coil3.asDrawable
@@ -32,7 +33,6 @@ import eu.kanade.tachiyomi.util.system.notify
 import tachiyomi.core.common.Constants
 import tachiyomi.core.common.i18n.pluralStringResource
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.library.model.LibraryAnime
@@ -42,6 +42,7 @@ import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.i18n.aniyomi.AYMR
 import java.math.RoundingMode
 import java.text.NumberFormat
+import mihon.icons.materialsymbols.R as MaterialSymbolsR
 
 @Inject
 class LibraryUpdateNotifier(
@@ -75,22 +76,36 @@ class LibraryUpdateNotifier(
     val progressNotificationBuilder by lazy {
         context.notificationBuilder(Notifications.CHANNEL_LIBRARY_PROGRESS) {
             setContentTitle(context.stringResource(MR.strings.app_name))
-            setSmallIcon(R.drawable.ic_refresh_24dp)
+            setSmallIcon(MaterialSymbolsR.drawable.rounded_refresh)
             setLargeIcon(notificationBitmap)
             setOngoing(true)
             setOnlyAlertOnce(true)
-            addAction(R.drawable.ic_close_24dp, context.stringResource(MR.strings.action_cancel), cancelIntent)
+            addAction(
+                MaterialSymbolsR.drawable.rounded_close,
+                context.stringResource(MR.strings.action_cancel),
+                cancelIntent,
+            )
         }
     }
 
+    private var lastProgressNotificationTime = 0L
+
     /**
      * Shows the notification containing the currently updating anime and the progress.
+     *
+     * Called from several update coroutines at once, so it shares the builder under a lock and skips updates that
+     * come faster than the system would show them anyway.
      *
      * @param anime the anime that are being updated.
      * @param current the current progress.
      * @param total the total progress.
      */
+    @Synchronized
     fun showProgressNotification(anime: List<Anime>, current: Int, total: Int) {
+        val now = SystemClock.elapsedRealtime()
+        if (current < total && now - lastProgressNotificationTime < NOTIF_PROGRESS_INTERVAL_MS) return
+        lastProgressNotificationTime = now
+
         progressNotificationBuilder
             .setContentTitle(
                 context.stringResource(
@@ -133,7 +148,7 @@ class LibraryUpdateNotifier(
             setStyle(
                 NotificationCompat.BigTextStyle().bigText(context.stringResource(MR.strings.notification_size_warning)),
             )
-            setSmallIcon(R.drawable.ic_warning_white_24dp)
+            setSmallIcon(MaterialSymbolsR.drawable.rounded_filled_warning)
             setTimeoutAfter(Downloader.WARNING_NOTIF_TIMEOUT_MS)
             setContentIntent(NotificationHandler.openUrl(context, HELP_WARNING_URL))
         }
@@ -167,7 +182,7 @@ class LibraryUpdateNotifier(
      *
      * @param updates a list of anime with new updates.
      */
-    fun showUpdateNotifications(updates: List<Pair<Anime, Array<Episode>>>) {
+    suspend fun showUpdateNotifications(updates: List<Pair<Anime, Array<Episode>>>) {
         // Parent group notification
         context.notify(
             Notifications.ID_NEW_EPISODES,
@@ -210,16 +225,14 @@ class LibraryUpdateNotifier(
 
         // Per-anime notification
         if (!securityPreferences.hideNotificationContent.get()) {
-            launchUI {
-                context.notify(
-                    updates.map { (anime, episodes) ->
-                        NotificationManagerCompat.NotificationWithIdAndTag(
-                            anime.id.hashCode(),
-                            createNewEpisodesNotification(anime, episodes),
-                        )
-                    },
-                )
-            }
+            context.notify(
+                updates.map { (anime, episodes) ->
+                    NotificationManagerCompat.NotificationWithIdAndTag(
+                        anime.id.hashCode(),
+                        createNewEpisodesNotification(anime, episodes),
+                    )
+                },
+            )
         }
     }
 
@@ -248,7 +261,7 @@ class LibraryUpdateNotifier(
 
             // Mark episodes as seen action
             addAction(
-                R.drawable.ic_done_24dp,
+                MaterialSymbolsR.drawable.rounded_check,
                 context.stringResource(AMMR.strings.am_action_mark_as_seen),
                 NotificationReceiver.markAsSeenPendingBroadcast(
                     context,
@@ -259,7 +272,7 @@ class LibraryUpdateNotifier(
             )
             // View episodes action
             addAction(
-                R.drawable.ic_book_24dp,
+                MaterialSymbolsR.drawable.rounded_book,
                 context.stringResource(AYMR.strings.action_view_episodes),
                 NotificationReceiver.openEpisodePendingActivity(
                     context,
@@ -388,3 +401,4 @@ private const val NOTIF_MAX_EPISODES = 5
 private const val NOTIF_TITLE_MAX_LEN = 45
 private const val NOTIF_ICON_SIZE = 192
 private const val ANIME_PER_SOURCE_QUEUE_WARNING_THRESHOLD = 60
+private const val NOTIF_PROGRESS_INTERVAL_MS = 500L

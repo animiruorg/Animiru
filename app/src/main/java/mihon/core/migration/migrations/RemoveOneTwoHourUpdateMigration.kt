@@ -4,7 +4,7 @@ import android.content.Context
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
-import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
+import eu.kanade.tachiyomi.data.library.LibraryUpdateWorker
 import mihon.core.migration.Migration
 import mihon.core.migration.MigrationContext
 import tachiyomi.domain.library.service.LibraryPreferences
@@ -22,7 +22,7 @@ class RemoveOneTwoHourUpdateMigration(
         val updateInterval = libraryPreferences.autoUpdateInterval.get()
         if (updateInterval == 1 || updateInterval == 2) {
             libraryPreferences.autoUpdateInterval.set(3)
-            LibraryUpdateJob.setupTask(context, 3)
+            LibraryUpdateWorker.setupTask(context, 3)
         }
 
         return true

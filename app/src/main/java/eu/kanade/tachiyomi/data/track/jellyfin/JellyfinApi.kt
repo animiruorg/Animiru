@@ -9,12 +9,13 @@ import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.parseAs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -27,7 +28,7 @@ class JellyfinApi(
     private val json: Json,
 ) {
     suspend fun getTrackSearch(url: String): TrackSearch =
-        withIOContext {
+        withContext(Dispatchers.IO) {
             try {
                 val httpUrl = url.toHttpUrl()
                 val fragment = httpUrl.fragment!!
@@ -89,11 +90,13 @@ class JellyfinApi(
 
     private suspend fun getTrackFromSeries(track: TrackSearch, url: HttpUrl): TrackSearch {
         val episodesUrl = getEpisodesUrl(url)
-        val episodes = with(json) {
-            client.newCall(GET(episodesUrl))
-                .awaitSuccess()
-                .parseAs<JFItemList>()
-        }.items
+        val episodes = withContext(Dispatchers.IO) {
+            with(json) {
+                client.newCall(GET(episodesUrl))
+                    .awaitSuccess()
+                    .parseAs<JFItemList>()
+            }.items
+        }
 
         if (episodes.isEmpty()) {
             return track.apply {

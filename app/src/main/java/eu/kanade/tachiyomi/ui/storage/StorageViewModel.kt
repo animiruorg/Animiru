@@ -16,6 +16,8 @@ import eu.kanade.presentation.more.storage.data.StorageData
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.util.storage.size
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,8 +29,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchNonCancellable
+import kotlinx.coroutines.launch
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.domain.anime.interactor.GetLibraryAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.category.interactor.GetCategories
@@ -46,6 +48,7 @@ import kotlin.time.Duration.Companion.seconds
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class StorageViewModel(
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val downloadCache: DownloadCache,
     private val downloadManager: DownloadManager,
     private val getLibraryAnime: GetLibraryAnime,
@@ -72,7 +75,7 @@ class StorageViewModel(
     private val entries = MutableStateFlow<List<Long>>(emptyList())
 
     init {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val hideHiddenCategories = libraryPreferences.hideHiddenCategoriesSettings.get()
 
             val downloadCacheFlow = downloadCache.changes
@@ -224,7 +227,7 @@ class StorageViewModel(
     fun deleteAnime(storageData: StorageData, removeFromLibrary: Boolean) {
         val anime = storageData.anime
 
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             skipDownloadChangeFlow.value = true
 
             if (anime.isLocal()) {
@@ -232,7 +235,7 @@ class StorageViewModel(
                     .getAnimeDirectory(anime.url)
                     ?.delete()
             } else {
-                val source = sourceManager.get(anime.source) ?: return@launchNonCancellable
+                val source = sourceManager.get(anime.source) ?: return@launch
                 downloadManager.deleteAnime(anime, source)
             }
 

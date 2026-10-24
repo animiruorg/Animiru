@@ -23,14 +23,14 @@ import eu.kanade.tachiyomi.util.system.notificationBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import mihon.app.di.AppGraph
 import mihon.app.di.appGraph
 import mihon.core.metro.metroGraph
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.model.Category.Companion.UNCATEGORIZED_ID
 import tachiyomi.i18n.MR
@@ -38,6 +38,8 @@ import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.i18n.aniyomi.AYMR
 import kotlin.math.ceil
 import kotlin.math.floor
+import mihon.icons.materialsymbols.R as MaterialSymbolsR
+import mihon.icons.simpleicons.R as SimpleIconsR
 
 class DiscordRPCService : Service() {
 
@@ -67,7 +69,7 @@ class DiscordRPCService : Service() {
         try {
             rpc = if (token.isNotBlank()) DiscordRPC(token, status) else null
             try {
-                discordScope.launchIO { setScreen(this@DiscordRPCService) }
+                discordScope.launch(Dispatchers.IO) { setScreen(this@DiscordRPCService) }
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e) { "Failed to set initial screen" }
                 stopSelf()
@@ -127,7 +129,7 @@ class DiscordRPCService : Service() {
 
             // Reinitialize RPC
             rpc = DiscordRPC(token, status)
-            discordScope.launchIO {
+            discordScope.launch(Dispatchers.IO) {
                 setScreen(this@DiscordRPCService)
             }
         } catch (e: Exception) {
@@ -136,14 +138,25 @@ class DiscordRPCService : Service() {
         }
     }
 
+    /**
+     * Bitmap of the app for notifications.
+     */
+    private val notificationBitmap by lazy {
+        BitmapFactory.decodeResource(this.resources, R.mipmap.ic_launcher)
+    }
+
     private fun notification(context: Context) {
         val stopIntent = NotificationReceiver.stopDiscordRPCService(context)
         val builder = context.notificationBuilder(Notifications.CHANNEL_DISCORD_RPC) {
-            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
-            setSmallIcon(R.drawable.ic_discord_24dp)
+            setLargeIcon(notificationBitmap)
+            setSmallIcon(SimpleIconsR.drawable.valkyrie_resources_discord)
             setContentText(context.stringResource(AMMR.strings.pref_discord_rpc))
             setContentTitle(context.stringResource(MR.strings.app_name))
-            addAction(R.drawable.ic_close_24dp, context.stringResource(AYMR.strings.action_stop), stopIntent)
+            addAction(
+                MaterialSymbolsR.drawable.rounded_close,
+                context.stringResource(AYMR.strings.action_stop),
+                stopIntent,
+            )
             setAutoCancel(false)
             setOngoing(true)
             setUsesChronometer(true)
@@ -384,7 +397,7 @@ class DiscordRPCService : Service() {
                 val episodeNumber = getFormattedEpisodeNumber(context, playerData, discordIncognito)
                 val (startTime, end) = getTimestamps(playerData)
 
-                withIOContext {
+                withContext(Dispatchers.IO) {
                     val rpcExternalAsset = getRPCExternalAsset(context)
                     val animeThumbnail =
                         getDiscordThumbnail(rpcExternalAsset, playerData.thumbnailUrl, discordIncognito)

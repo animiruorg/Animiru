@@ -30,12 +30,12 @@ import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.util.episode.getNextUnseen
 import eu.kanade.tachiyomi.util.removeBackgrounds
 import eu.kanade.tachiyomi.util.removeCovers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -45,16 +45,20 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import mihon.core.common.utils.mutate
+import mihon.core.metro.AppCoroutineScope
 import mihon.domain.library.model.search.QueryNode
 import mihon.feature.library.matches
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.TriState
+import tachiyomi.core.common.util.lang.SubscriberGate
 import tachiyomi.core.common.util.lang.compareToWithCollator
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchNonCancellable
+import tachiyomi.core.common.util.lang.pausedWhileUnsubscribed
 import tachiyomi.domain.anime.interactor.GetLibraryAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeUpdate
@@ -87,6 +91,7 @@ import kotlin.time.Duration.Companion.seconds
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class LibraryViewModel(
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val getLibraryAnime: GetLibraryAnime,
     // AY -->
     private val getVisibleCategories: GetVisibleCategories,
@@ -112,6 +117,8 @@ class LibraryViewModel(
     private val getTracks: GetTracks,
     // <-- AM (GROUPING)
 ) : ViewModel() {
+
+    private val subscriberGate = SubscriberGate()
 
     private val searchQuery = MutableStateFlow<String?>(null)
 
@@ -145,15 +152,27 @@ class LibraryViewModel(
     }
         .distinctUntilChanged()
 
+    // Tracks are used by tracker filters, the tracker score sort, and tracker group by, and loading every track is slow
+    // on large libraries
+    private val tracks = combine(getVisibleCategories.subscribe(), getTrackingFiltersFlow()) {
+            categories,
+            trackingFilters,
+        ->
+        trackingFilters.values.any { it != TriState.DISABLED } ||
+            categories.any { it.sort.type == LibrarySort.Type.TrackerMean }
+    }
+        .distinctUntilChanged()
+        .flatMapLatest { needsTracks -> if (needsTracks) getTracksPerAnime.subscribe() else flowOf(emptyMap()) }
+
     // Shared separately so search, selection and dialog changes still reach [state] before the
-    // first query result, and so returning to the tab doesn't flash empty while it restarts.
+    // first query result
     private val library = eu.kanade.core.util.combine(
         searchQuery.debounce(0.25.seconds),
         // AY -->
         getVisibleCategories.subscribe(),
         // <-- AY
         getFavoritesFlow(),
-        combine(getTracksPerAnime.subscribe(), getTrackingFiltersFlow(), ::Pair),
+        combine(tracks, getTrackingFiltersFlow(), ::Pair),
         getLibraryItemPreferencesFlow(),
         // AM (GROUPING) -->
         combine(libraryPreferences.groupLibraryBy.changes(), libraryPreferences.sortingMode.changes(), ::Pair),
@@ -196,8 +215,8 @@ class LibraryViewModel(
                 // <-- AM (GROUPING)
             )
         }
-        .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope + subscriberGate, SharingStarted.Eagerly, null)
 
     val state: StateFlow<State> = combine(
         library,
@@ -232,7 +251,7 @@ class LibraryViewModel(
             groupedFavorites = library?.groupedFavorites.orEmpty(),
         )
     }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State())
+        .stateIn(viewModelScope + subscriberGate, subscriberGate.whileSubscribed(5.seconds), State())
 
     private data class DisplayPreferences(
         val showCategoryTabs: Boolean,
@@ -364,10 +383,9 @@ class LibraryViewModel(
         groupSort: LibrarySort? = null,
         // <-- AM (GROUPING)
     ): Map<Category, List</* LibraryItem */ Long>> {
+        // The collator already ignores case, and lowercasing on every comparison is slow on large libraries
         val sortAlphabetically: (LibraryItem, LibraryItem) -> Int = { anime1, anime2 ->
-            val title1 = anime1.libraryAnime.anime.title.lowercase()
-            val title2 = anime2.libraryAnime.anime.title.lowercase()
-            title1.compareToWithCollator(title2)
+            anime1.libraryAnime.anime.title.compareToWithCollator(anime2.libraryAnime.anime.title)
         }
 
         val defaultTrackerScoreSortValue = -1.0
@@ -393,10 +411,10 @@ class LibraryViewModel(
                     sortAlphabetically(anime1, anime2)
                 }
                 LibrarySort.Type.LastSeen -> {
-                    anime1.libraryAnime.lastSeen.compareTo(anime2.libraryAnime.lastSeen)
+                    compareValues(anime1.libraryAnime.lastSeen, anime2.libraryAnime.lastSeen)
                 }
                 LibrarySort.Type.LastUpdate -> {
-                    anime1.libraryAnime.anime.lastUpdate.compareTo(anime2.libraryAnime.anime.lastUpdate)
+                    compareValues(anime1.libraryAnime.anime.lastUpdate, anime2.libraryAnime.anime.lastUpdate)
                 }
                 LibrarySort.Type.UnseenCount -> when {
                     // Ensure unseen content comes first
@@ -411,10 +429,10 @@ class LibraryViewModel(
                     // <-- AY
                 }
                 LibrarySort.Type.LatestEpisode -> {
-                    anime1.libraryAnime.latestUpload.compareTo(anime2.libraryAnime.latestUpload)
+                    compareValues(anime1.libraryAnime.latestUpload, anime2.libraryAnime.latestUpload)
                 }
                 LibrarySort.Type.EpisodeFetchDate -> {
-                    anime1.libraryAnime.episodeFetchedAt.compareTo(anime2.libraryAnime.episodeFetchedAt)
+                    compareValues(anime1.libraryAnime.episodeFetchedAt, anime2.libraryAnime.episodeFetchedAt)
                 }
                 LibrarySort.Type.DateAdded -> {
                     compareValues(anime1.libraryAnime.anime.favoriteAt, anime2.libraryAnime.anime.favoriteAt)
@@ -495,19 +513,25 @@ class LibraryViewModel(
         return combine(
             getLibraryAnime.subscribe(),
             getLibraryItemPreferencesFlow(),
-            downloadCache.changes,
+            downloadCache.changes.pausedWhileUnsubscribed(),
         ) { libraryAnime, preferences, _ ->
+            val sources = libraryAnime
+                .mapTo(mutableSetOf()) { it.anime.source }
+                .associateWith { sourceManager.getOrStub(it) }
+            val downloadCounts = downloadManager.getDownloadCounts(libraryAnime.map { it.anime })
             libraryAnime.map { anime ->
+                val source = sources.getValue(anime.anime.source)
+                val downloadCount = downloadCounts.getValue(anime.id)
                 LibraryItem(
                     libraryAnime = anime,
-                    downloadCount = downloadManager.getDownloadCount(anime.anime),
+                    downloadCount = downloadCount,
                     unseenCount = anime.unseenCount,
                     isLocal = anime.anime.isLocal(),
-                    sourceName = sourceManager.getOrStub(anime.anime.source).name.lowercase(),
-                    sourceLanguage = sourceManager.getOrStub(anime.anime.source).lang,
+                    sourceName = source.name.lowercase(),
+                    sourceLanguage = source.lang,
                     badges = LibraryItem.Badges(
                         downloadCount = if (preferences.downloadBadge) {
-                            downloadManager.getDownloadCount(anime.anime)
+                            downloadCount
                         } else {
                             0
                         },
@@ -522,7 +546,7 @@ class LibraryViewModel(
                             false
                         },
                         sourceLanguage = if (preferences.languageBadge) {
-                            sourceManager.getOrStub(anime.anime.source).lang
+                            source.lang
                         } else {
                             ""
                         },
@@ -551,36 +575,20 @@ class LibraryViewModel(
         }
     }
 
-    /**
-     * Returns the common categories for the given list of anime.
-     *
-     * @param animes the list of anime.
-     */
-    private suspend fun getCommonCategories(animes: List<Anime>): Collection<Category> {
-        if (animes.isEmpty()) return emptyList()
-        return animes
-            // AY -->
-            .map { getVisibleCategories.await(it.id).toSet() }
-            // <-- AY
-            .reduce { set1, set2 -> set1.intersect(set2) }
+    private suspend fun getCategoryIds(anime: Anime): Set<Long> {
+        return state.value.libraryData.favoritesById[anime.id]
+            ?.libraryAnime
+            ?.categories
+            // The library reports no category as 0
+            ?.filterTo(mutableSetOf()) { it != 0L }
+            // AM -->
+            ?: getVisibleCategories.await(anime.id).mapTo(mutableSetOf()) { it.id }
+        // <-- AM
     }
 
     suspend fun getNextUnseenEpisode(anime: Anime): Episode? {
-        return getEpisodesByAnimeId.await(anime.id, applyScanlatorFilter = true).getNextUnseen(anime, downloadManager)
-    }
-
-    /**
-     * Returns the mix (non-common) categories for the given list of anime.
-     *
-     * @param animes the list of anime.
-     */
-    private suspend fun getMixCategories(animes: List<Anime>): Collection<Category> {
-        if (animes.isEmpty()) return emptyList()
-        // AY -->
-        val animeCategories = animes.map { getVisibleCategories.await(it.id).toSet() }
-        // <-- AY
-        val common = animeCategories.reduce { set1, set2 -> set1.intersect(set2) }
-        return animeCategories.flatten().distinct().subtract(common)
+        val episodes = getEpisodesByAnimeId.await(anime.id, applyScanlatorFilter = true)
+        return withContext(Dispatchers.Default) { episodes.getNextUnseen(anime, downloadManager) }
     }
 
     /**
@@ -601,21 +609,10 @@ class LibraryViewModel(
 
     private fun downloadNextEpisodes(amount: Int?) {
         val animes = selectedAnime
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             animes.forEach { anime ->
                 val episodes = getNextEpisodes.await(anime.id)
-                    .fastFilterNot { episode ->
-                        downloadManager.getQueuedDownloadOrNull(episode.id) != null ||
-                            downloadManager.isEpisodeDownloaded(
-                                episode.name,
-                                episode.scanlator,
-                                episode.url,
-                                // AM (CUSTOM_INFORMATION) -->
-                                anime.ogTitle,
-                                // <-- AM (CUSTOM_INFORMATION),
-                                anime.source,
-                            )
-                    }
+                    .filterNotQueuedOrDownloaded(anime)
                     .let { if (amount != null) it.take(amount) else it }
 
                 downloadManager.downloadEpisodes(anime, episodes)
@@ -625,24 +622,19 @@ class LibraryViewModel(
 
     private fun downloadBookmarkedEpisodes() {
         val animes = selectedAnime
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             animes.forEach { anime ->
                 val episodes = getBookmarkedEpisodesByAnimeId.await(anime.id)
-                    .fastFilterNot { episode ->
-                        downloadManager.getQueuedDownloadOrNull(episode.id) != null ||
-                            downloadManager.isEpisodeDownloaded(
-                                episode.name,
-                                episode.scanlator,
-                                episode.url,
-                                // AM (CUSTOM_INFORMATION) -->
-                                anime.ogTitle,
-                                // <-- AM (CUSTOM_INFORMATION)
-                                anime.source,
-                            )
-                    }
+                    .filterNotQueuedOrDownloaded(anime)
                 downloadManager.downloadEpisodes(anime, episodes)
             }
         }
+    }
+
+    private fun List<Episode>.filterNotQueuedOrDownloaded(anime: Anime): List<Episode> {
+        val queuedDownloads = downloadManager.getQueuedDownloadsByEpisodeId()
+        val downloadedEpisodeIds = downloadManager.getDownloadedEpisodeIds(this, anime)
+        return fastFilterNot { it.id in queuedDownloads || it.id in downloadedEpisodeIds }
     }
 
     /**
@@ -650,7 +642,7 @@ class LibraryViewModel(
      */
     fun markSeenSelection(seen: Boolean) {
         val selection = selectedAnime
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             selection.forEach { anime ->
                 setSeenStatus.await(
                     anime = anime,
@@ -669,7 +661,7 @@ class LibraryViewModel(
      * @param deleteEpisodes whether to delete downloaded episodes.
      */
     fun removeAnimes(animes: List<Anime>, deleteFromLibrary: Boolean, deleteEpisodes: Boolean) {
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             if (deleteFromLibrary) {
                 val toDelete = animes.map {
                     it.removeCovers(coverCache)
@@ -702,12 +694,9 @@ class LibraryViewModel(
      * @param removeCategories the categories to remove in all animes.
      */
     fun setAnimeCategories(animeList: List<Anime>, addCategories: List<Long>, removeCategories: List<Long>) {
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
             animeList.forEach { anime ->
-                // AY -->
-                val categoryIds = getVisibleCategories.await(anime.id)
-                    // <-- AY
-                    .map { it.id }
+                val categoryIds = getCategoryIds(anime)
                     .subtract(removeCategories.toSet())
                     .plus(addCategories)
                     .toList()
@@ -735,7 +724,9 @@ class LibraryViewModel(
         dialog.update { Dialog.SettingsSheet }
     }
 
-    private var lastSelectionCategory: Long? = null
+    private data class LastSelection(val categoryId: Long, val animeId: Long)
+
+    private var lastSelection: LastSelection? = null
 
     /**
      * Reads from [selection] rather than [state], which is derived asynchronously and can still
@@ -748,7 +739,7 @@ class LibraryViewModel(
         }
 
     fun clearSelection() {
-        lastSelectionCategory = null
+        lastSelection = null
         selection.update { setOf() }
     }
 
@@ -757,7 +748,7 @@ class LibraryViewModel(
             val newSelection = selection.mutate { set ->
                 if (!set.remove(anime.id)) set.add(anime.id)
             }
-            lastSelectionCategory = category.id.takeIf { newSelection.isNotEmpty() }
+            lastSelection = LastSelection(category.id, anime.id).takeIf { anime.id in newSelection }
             newSelection
         }
     }
@@ -770,31 +761,30 @@ class LibraryViewModel(
         val state = state.value
         selection.update { selection ->
             val newSelection = selection.mutate { list ->
-                val lastSelected = list.lastOrNull()
-                if (lastSelectionCategory != category.id) {
+                val items = state.getItemsForCategoryId(category.id).fastMap { it.id }
+                val lastAnimeIndex = lastSelection
+                    ?.takeIf { it.categoryId == category.id && it.animeId in list }
+                    ?.let { items.indexOf(it.animeId) }
+                    ?: -1
+                val curAnimeIndex = items.indexOf(anime.id)
+                if (lastAnimeIndex == -1 || curAnimeIndex == -1) {
                     list.add(anime.id)
                     return@mutate
                 }
 
-                val items = state.getItemsForCategoryId(category.id).fastMap { it.id }
-                val lastAnimeIndex = items.indexOf(lastSelected)
-                val curAnimeIndex = items.indexOf(anime.id)
-
                 val selectionRange = when {
                     lastAnimeIndex < curAnimeIndex -> lastAnimeIndex..curAnimeIndex
-                    curAnimeIndex < lastAnimeIndex -> curAnimeIndex..lastAnimeIndex
-                    // We shouldn't reach this point
-                    else -> return@mutate
+                    else -> curAnimeIndex..lastAnimeIndex
                 }
-                selectionRange.mapNotNull { items[it] }.let(list::addAll)
+                list.addAll(items.subList(selectionRange.first, selectionRange.last + 1))
             }
-            lastSelectionCategory = category.id
+            lastSelection = LastSelection(category.id, anime.id)
             newSelection
         }
     }
 
     fun selectAll() {
-        lastSelectionCategory = null
+        lastSelection = null
         val state = state.value
         selection.update { selection ->
             selection.mutate { list ->
@@ -804,7 +794,7 @@ class LibraryViewModel(
     }
 
     fun invertSelection() {
-        lastSelectionCategory = null
+        lastSelection = null
         val state = state.value
         selection.update { selection ->
             selection.mutate { list ->
@@ -829,20 +819,19 @@ class LibraryViewModel(
     }
 
     fun openChangeCategoryDialog() {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             // Create a copy of selected anime
             val animeList = selectedAnime
 
             // Hide the default category because it has a different behavior than the ones from db.
             val categories = state.value.displayedCategories.filter { it.id != 0L }
 
-            // Get indexes of the common categories to preselect.
-            val common = getCommonCategories(animeList)
-            // Get indexes of the mix categories to preselect.
-            val mix = getMixCategories(animeList)
+            val animeCategoryIds = animeList.map { getCategoryIds(it) }
+            val common = animeCategoryIds.reduceOrNull { set1, set2 -> set1 intersect set2 }.orEmpty()
+            val mix = animeCategoryIds.flatten().toSet() - common
             val preselected = categories
                 .map {
-                    when (it) {
+                    when (it.id) {
                         in common -> CheckboxState.State.Checked(it)
                         in mix -> CheckboxState.TriState.Exclude(it)
                         else -> CheckboxState.State.None(it)

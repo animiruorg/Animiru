@@ -106,7 +106,7 @@ class SetAnimeEpisodeFlags(
     // <-- AM
 
     suspend fun awaitSetAllFlags(
-        animeId: Long,
+        animeIds: List<Long>,
         unseenFilter: Long,
         downloadedFilter: Long,
         bookmarkedFilter: Long,
@@ -122,29 +122,26 @@ class SetAnimeEpisodeFlags(
         // <-- AY
         thumbnailSize: Int,
     ): Boolean {
-        return animeRepository.update(
-            AnimeUpdate(animeId) {
-                episodeFlags = 0L.setFlag(unseenFilter, Anime.EPISODE_UNSEEN_MASK)
-                    .setFlag(downloadedFilter, Anime.EPISODE_DOWNLOADED_MASK)
-                    .setFlag(bookmarkedFilter, Anime.EPISODE_BOOKMARKED_MASK)
-                    // AY -->
-                    .setFlag(fillermarkedFilter, Anime.EPISODE_FILLERMARKED_MASK)
-                    // <-- AY
-                    .setFlag(sortingMode, Anime.EPISODE_SORTING_MASK)
-                    .setFlag(sortingDirection, Anime.EPISODE_SORT_DIR_MASK)
-                    .setFlag(displayMode, Anime.EPISODE_DISPLAY_MASK)
-                    // AY -->
-                    .setFlag(showPreviews, Anime.EPISODE_PREVIEWS_MASK)
-                    .setFlag(showSummaries, Anime.EPISODE_SUMMARIES_MASK)
-                    // <-- AY
-                    // AM -->
-                    .setFlag(
-                        thumbnailSize.toLong() shl Anime.EPISODE_THUMBNAIL_SIZE_BIT_OFFSET,
-                        Anime.EPISODE_THUMBNAIL_SIZE_MASK,
-                    )
-                // <-- AM
-            },
-        )
+        val flags = 0L.setFlag(unseenFilter, Anime.EPISODE_UNSEEN_MASK)
+            .setFlag(downloadedFilter, Anime.EPISODE_DOWNLOADED_MASK)
+            .setFlag(bookmarkedFilter, Anime.EPISODE_BOOKMARKED_MASK)
+            // AY -->
+            .setFlag(fillermarkedFilter, Anime.EPISODE_FILLERMARKED_MASK)
+            // <-- AY
+            .setFlag(sortingMode, Anime.EPISODE_SORTING_MASK)
+            .setFlag(sortingDirection, Anime.EPISODE_SORT_DIR_MASK)
+            .setFlag(displayMode, Anime.EPISODE_DISPLAY_MASK)
+            // AY -->
+            .setFlag(showPreviews, Anime.EPISODE_PREVIEWS_MASK)
+            .setFlag(showSummaries, Anime.EPISODE_SUMMARIES_MASK)
+            // <-- AY
+            // AM -->
+            .setFlag(
+                thumbnailSize.toLong() shl Anime.EPISODE_THUMBNAIL_SIZE_BIT_OFFSET,
+                Anime.EPISODE_THUMBNAIL_SIZE_MASK,
+            )
+        // <-- AM
+        return animeRepository.updateAll(animeIds.map { AnimeUpdate(it) { episodeFlags = flags } })
     }
 
     private fun Long.setFlag(flag: Long, mask: Long): Long {

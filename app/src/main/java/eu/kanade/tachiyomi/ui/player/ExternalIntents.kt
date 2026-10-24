@@ -15,7 +15,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.track.model.toDbTrack
-import eu.kanade.domain.track.service.DelayedTrackingUpdateJob
+import eu.kanade.domain.track.service.DelayedTrackingUpdateWorker
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.domain.track.store.DelayedTrackingStore
 import eu.kanade.tachiyomi.animesource.AnimeSource
@@ -32,15 +32,16 @@ import eu.kanade.tachiyomi.ui.player.loader.HosterLoader
 import eu.kanade.tachiyomi.util.system.LocaleHelper
 import eu.kanade.tachiyomi.util.system.isOnline
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.app.di.appGraph
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchUI
-import tachiyomi.core.common.util.lang.withIOContext
-import tachiyomi.core.common.util.lang.withUIContext
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.Anime
@@ -53,15 +54,16 @@ import tachiyomi.domain.history.interactor.UpsertHistory
 import tachiyomi.domain.history.model.HistoryUpdate
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.source.local.isLocal
 import java.io.File
-import java.util.Date
+import kotlin.time.Clock
 
 @Inject
 @SingleIn(AppScope::class)
 class ExternalIntents(
+    @AppCoroutineScope private val scope: CoroutineScope,
     private val context: Context,
     private val upsertHistory: UpsertHistory,
     private val updateEpisode: UpdateEpisode,
@@ -69,7 +71,7 @@ class ExternalIntents(
     private val sourceManager: SourceManager,
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     private val getTracks: GetTracks,
-    private val insertTrack: InsertTrack,
+    private val upsertTrack: UpsertTrack,
     private val trackerManager: TrackerManager,
     private val downloadManager: DownloadManager,
     private val delayedTrackingStore: DelayedTrackingStore,
@@ -117,7 +119,7 @@ class ExternalIntents(
         if (video.usesHttpServer()) {
             val (success, port) = MainActivity.startHttpServerService(context, source.id)
             if (!success) {
-                launchUI {
+                scope.launch(Dispatchers.Main) {
                     context.toast(AYMR.strings.http_server_start_failure)
                 }
                 return null
@@ -130,7 +132,7 @@ class ExternalIntents(
 
         // AM (DISCORD_RPC) -->
         with(DiscordRPCService) {
-            discordScope.launchIO {
+            discordScope.launch(Dispatchers.IO) {
                 setPlayerActivity(
                     context = context,
                     playerData = PlayerData(
@@ -213,12 +215,12 @@ class ExternalIntents(
     /**
      * Returns the second to start the external player at.
      */
-    private fun getLastSecondSeen(): Long {
+    private fun getLastSecondSeen(): Int {
         val preserveWatchPos = playerPreferences.preserveWatchingPosition.get()
         val isEpisodeWatched = episode.lastSecondSeen == episode.totalSeconds
 
         return if (episode.seen && (!preserveWatchPos || (preserveWatchPos && isEpisodeWatched))) {
-            1L
+            1
         } else {
             episode.lastSecondSeen
         }
@@ -231,7 +233,7 @@ class ExternalIntents(
      * @param e the exception error to be displayed.
      */
     private suspend fun makeErrorToast(context: Context, e: Exception?) {
-        withUIContext { context.toast(e?.message ?: "Cannot open episode") }
+        withContext(Dispatchers.Main) { context.toast(e?.message ?: "Cannot open episode") }
     }
 
     /**
@@ -449,12 +451,12 @@ class ExternalIntents(
 
         // AM (DISCORD_RPC) -->
         with(DiscordRPCService) {
-            discordScope.launchIO { setScreen(context.applicationContext, lastUsedScreen) }
+            discordScope.launch(Dispatchers.IO) { setScreen(context.applicationContext, lastUsedScreen) }
         }
         // <-- AM (DISCORD_RPC)
 
         // Update the episode's progress and history
-        launchIO {
+        scope.launch(Dispatchers.IO) {
             if (cause == "playback_completion" || (currentPosition == duration && duration == 0L)) {
                 saveEpisodeProgress(
                     currentExtEpisode,
@@ -463,7 +465,12 @@ class ExternalIntents(
                     currentExtEpisode.totalSeconds,
                 )
             } else {
-                saveEpisodeProgress(currentExtEpisode, anime, currentPosition, duration)
+                saveEpisodeProgress(
+                    currentExtEpisode,
+                    anime,
+                    currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
+                    duration.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
+                )
             }
             saveEpisodeHistory(currentExtEpisode)
         }
@@ -477,7 +484,7 @@ class ExternalIntents(
     private suspend fun saveEpisodeHistory(currentEpisode: Episode) {
         if (basePreferences.incognitoMode.get()) return
         upsertHistory.await(
-            HistoryUpdate(currentEpisode.id, Date()),
+            HistoryUpdate(currentEpisode.id, Clock.System.now()),
         )
     }
 
@@ -493,8 +500,8 @@ class ExternalIntents(
     private suspend fun saveEpisodeProgress(
         currentEpisode: Episode?,
         anime: Anime,
-        lastSecondSeen: Long,
-        totalSeconds: Long,
+        lastSecondSeen: Int,
+        totalSeconds: Int,
     ) {
         if (basePreferences.incognitoMode.get()) return
         val currEp = currentEpisode ?: return
@@ -534,7 +541,7 @@ class ExternalIntents(
         val sortFunction: (Episode, Episode) -> Int = when (anime.sorting) {
             Anime.EPISODE_SORTING_SOURCE -> { c1, c2 -> c2.sourceOrder.compareTo(c1.sourceOrder) }
             Anime.EPISODE_SORTING_NUMBER -> { c1, c2 -> c1.episodeNumber.compareTo(c2.episodeNumber) }
-            Anime.EPISODE_SORTING_UPLOAD_DATE -> { c1, c2 -> c1.dateUpload.compareTo(c2.dateUpload) }
+            Anime.EPISODE_SORTING_UPLOAD_DATE -> { c1, c2 -> compareValues(c1.dateUpload, c2.dateUpload) }
             else -> throw NotImplementedError("Unknown sorting method")
         }
 
@@ -561,7 +568,7 @@ class ExternalIntents(
     private suspend fun updateTrackEpisodeSeen(episodeNumber: Double, anime: Anime) {
         if (!trackPreferences.autoUpdateTrack.get()) return
 
-        withIOContext {
+        withContext(Dispatchers.IO) {
             getTracks.await(anime.id)
                 .mapNotNull { track ->
                     val tracker = trackerManager.get(track.trackerId)
@@ -577,10 +584,10 @@ class ExternalIntents(
                             runCatching {
                                 if (context.isOnline()) {
                                     tracker.update(updatedTrack.toDbTrack(), true)
-                                    insertTrack.await(updatedTrack)
+                                    upsertTrack.await(updatedTrack)
                                 } else {
                                     delayedTrackingStore.add(track.animeId, lastEpisodeSeen = episodeNumber)
-                                    DelayedTrackingUpdateJob.setupTask(context)
+                                    DelayedTrackingUpdateWorker.setupTask(context)
                                 }
                             }
                         }
@@ -602,7 +609,7 @@ class ExternalIntents(
      */
     private suspend fun enqueueDeleteSeenEpisodes(episode: Episode, anime: Anime) {
         if (episode.seen) {
-            withIOContext {
+            withContext(Dispatchers.IO) {
                 downloadManager.enqueueEpisodesToDelete(
                     listOf(episode),
                     anime,

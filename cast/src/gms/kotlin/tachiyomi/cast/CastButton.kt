@@ -20,15 +20,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.mediarouter.app.MediaRouteButton
 import com.google.android.gms.cast.framework.CastButtonFactory
 import kotlinx.coroutines.delay
+import mihon.icons.custommaterialsymbols.CustomMaterialSymbols
+import mihon.icons.custommaterialsymbols.rounded.Cast1
+import mihon.icons.custommaterialsymbols.rounded.Cast2
+import mihon.icons.custommaterialsymbols.rounded.Cast3
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Cast
+import mihon.icons.materialsymbols.rounded.CastWarning
 import tachiyomi.presentation.core.components.material.padding
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -48,10 +53,10 @@ fun CastButton(
     var index by remember { mutableIntStateOf(0) }
     val icons = remember {
         listOf(
-            R.drawable.ic_cast_1_24dp,
-            R.drawable.ic_cast_2_24dp,
-            R.drawable.ic_cast_3_24dp,
-            R.drawable.ic_cast_2_24dp,
+            CustomMaterialSymbols.Rounded.Cast1,
+            CustomMaterialSymbols.Rounded.Cast2,
+            CustomMaterialSymbols.Rounded.Cast3,
+            CustomMaterialSymbols.Rounded.Cast2,
         )
     }
 
@@ -97,9 +102,9 @@ fun CastButton(
             ),
     ) {
         val icon = when {
-            loading -> ImageVector.vectorResource(icons[index])
-            error -> ImageVector.vectorResource(R.drawable.cast_warning_24dp)
-            else -> ImageVector.vectorResource(R.drawable.ic_cast_24dp)
+            loading -> icons[index]
+            error -> MaterialSymbols.Rounded.CastWarning
+            else -> MaterialSymbols.Rounded.Cast
         }
 
         Icon(

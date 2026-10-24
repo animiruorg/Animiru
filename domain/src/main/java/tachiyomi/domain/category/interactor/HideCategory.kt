@@ -3,7 +3,6 @@ package tachiyomi.domain.category.interactor
 
 import dev.zacsweers.metro.Inject
 import logcat.LogPriority
-import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.category.repository.CategoryRepository
@@ -13,8 +12,8 @@ class HideCategory(
     private val categoryRepository: CategoryRepository,
 ) {
 
-    suspend fun await(category: Category) = withNonCancellableContext {
-        try {
+    suspend fun await(category: Category): Result {
+        return try {
             categoryRepository.updateHidden(categoryId = category.id, hidden = !category.hidden)
             Result.Success
         } catch (e: Exception) {

@@ -1,0 +1,19 @@
+fragment AnimeFragment on Anime {
+  id
+  name
+  episodes
+  kind
+  poster {
+    mainUrl
+  }
+  score
+  url
+  status
+  airedOn {
+    date
+  }
+  description
+  studios {
+    name
+  }
+}

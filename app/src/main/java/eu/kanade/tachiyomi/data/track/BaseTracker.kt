@@ -9,20 +9,20 @@ import eu.kanade.tachiyomi.data.database.models.Track
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.app.di.appGraph
 import okhttp3.OkHttpClient
-import tachiyomi.core.common.util.lang.withIOContext
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import tachiyomi.domain.track.model.Track as DomainTrack
@@ -39,7 +39,7 @@ abstract class BaseTracker(
 
     private val context: Context by lazy { appGraph.context }
     private val addTracks: AddTracks by lazy { appGraph.addTracks }
-    private val insertTrack: InsertTrack by lazy { appGraph.insertTrack }
+    private val upsertTrack: UpsertTrack by lazy { appGraph.upsertTrack }
 
     override val client: OkHttpClient
         get() = networkService.client
@@ -116,7 +116,7 @@ abstract class BaseTracker(
         try {
             addTracks.bind(this, item, anime)
         } catch (e: Throwable) {
-            withUIContext {
+            withContext(Dispatchers.Main) {
                 context.toast(e.message)
             }
         }
@@ -166,15 +166,15 @@ abstract class BaseTracker(
         updateRemote(track)
     }
 
-    private suspend fun updateRemote(track: Track): Unit = withIOContext {
+    private suspend fun updateRemote(track: Track): Unit = withContext(Dispatchers.IO) {
         try {
             update(track)
             track.toDomainTrack(idRequired = false)?.let {
-                insertTrack.await(it)
+                upsertTrack.await(it)
             }
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Failed to update remote track data id=$id" }
-            withUIContext {
+            withContext(Dispatchers.Main) {
                 context.toast(e.message)
             }
         }

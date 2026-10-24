@@ -1,7 +1,6 @@
 package tachiyomi.domain.episode.interactor
 
 import dev.zacsweers.metro.Inject
-import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.domain.anime.interactor.GetFavorites
 import tachiyomi.domain.anime.interactor.SetAnimeEpisodeFlags
 import tachiyomi.domain.anime.model.Anime
@@ -15,34 +14,34 @@ class SetAnimeDefaultEpisodeFlags(
 ) {
 
     suspend fun await(anime: Anime) {
-        withNonCancellableContext {
-            with(libraryPreferences) {
-                setAnimeEpisodeFlags.awaitSetAllFlags(
-                    animeId = anime.id,
-                    unseenFilter = filterEpisodeBySeen.get(),
-                    downloadedFilter = filterEpisodeByDownloaded.get(),
-                    bookmarkedFilter = filterEpisodeByBookmarked.get(),
-                    // AY -->
-                    fillermarkedFilter = filterEpisodeByFillermarked.get(),
-                    // <-- AY
-                    sortingMode = sortEpisodeBySourceOrNumber.get(),
-                    sortingDirection = sortEpisodeByAscendingOrDescending.get(),
-                    displayMode = displayEpisodeByNameOrNumber.get(),
-                    // AY -->
-                    showPreviews = showEpisodeThumbnailPreviews.get(),
-                    showSummaries = showEpisodeSummaries.get(),
-                    // <-- AY
-                    // AM -->
-                    thumbnailSize = episodeThumbnailSize.get(),
-                    // <-- AM
-                )
-            }
-        }
+        setDefaultFlags(listOf(anime.id))
     }
 
     suspend fun awaitAll() {
-        withNonCancellableContext {
-            getFavorites.await().forEach { await(it) }
+        setDefaultFlags(getFavorites.await().map { it.id })
+    }
+
+    private suspend fun setDefaultFlags(animeIds: List<Long>) {
+        with(libraryPreferences) {
+            setAnimeEpisodeFlags.awaitSetAllFlags(
+                animeIds = animeIds,
+                unseenFilter = filterEpisodeBySeen.get(),
+                downloadedFilter = filterEpisodeByDownloaded.get(),
+                bookmarkedFilter = filterEpisodeByBookmarked.get(),
+                // AY -->
+                fillermarkedFilter = filterEpisodeByFillermarked.get(),
+                // <-- AY
+                sortingMode = sortEpisodeBySourceOrNumber.get(),
+                sortingDirection = sortEpisodeByAscendingOrDescending.get(),
+                displayMode = displayEpisodeByNameOrNumber.get(),
+                // AY -->
+                showPreviews = showEpisodeThumbnailPreviews.get(),
+                showSummaries = showEpisodeSummaries.get(),
+                // <-- AY
+                // AM -->
+                thumbnailSize = episodeThumbnailSize.get(),
+                // <-- AM
+            )
         }
     }
 }

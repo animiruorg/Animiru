@@ -2,7 +2,6 @@ package eu.kanade.presentation.more.settings.screen.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import animiru.domain.player.model.AudioChannels
@@ -11,7 +10,6 @@ import eu.kanade.presentation.more.settings.screen.SearchableSettings
 import mihon.app.di.appGraph
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.stringResource
-import tachiyomi.presentation.core.util.collectAsState
 import java.util.Locale
 import java.util.MissingResourceException
 
@@ -29,8 +27,6 @@ object PlayerSettingsAudioScreen : SearchableSettings {
         val prefLangs = audioPreferences.preferredAudioLanguages
         val pitchCorrection = audioPreferences.enablePitchCorrection
         val audioChannels = audioPreferences.audioChannels
-        val boostCapPref = audioPreferences.volumeBoostCap
-        val boostCap by boostCapPref.collectAsState()
 
         return listOf(
             Preference.PreferenceItem.EditTextInfoPreference(
@@ -87,11 +83,9 @@ object PlayerSettingsAudioScreen : SearchableSettings {
                 title = stringResource(AYMR.strings.pref_player_audio_channels),
             ),
             Preference.PreferenceItem.SliderPreference(
-                value = boostCap,
+                preference = audioPreferences.volumeBoostCap,
                 valueRange = 0..200,
                 title = stringResource(AYMR.strings.pref_player_audio_boost_cap),
-                valueString = boostCap.toString(),
-                onValueChanged = { boostCapPref.set(it) },
             ),
         )
     }

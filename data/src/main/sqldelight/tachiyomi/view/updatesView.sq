@@ -1,71 +1,68 @@
+import kotlin.Int;
+
 CREATE VIEW updatesView AS
 SELECT
-    animes._id AS animeId,
+    anime.id AS animeId,
     -- AM -->
-    animes.custom_title AS customAnimeTitle,
+    anime.user_custom_title AS customAnimeTitle,
     -- <-- AM
-    animes.title AS animeTitle,
-    episodes._id AS episodeId,
-    episodes.name AS episodeName,
-    episodes.scanlator,
-    episodes.url AS episodeUrl,
-    episodes.seen,
-    episodes.bookmark,
+    anime.remote_title AS animeTitle,
+    episode.id AS episodeId,
+    episode.remote_name AS episodeName,
+    episode.remote_scanlator AS scanlator,
+    episode.remote_url AS episodeUrl,
+    episode.user_seen AS seen,
+    episode.user_bookmark AS bookmark,
     -- AY -->
-    episodes.fillermark,
+    episode.remote_fillermark AS fillermark,
     -- <-- AY
-    episodes.last_second_seen,
+    episode.user_last_second_seen AS lastSecondSeen,
     -- AY -->
-    episodes.total_seconds AS totalSeconds,
+    episode.state_total_seconds AS totalSeconds,
     -- <-- AY
-    animes.source,
-    animes.favorite_at IS NOT NULL AS favorite,
-    animes.thumbnail_url AS thumbnailUrl,
-    animes.cover_last_modified AS coverLastModified,
-    episodes.date_upload AS dateUpload,
-    episodes.date_fetch AS datefetch,
-    excluded_scanlators.scanlator AS excludedScanlator
-FROM animes JOIN episodes
-ON animes._id = episodes.anime_id
-LEFT JOIN excluded_scanlators
-ON animes._id = excluded_scanlators.anime_id
-AND episodes.scanlator = excluded_scanlators.scanlator
-WHERE favorite_at IS NOT NULL
-AND date_fetch > favorite_at
-ORDER BY date_fetch DESC;
-
-getRecentUpdates:
-SELECT *
-FROM updatesView
-WHERE dateUpload > :after
-LIMIT :limit;
+    anime.source_id AS sourceId,
+    anime.user_favorite_at IS NOT NULL AS favorite,
+    anime.remote_cover AS thumbnailUrl,
+    anime.state_cover_last_modified AS coverLastModified,
+    episode.remote_date_upload AS dateUpload,
+    episode.state_date_fetch AS dateFetch,
+    excluded_scanlator.scanlator AS excludedScanlator
+FROM anime JOIN episode
+ON anime.id = episode.anime_id
+LEFT JOIN excluded_scanlator
+ON anime.id = excluded_scanlator.anime_id
+AND episode.remote_scanlator = excluded_scanlator.scanlator
+WHERE user_favorite_at IS NOT NULL
+AND state_date_fetch > user_favorite_at
+ORDER BY state_date_fetch DESC;
 
 getRecentUpdatesWithFilters:
-SELECT *
+SELECT
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName, scanlator, episodeUrl, seen,
+    bookmark, fillermark, lastSecondSeen, totalSeconds, sourceId, favorite, thumbnailUrl,
+    coverLastModified, dateUpload, dateFetch, excludedScanlator
 FROM updatesView
 WHERE dateUpload > :after
 AND (:seen IS NULL OR seen = :seen)
 -- Started means some progress but not finished, Seen means finished episode, thus:
 AND (
     :started IS NULL
-    OR (:started = 1 AND last_second_seen > 0 AND seen = 0)
-    OR (:started = 0 AND last_second_seen = 0 AND seen = 0)
+    OR (:started = 1 AND lastSecondSeen > 0 AND seen = 0)
+    OR (:started = 0 AND lastSecondSeen = 0 AND seen = 0)
 )
 AND (:bookmarked IS NULL OR bookmark = :bookmarked)
 AND (:fillermarked IS NULL OR fillermark = :fillermarked)
-AND (
-    (excludedScanlator IS NULL OR :hideExcludedScanlators = 0)
-)
+AND (excludedScanlator IS NULL OR :hideExcludedScanlators = 0)
 AND (
     -- includedEmpty being true expresses "don't care" state and bypasses the membership filter
     :includedEmpty
     OR EXISTS (
-        SELECT 1 FROM animes_categories
-        WHERE animes_categories.anime_id = animeId
-        AND COALESCE(animes_categories.category_id, 0) IN :includedCategories
+        SELECT 1 FROM anime_category
+        WHERE anime_category.anime_id = animeId
+        AND anime_category.category_id IN :includedCategories
     )
     OR (0 IN :includedCategories AND NOT EXISTS (
-        SELECT 1 FROM animes_categories ac WHERE ac.anime_id = animeId)
+        SELECT 1 FROM anime_category WHERE anime_category.anime_id = animeId)
     )
 )
 AND (
@@ -73,21 +70,37 @@ AND (
     :excludedEmpty
     OR (
         NOT EXISTS (
-            SELECT 1 FROM animes_categories
-            WHERE animes_categories.anime_id = animeId
-            AND COALESCE(animes_categories.category_id, 0) IN :excludedCategories
+            SELECT 1 FROM anime_category
+            WHERE anime_category.anime_id = animeId
+            AND anime_category.category_id IN :excludedCategories
         )
         AND (
             0 NOT IN :excludedCategories
-            OR EXISTS (SELECT 1 FROM animes_categories WHERE animes_categories.anime_id = animeId)
+            OR EXISTS (SELECT 1 FROM anime_category WHERE anime_category.anime_id = animeId)
         )
     )
 )
+ORDER BY dateFetch DESC
 LIMIT :limit;
 
-getUpdatesBySeenStatus:
-SELECT *
+getSeenUpdates:
+SELECT
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName, scanlator, episodeUrl, seen,
+    bookmark, fillermark, lastSecondSeen, totalSeconds, sourceId, favorite, thumbnailUrl,
+    coverLastModified, dateUpload, dateFetch, excludedScanlator
 FROM updatesView
-WHERE seen = :seen
+WHERE seen = 1
 AND dateUpload > :after
+ORDER BY dateFetch DESC
+LIMIT :limit;
+
+getUnseenUpdates:
+SELECT
+    animeId, customAnimeTitle, animeTitle, episodeId, episodeName, scanlator, episodeUrl, seen,
+    bookmark, fillermark, lastSecondSeen, totalSeconds, sourceId, favorite, thumbnailUrl,
+    coverLastModified, dateUpload, dateFetch, excludedScanlator
+FROM updatesView
+WHERE seen = 0
+AND dateUpload > :after
+ORDER BY dateFetch DESC
 LIMIT :limit;

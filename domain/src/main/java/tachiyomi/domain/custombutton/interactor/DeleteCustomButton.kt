@@ -3,7 +3,6 @@ package tachiyomi.domain.custombutton.interactor
 
 import dev.zacsweers.metro.Inject
 import logcat.LogPriority
-import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.custombutton.model.CustomButtonUpdate
 import tachiyomi.domain.custombutton.repository.CustomButtonRepository
@@ -12,12 +11,12 @@ import tachiyomi.domain.custombutton.repository.CustomButtonRepository
 class DeleteCustomButton(
     private val customButtonRepository: CustomButtonRepository,
 ) {
-    suspend fun await(customButtonId: Long) = withNonCancellableContext {
+    suspend fun await(customButtonId: Long): Result {
         try {
             customButtonRepository.deleteCustomButton(customButtonId)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
-            return@withNonCancellableContext Result.InternalError(e)
+            return Result.InternalError(e)
         }
 
         val customButtons = customButtonRepository.getAll()
@@ -28,7 +27,7 @@ class DeleteCustomButton(
             )
         }
 
-        try {
+        return try {
             customButtonRepository.updatePartialCustomButtons(updates)
             Result.Success
         } catch (e: Exception) {

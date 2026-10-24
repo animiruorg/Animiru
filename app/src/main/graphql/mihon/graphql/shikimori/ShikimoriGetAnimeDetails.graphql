@@ -1,0 +1,10 @@
+query ShikimoriGetAnimeDetails(
+  $query: String!,
+) {
+  animes(
+    ids: $query,
+    limit: 1,
+  ) {
+    ...AnimeFragment
+  }
+}

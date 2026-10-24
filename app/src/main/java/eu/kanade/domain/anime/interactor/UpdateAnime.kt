@@ -9,6 +9,7 @@ import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.anime.repository.AnimeRepository
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Inject
 class UpdateAnime(
@@ -28,17 +29,26 @@ class UpdateAnime(
         anime: Anime,
         timeZone: TimeZone = TimeZone.currentSystemDefault(),
         dateTime: LocalDateTime = Clock.System.now().toLocalDateTime(timeZone),
-        window: Pair<Long, Long> = fetchInterval.getWindow(dateTime.date, timeZone),
+        window: ClosedRange<Instant>? = fetchInterval.getWindow(dateTime.date, timeZone),
     ): Boolean {
         return animeRepository.update(
             fetchInterval.withFetchInterval(anime, dateTime, timeZone, window),
         )
     }
 
-    suspend fun awaitUpdateLastUpdate(animeId: Long): Boolean {
+    /**
+     * Updates the fetch interval and marks the episode list as changed in a single write.
+     */
+    suspend fun awaitUpdateFetchIntervalAndLastUpdate(
+        anime: Anime,
+        timeZone: TimeZone,
+        dateTime: LocalDateTime,
+        window: ClosedRange<Instant>?,
+        foundRelease: Boolean,
+    ): Boolean {
         return animeRepository.update(
-            AnimeUpdate(animeId) {
-                lastUpdate = Clock.System.now().toEpochMilliseconds()
+            fetchInterval.withFetchInterval(anime, dateTime, timeZone, window, foundRelease).apply {
+                lastUpdate = Clock.System.now()
             },
         )
     }
@@ -46,7 +56,7 @@ class UpdateAnime(
     suspend fun awaitUpdateCoverLastModified(animeId: Long): Boolean {
         return animeRepository.update(
             AnimeUpdate(animeId) {
-                coverLastModified = Clock.System.now().toEpochMilliseconds()
+                coverLastModified = Clock.System.now()
             },
         )
     }
@@ -55,7 +65,7 @@ class UpdateAnime(
     suspend fun awaitUpdateBackgroundLastModified(animeId: Long): Boolean {
         return animeRepository.update(
             AnimeUpdate(animeId) {
-                backgroundLastModified = Clock.System.now().toEpochMilliseconds()
+                backgroundLastModified = Clock.System.now()
             },
         )
     }
@@ -63,7 +73,7 @@ class UpdateAnime(
 
     suspend fun awaitUpdateFavorite(animeId: Long, favorite: Boolean): Boolean {
         val update = when (favorite) {
-            true -> AnimeUpdate(animeId) { favoriteAt = Clock.System.now().toEpochMilliseconds() }
+            true -> AnimeUpdate(animeId) { favoriteAt = Clock.System.now() }
             false -> AnimeUpdate(animeId) { favoriteAt = null }
         }
         return animeRepository.update(update)

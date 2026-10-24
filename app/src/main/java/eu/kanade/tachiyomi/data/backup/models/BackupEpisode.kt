@@ -1,13 +1,14 @@
 package eu.kanade.tachiyomi.data.backup.models
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.protobuf.ProtoNumber
 import mihon.core.common.extensions.JsonObjectEmptyBytes
 import mihon.core.common.extensions.toByteArray
+import mihon.core.common.extensions.toEpochMillisOrZero
+import mihon.core.common.extensions.toInstantOrNull
 import mihon.core.common.extensions.toJsonObject
-import tachiyomi.data.MemoColumnAdapter
 import tachiyomi.domain.episode.model.Episode
+import kotlin.time.Instant
 
 @Serializable
 class BackupEpisode(
@@ -54,12 +55,13 @@ class BackupEpisode(
             // AY -->
             fillermark = this@BackupEpisode.fillermark,
             // <-- AY
-            lastSecondSeen = this@BackupEpisode.lastSecondSeen,
+            // Only untrusted source of this value, and a truncating narrow can land negative
+            lastSecondSeen = this@BackupEpisode.lastSecondSeen.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
             // AY -->
-            totalSeconds = this@BackupEpisode.totalSeconds,
+            totalSeconds = this@BackupEpisode.totalSeconds.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
             // <-- AY
-            dateFetch = this@BackupEpisode.dateFetch,
-            dateUpload = this@BackupEpisode.dateUpload,
+            dateFetch = Instant.fromEpochMilliseconds(this@BackupEpisode.dateFetch),
+            dateUpload = this@BackupEpisode.dateUpload.toInstantOrNull(),
             sourceOrder = this@BackupEpisode.sourceOrder,
             memo = this@BackupEpisode.memo.toJsonObject(),
         )
@@ -80,12 +82,12 @@ fun Episode.toBackupEpisode() = BackupEpisode(
     // AY -->
     fillermark = fillermark,
     // <-- AY
-    lastSecondSeen = lastSecondSeen,
+    lastSecondSeen = lastSecondSeen.toLong(),
     // AY -->
-    totalSeconds = totalSeconds,
+    totalSeconds = totalSeconds.toLong(),
     // <-- AY
-    dateFetch = dateFetch,
-    dateUpload = dateUpload,
+    dateFetch = dateFetch.toEpochMilliseconds(),
+    dateUpload = dateUpload.toEpochMillisOrZero(),
     sourceOrder = sourceOrder,
     memo = memo.toByteArray(),
 )

@@ -12,6 +12,7 @@ class ShikimoriInterceptor(private val shikimori: Shikimori, private val json: J
     /**
      * OAuth object used for authenticated requests.
      */
+    @Volatile
     private var oauth: SMOAuth? = shikimori.restoreToken()
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -19,21 +20,24 @@ class ShikimoriInterceptor(private val shikimori: Shikimori, private val json: J
 
         var currAuth = oauth ?: throw Exception("Not authenticated with Shikimori")
 
-        // Refresh access token if expired.
+        // Refresh access token if expired, once for all the requests that found it expired.
         if (currAuth.isExpired()) {
-            val response = chain.proceed(ShikimoriApi.refreshTokenRequest(currAuth.refreshToken!!))
-            if (response.isSuccessful) {
-                currAuth = with(json) {
-                    response.parseAs<SMOAuth>()
+            currAuth = synchronized(this) {
+                val latest = oauth ?: throw Exception("Not authenticated with Shikimori")
+                if (!latest.isExpired()) return@synchronized latest
+
+                val response = chain.proceed(ShikimoriApi.refreshTokenRequest(latest.refreshToken!!))
+                if (response.isSuccessful) {
+                    with(json) { response.parseAs<SMOAuth>() }.also(::newAuth)
+                } else {
+                    response.close()
+                    latest
                 }
-                newAuth(currAuth)
-            } else {
-                response.close()
             }
         }
         // Add the authorization header to the original request.
         val authRequest = originalRequest.newBuilder()
-            .addHeader("Authorization", "Bearer ${oauth!!.accessToken}")
+            .addHeader("Authorization", "Bearer ${currAuth.accessToken}")
             .header("User-Agent", "Animiru v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})")
             .build()
 

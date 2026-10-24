@@ -1,3 +1,6 @@
 package mihon.core.migration
 
-class MigrationContext(val dryrun: Boolean)
+class MigrationContext(
+    val dryrun: Boolean,
+    val previousVersion: Int,
+)

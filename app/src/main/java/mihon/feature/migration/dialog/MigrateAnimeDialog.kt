@@ -40,16 +40,17 @@ import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mihon.domain.migration.models.MigrationFlag
 import mihon.domain.migration.usecases.MigrateAnimeUseCase
 import mihon.feature.common.utils.getLabel
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.Error
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -168,9 +169,9 @@ internal fun Screen.MigrateAnimeDialog(
                     // <-- AY
                     TextButton(
                         onClick = {
-                            scope.launchIO {
+                            scope.launch(Dispatchers.IO) {
                                 viewModel.migrateAnime(replace = false)
-                                withUIContext { onComplete() }
+                                withContext(Dispatchers.Main) { onComplete() }
                             }
                         },
                     ) {
@@ -178,9 +179,9 @@ internal fun Screen.MigrateAnimeDialog(
                     }
                     TextButton(
                         onClick = {
-                            scope.launchIO {
+                            scope.launch(Dispatchers.IO) {
                                 viewModel.migrateAnime(replace = true)
-                                withUIContext { onComplete() }
+                                withContext(Dispatchers.Main) { onComplete() }
                             }
                         },
                     ) {

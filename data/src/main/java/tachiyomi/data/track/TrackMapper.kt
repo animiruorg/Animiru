@@ -1,27 +1,28 @@
 package tachiyomi.data.track
 
 import tachiyomi.domain.track.model.Track
+import kotlin.time.Instant
 
 object TrackMapper {
     fun mapTrack(
         id: Long,
         animeId: Long,
-        syncId: Long,
+        trackerId: Long,
         remoteId: Long,
+        remoteUrl: String,
         libraryId: Long?,
         title: String,
         lastEpisodeSeen: Double,
         totalEpisodes: Long,
         status: Long,
         score: Double,
-        remoteUrl: String,
-        startDate: Long,
-        finishDate: Long,
+        startDate: Instant?,
+        finishDate: Instant?,
         private: Boolean,
     ): Track = Track(
         id = id,
         animeId = animeId,
-        trackerId = syncId,
+        trackerId = trackerId,
         remoteId = remoteId,
         libraryId = libraryId,
         title = title,

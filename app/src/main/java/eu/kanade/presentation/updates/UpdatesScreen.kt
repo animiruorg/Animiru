@@ -1,6 +1,8 @@
 package eu.kanade.presentation.updates
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
@@ -49,18 +51,15 @@ fun UpdateScreen(
     state: UpdatesViewModel.State,
     lastUpdated: Long,
     onClickCover: (UpdatesItem) -> Unit,
-    onUpdateLibrary: () -> Boolean,
+    onUpdateLibrary: suspend () -> Boolean,
     onDownloadEpisode: (List<UpdatesItem>, EpisodeDownloadAction) -> Unit,
     onUpdateSelected: (UpdatesItem, Boolean, Boolean) -> Unit,
     onOpenEpisode: (UpdatesItem, altPlayer: Boolean) -> Unit,
     contentPadding: PaddingValues,
+    hasActiveFilters: Boolean,
 ) {
     when {
         state.isLoading -> LoadingScreen(Modifier.padding(contentPadding))
-        state.items.isEmpty() -> EmptyScreen(
-            stringRes = MR.strings.information_no_recent,
-            modifier = Modifier.padding(contentPadding),
-        )
         else -> {
             val scope = rememberCoroutineScope()
             var isRefreshing by remember { mutableStateOf(false) }
@@ -68,9 +67,8 @@ fun UpdateScreen(
             PullRefresh(
                 refreshing = isRefreshing,
                 onRefresh = {
-                    val started = onUpdateLibrary()
-                    if (!started) return@PullRefresh
                     scope.launch {
+                        if (!onUpdateLibrary()) return@launch
                         // Fake refresh status but hide it after a second as it's a long running task
                         isRefreshing = true
                         delay(1.seconds)
@@ -80,19 +78,37 @@ fun UpdateScreen(
                 enabled = !state.selectionMode,
                 indicatorPadding = contentPadding,
             ) {
-                FastScrollLazyColumn(
-                    contentPadding = contentPadding,
-                ) {
-                    updatesLastUpdatedItem(lastUpdated)
+                if (state.items.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .padding(contentPadding)
+                            .fillMaxSize(),
+                    ) {
+                        UpdatesLastUpdatedHeader(lastUpdated = lastUpdated)
+                        EmptyScreen(
+                            stringRes = if (hasActiveFilters) {
+                                MR.strings.error_no_match
+                            } else {
+                                MR.strings.information_no_recent
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                } else {
+                    FastScrollLazyColumn(
+                        contentPadding = contentPadding,
+                    ) {
+                        updatesLastUpdatedItem(lastUpdated)
 
-                    updatesUiItems(
-                        uiModels = state.getUiModel(),
-                        selectionMode = state.selectionMode,
-                        onUpdateSelected = onUpdateSelected,
-                        onClickCover = onClickCover,
-                        onClickUpdate = onOpenEpisode,
-                        onDownloadEpisode = onDownloadEpisode,
-                    )
+                        updatesUiItems(
+                            uiModels = state.getUiModel(),
+                            selectionMode = state.selectionMode,
+                            onUpdateSelected = onUpdateSelected,
+                            onClickCover = onClickCover,
+                            onClickUpdate = onOpenEpisode,
+                            onDownloadEpisode = onDownloadEpisode,
+                        )
+                    }
                 }
             }
         }
@@ -102,7 +118,7 @@ fun UpdateScreen(
 @Composable
 fun UpdatesTopBar(
     onCalendarClicked: () -> Unit,
-    onUpdateLibrary: () -> Unit,
+    onUpdateLibrary: suspend () -> Unit,
     onFilterClicked: () -> Unit,
     hasFilters: Boolean,
     // For action mode
@@ -113,6 +129,8 @@ fun UpdatesTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
 ) {
+    val scope = rememberCoroutineScope()
+
     AppBar(
         modifier = modifier,
         title = stringResource(MR.strings.label_recent_updates),
@@ -133,7 +151,7 @@ fun UpdatesTopBar(
                     AppBar.Action(
                         title = stringResource(MR.strings.action_update_library),
                         icon = MaterialSymbols.Rounded.Refresh,
-                        onClick = onUpdateLibrary,
+                        onClick = { scope.launch { onUpdateLibrary() } },
                     ),
                 ),
             )
@@ -197,7 +215,7 @@ fun UpdatesBottomBar(
         }.takeIf { selected.fastAny { !it.update.seen } },
         onMarkAsUnseenClicked = {
             onMultiMarkAsSeenClicked(selected, false)
-        }.takeIf { selected.fastAny { it.update.seen || it.update.lastSecondSeen > 0L } },
+        }.takeIf { selected.fastAny { it.update.seen || it.update.lastSecondSeen > 0 } },
         onDownloadClicked = {
             onDownloadEpisode(selected, EpisodeDownloadAction.START)
         }.takeIf {

@@ -46,6 +46,8 @@ interface AnimeRepository {
 
     suspend fun getExcludedScanlators(animeId: Long): Set<String>
 
+    suspend fun getExcludedScanlatorsByAnimeIds(animeIds: List<Long>): Map<Long, List<String>>
+
     fun getExcludedScanlatorsAsFlow(animeId: Long): Flow<Set<String>>
 
     suspend fun setExcludedScanlators(animeId: Long, excludedScanlators: Set<String>)
@@ -79,12 +81,6 @@ interface AnimeRepository {
     // <-- AY
 
     // AM -->
-    suspend fun getAllAnime(): List<Anime>
-
-    suspend fun getAllAnimeThatNeedsSync(): List<Anime>
-
-    suspend fun updateAnime(anime: Anime)
-
     suspend fun updateCustomInfo(customInfo: AnimeCustomUpdate)
 
     suspend fun updateCustomInfoAll(customInfos: List<AnimeCustomUpdate>)

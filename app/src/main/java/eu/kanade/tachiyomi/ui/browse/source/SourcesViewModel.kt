@@ -28,8 +28,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import logcat.LogPriority
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.source.model.Pin
 import tachiyomi.domain.source.model.Source
@@ -115,7 +115,7 @@ class SourcesViewModel(
     }
 
     fun showSourceDialog(source: Source) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val extension = extensionManager.getLoadedExtension(source.id)
             dialog.update {
                 Dialog(
@@ -134,7 +134,7 @@ class SourcesViewModel(
 
     // AM (BROWSE) -->
     fun uninstallExtension(extension: Extension.Installed) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             extensionManager.uninstallExtension(extension)
         }
     }

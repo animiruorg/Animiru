@@ -34,6 +34,7 @@ import eu.kanade.presentation.anime.components.AnimeImagesDialog
 import eu.kanade.presentation.anime.components.DeleteEpisodesDialog
 import eu.kanade.presentation.anime.components.ScanlatorFilterDialog
 import eu.kanade.presentation.anime.components.SetIntervalDialog
+import eu.kanade.presentation.browse.components.RemoveAnimeDialog
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.components.NavigatorAdaptiveSheet
 import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsGesturesScreen.SkipIntroLengthDialog
@@ -62,12 +63,12 @@ import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import eu.kanade.tachiyomi.util.system.toShareIntent
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.feature.migration.config.MigrationConfigScreen
 import mihon.feature.migration.dialog.MigrateAnimeDialog
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
@@ -110,7 +111,7 @@ class AnimeScreen(
         LaunchedEffect(successState.anime, viewModel.source) {
             if (isHttpSource) {
                 try {
-                    withIOContext {
+                    withContext(Dispatchers.IO) {
                         assistUrl = getAnimeUrl(viewModel.anime, viewModel.source)
                     }
                 } catch (e: Exception) {
@@ -146,7 +147,7 @@ class AnimeScreen(
             // <-- AM (FILE_SIZE)
             onEpisodeClicked = { episode, /* AY --> */ alt /* <-- AY */ ->
                 // AY -->
-                scope.launchIO {
+                scope.launch(Dispatchers.IO) {
                     if (viewModel.isTorrentEnabled() && successState.source.isSourceForTorrents()) {
                         TorrentServerService.start(context)
                     }
@@ -160,8 +161,13 @@ class AnimeScreen(
                 !successState.source.isLocalOrStub() && successState.anime.fetchType == FetchType.Episodes
                 // <-- AY
             },
+            downloadProgressProvider = viewModel::getDownloadProgress,
             onAddToLibraryClicked = {
-                viewModel.toggleFavorite()
+                if (successState.anime.favorite) {
+                    viewModel.showRemoveFromLibraryDialog()
+                } else {
+                    viewModel.toggleFavorite()
+                }
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             },
             onWebViewClicked = {
@@ -190,7 +196,7 @@ class AnimeScreen(
             onRefresh = viewModel::fetchAllFromSource,
             onContinueWatching = {
                 // AY -->
-                scope.launchIO {
+                scope.launch(Dispatchers.IO) {
                     val extPlayer = viewModel.alwaysUseExternalPlayer
                     continueWatching(context, viewModel.getNextUnseenEpisode(), extPlayer)
                 }
@@ -241,7 +247,7 @@ class AnimeScreen(
                 navigator.push(AnimeScreen(it.id))
             },
             onContinueWatchingClicked = {
-                scope.launchIO {
+                scope.launch(Dispatchers.IO) {
                     val episode = viewModel.getNextUnseenEpisode(it.anime)
                     episode?.let { ep ->
                         openEpisode(context, ep, viewModel.alwaysUseExternalPlayer)
@@ -273,6 +279,15 @@ class AnimeScreen(
         }
         when (val dialog = successState.dialog) {
             null -> {}
+            AnimeViewModel.Dialog.RemoveFromLibrary -> {
+                RemoveAnimeDialog(
+                    onDismissRequest = onDismissRequest,
+                    onConfirm = {
+                        if (successState.anime.favorite) viewModel.toggleFavorite()
+                    },
+                    animeToRemove = successState.anime,
+                )
+            }
             is AnimeViewModel.Dialog.ChangeCategory -> {
                 ChangeCategoryDialog(
                     initialSelection = dialog.initialSelection,
@@ -400,6 +415,7 @@ class AnimeScreen(
                             when (it) {
                                 EditCoverAction.EDIT -> getContent.launch("image/*")
                                 EditCoverAction.DELETE -> vm.deleteCustomImage(context)
+                                EditCoverAction.ADD_TO_LIBRARY -> vm.addToLibraryWarning(context)
                             }
                         },
                         onDismissRequest = onDismissRequest,
@@ -420,7 +436,7 @@ class AnimeScreen(
             // AY -->
             AnimeViewModel.Dialog.ChangeAnimeSkipIntro -> {
                 fun updateSkipIntroLength(newLength: Long) {
-                    scope.launchIO {
+                    scope.launch {
                         viewModel.setAnimeViewerFlags.awaitSetSkipIntroLength(animeId, newLength)
                     }
                 }
@@ -488,7 +504,7 @@ class AnimeScreen(
 
     private suspend fun openEpisode(context: Context, episode: Episode, useExternalPlayer: Boolean) {
         // AY -->
-        withIOContext {
+        withContext(Dispatchers.IO) {
             MainActivity.startPlayerActivity(
                 context,
                 episode.animeId,

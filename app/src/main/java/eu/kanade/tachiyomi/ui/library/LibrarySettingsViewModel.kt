@@ -12,10 +12,10 @@ import eu.kanade.domain.base.BasePreferences
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.core.common.preference.getAndSet
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.category.interactor.SetDisplayMode
 import tachiyomi.domain.category.interactor.SetSortModeForCategory
 import tachiyomi.domain.category.model.Category
@@ -61,14 +61,14 @@ class LibrarySettingsViewModel(
     }
 
     fun setSort(category: Category?, mode: LibrarySort.Type, direction: LibrarySort.Direction) {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             setSortModeForCategory.await(category, mode, direction)
         }
     }
 
     // AM (GROUPING) -->
     fun setGrouping(grouping: Int) {
-        viewModelScope.launchIO { libraryPreferences.groupLibraryBy.set(grouping) }
+        viewModelScope.launch { libraryPreferences.groupLibraryBy.set(grouping) }
     }
     // <-- AM (GROUPING)
 }

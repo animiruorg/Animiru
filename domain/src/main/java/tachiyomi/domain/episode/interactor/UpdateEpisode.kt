@@ -32,7 +32,7 @@ class UpdateEpisode(
     suspend fun awaitUpdateThumbnailLastModified(episodeId: Long) {
         episodeRepository.update(
             EpisodeUpdate(episodeId) {
-                thumbnailLastModifiedAt = Clock.System.now().toEpochMilliseconds()
+                thumbnailLastModifiedAt = Clock.System.now()
             },
         )
     }

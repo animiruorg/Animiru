@@ -45,8 +45,8 @@ import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Label
 import mihon.icons.materialsymbols.rounded.BookmarkAdd
 import mihon.icons.materialsymbols.rounded.BookmarkRemove
+import mihon.icons.materialsymbols.rounded.Check
 import mihon.icons.materialsymbols.rounded.Delete
-import mihon.icons.materialsymbols.rounded.Done
 import mihon.icons.materialsymbols.rounded.Download
 import mihon.icons.materialsymbols.rounded.FileDownloadOff
 import mihon.icons.materialsymbols.rounded.LabelOff
@@ -61,6 +61,7 @@ import tachiyomi.presentation.core.components.material.SECONDARY_ALPHA
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.secondaryItemAlpha
 import tachiyomi.presentation.core.util.selectedBackground
+import kotlin.time.Instant
 
 @Composable
 fun AnimeEpisodeListItem(
@@ -97,7 +98,7 @@ fun AnimeEpisodeListItem(
     animeId: Long,
     sourceId: Long,
     isLibraryAnime: Boolean,
-    thumbnailLastModified: Long,
+    thumbnailLastModified: Instant?,
     thumbnailSize: Float,
     // <-- AM
     modifier: Modifier = Modifier,
@@ -319,7 +320,7 @@ private fun getSwipeAction(
 ): SwipeAction? {
     return when (action) {
         LibraryPreferences.EpisodeSwipeAction.ToggleSeen -> swipeAction(
-            icon = if (!seen) MaterialSymbols.Rounded.Done else MaterialSymbols.Rounded.RemoveDone,
+            icon = if (!seen) MaterialSymbols.Rounded.Check else MaterialSymbols.Rounded.RemoveDone,
             background = background,
             isUndo = seen,
             onSwipe = onSwipe,
@@ -588,7 +589,7 @@ fun AnimeEpisodeListItemPreview() {
         animeId = 0L,
         sourceId = 0L,
         isLibraryAnime = false,
-        thumbnailLastModified = 0L,
+        thumbnailLastModified = null,
         thumbnailSize = 1f,
         // <-- AM
     )

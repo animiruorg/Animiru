@@ -22,11 +22,11 @@ class CustomButtonRepositoryImpl(
     private val database: Database,
 ) : CustomButtonRepository {
     override fun subscribeAll(): Flow<List<CustomButton>> {
-        return database.custom_buttonsQueries.findAll(::mapCustomButton).subscribeToList()
+        return database.custom_buttonQueries.findAll(::mapCustomButton).subscribeToList()
     }
 
     override suspend fun getAll(): List<CustomButton> {
-        return database.custom_buttonsQueries.findAll(::mapCustomButton).awaitAsList()
+        return database.custom_buttonQueries.findAll(::mapCustomButton).awaitAsList()
     }
 
     override suspend fun insertCustomButton(
@@ -38,13 +38,13 @@ class CustomButtonRepositoryImpl(
         onStartup: String,
     ) {
         try {
-            database.custom_buttonsQueries.insert(
-                name,
-                favorite,
-                sortIndex,
-                content,
-                longPressContent,
-                onStartup,
+            database.custom_buttonQueries.insert(
+                name = name,
+                isFavorite = favorite,
+                sortIndex = sortIndex,
+                content = content,
+                longPressContent = longPressContent,
+                onStartup = onStartup,
             )
         } catch (ex: SQLiteException) {
             throw SaveCustomButtonException(ex)
@@ -52,7 +52,7 @@ class CustomButtonRepositoryImpl(
     }
 
     override suspend fun updatePartialCustomButton(update: CustomButtonUpdate) {
-        database.custom_buttonsQueries.update(
+        database.custom_buttonQueries.update(
             name = update.name,
             isFavorite = update.isFavorite,
             sortIndex = update.sortIndex,
@@ -70,7 +70,7 @@ class CustomButtonRepositoryImpl(
     }
 
     override suspend fun deleteCustomButton(customButtonId: Long) {
-        database.custom_buttonsQueries.delete(customButtonId)
+        database.custom_buttonQueries.delete(customButtonId)
     }
 
     private fun mapCustomButton(

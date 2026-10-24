@@ -21,8 +21,8 @@ fun getEpisodeSort(
             false -> { e1, e2 -> e1.episodeNumber.compareTo(e2.episodeNumber) }
         }
         Anime.EPISODE_SORTING_UPLOAD_DATE -> when (sortDescending) {
-            true -> { e1, e2 -> e2.dateUpload.compareTo(e1.dateUpload) }
-            false -> { e1, e2 -> e1.dateUpload.compareTo(e2.dateUpload) }
+            true -> { e1, e2 -> compareValues(e2.dateUpload, e1.dateUpload) }
+            false -> { e1, e2 -> compareValues(e1.dateUpload, e2.dateUpload) }
         }
         Anime.EPISODE_SORTING_ALPHABET -> when (sortDescending) {
             true -> { e1, e2 -> e2.name.compareToWithCollator(e1.name) }

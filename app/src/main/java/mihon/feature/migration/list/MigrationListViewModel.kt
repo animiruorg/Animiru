@@ -10,13 +10,12 @@ import dev.zacsweers.metro.AssistedInject
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metrox.viewmodel.ManualViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.ManualViewModelAssistedFactoryKey
-import eu.kanade.domain.anime.interactor.SyncSeasonsWithSource
-import eu.kanade.domain.episode.interactor.SyncEpisodesWithSource
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.source.getNameForAnimeInfo
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -29,21 +28,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.domain.migration.usecases.MigrateAnimeUseCase
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
 import mihon.feature.migration.list.models.MigratingAnime
 import mihon.feature.migration.list.models.MigratingAnime.SearchResult
 import mihon.feature.migration.list.search.SmartSourceSearchEngine
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
-import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
+import tachiyomi.domain.episode.interactor.GetEpisodeSummaryByAnimeId
 import tachiyomi.domain.source.service.SourceManager
 
 @AssistedInject
@@ -54,11 +53,7 @@ class MigrationListViewModel(
     private val sourceManager: SourceManager,
     private val getAnime: GetAnime,
     private val networkToLocalAnime: NetworkToLocalAnime,
-    private val syncEpisodesWithSource: SyncEpisodesWithSource,
-    // AY -->
-    private val syncSeasonsWithSource: SyncSeasonsWithSource,
-    // <-- AY
-    private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
+    private val getEpisodeSummaryByAnimeId: GetEpisodeSummaryByAnimeId,
     private val migrateAnime: MigrateAnimeUseCase,
     private val updateAnimeFromRemote: UpdateAnimeFromRemote,
 ) : ViewModel() {
@@ -87,7 +82,7 @@ class MigrationListViewModel(
     private var migrateJob: Job? = null
 
     init {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val anime = animeIds
                 .map {
                     async {
@@ -109,10 +104,10 @@ class MigrationListViewModel(
         }
     }
 
-    private suspend fun getEpisodeInfo(id: Long) = getEpisodesByAnimeId.await(id).let { episodes ->
+    private suspend fun getEpisodeInfo(id: Long) = getEpisodeSummaryByAnimeId.await(id).let { summary ->
         EpisodeInfo(
-            latestEpisode = episodes.maxOfOrNull { it.episodeNumber },
-            episodeCount = episodes.size,
+            latestEpisode = summary.latestEpisodeNumber,
+            episodeCount = summary.episodeCount.toInt(),
         )
     }
 
@@ -273,7 +268,7 @@ class MigrationListViewModel(
     fun useAnimeForMigration(current: Long, target: Long, onMissingEntries: (FetchType) -> Unit) {
         val migratingAnime = items.find { it.anime.id == current } ?: return
         migratingAnime.searchResult.value = SearchResult.Searching
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val result = migratingAnime.migrationScope.async {
                 val anime = getAnime.await(target) ?: return@async null
                 try {
@@ -309,15 +304,15 @@ class MigrationListViewModel(
 
             if (result is MigrateSearchResult.Failure) {
                 migratingAnime.searchResult.value = SearchResult.NotFound
-                withUIContext { onMissingEntries(result.fetchType) }
-                return@launchIO
+                withContext(Dispatchers.Main) { onMissingEntries(result.fetchType) }
+                return@launch
             }
 
             // AY -->
             val resultAnime = (result as MigrateSearchResult.Success).anime
             if (migratingAnime.anime.fetchType != resultAnime.fetchType) {
                 migratingAnime.searchResult.value = resultAnime.toMismatchSearchResult()
-                return@launchIO
+                return@launch
             }
             // <-- AY
 
@@ -335,7 +330,7 @@ class MigrationListViewModel(
     }
 
     private fun migrateAnimes(replace: Boolean) {
-        migrateJob = viewModelScope.launchIO {
+        migrateJob = viewModelScope.launch(Dispatchers.IO) {
             state.update { it.copy(dialog = Dialog.Progress(0f)) }
             val items = items
             try {
@@ -379,9 +374,9 @@ class MigrationListViewModel(
     }
 
     fun migrateNow(animeId: Long, replace: Boolean) {
-        viewModelScope.launchIO {
-            val anime = items.find { it.anime.id == animeId } ?: return@launchIO
-            val target = (anime.searchResult.value as? SearchResult.Success)?.anime ?: return@launchIO
+        viewModelScope.launch(Dispatchers.IO) {
+            val anime = items.find { it.anime.id == animeId } ?: return@launch
+            val target = (anime.searchResult.value as? SearchResult.Success)?.anime ?: return@launch
             migrateAnime(current = anime.anime, target = target, replace = replace)
 
             removeAnime(animeId)
@@ -389,8 +384,8 @@ class MigrationListViewModel(
     }
 
     fun removeAnime(animeId: Long) {
-        viewModelScope.launchIO {
-            val item = items.find { it.anime.id == animeId } ?: return@launchIO
+        viewModelScope.launch(Dispatchers.IO) {
+            val item = items.find { it.anime.id == animeId } ?: return@launch
             removeAnime(item)
             item.migrationScope.cancel()
             updateMigrationProgress()

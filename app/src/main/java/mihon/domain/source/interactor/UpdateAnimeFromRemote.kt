@@ -14,10 +14,11 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.domain.source.interactor.models.RemoteAnimeEpisodeUpdate
 import mihon.domain.source.interactor.models.RemoteAnimeSeasonUpdate
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.data.episode.EpisodeSanitizer
 import tachiyomi.domain.anime.model.Anime
@@ -28,6 +29,7 @@ import tachiyomi.domain.episode.repository.EpisodeRepository
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.source.local.isLocal
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Inject
 class UpdateAnimeFromRemote(
@@ -48,7 +50,7 @@ class UpdateAnimeFromRemote(
         fetchDetails: Boolean = false,
         fetchEpisodes: Boolean = false,
         manualFetch: Boolean = false,
-        fetchWindow: Pair<Long, Long> = Pair(0, 0),
+        fetchWindow: ClosedRange<Instant>? = null,
     ): Result<RemoteAnimeEpisodeUpdate> {
         val source = sourceManager.getOrStub(anime.source)
         return awaitEpisodesUpdate(
@@ -67,19 +69,17 @@ class UpdateAnimeFromRemote(
         fetchDetails: Boolean = false,
         fetchEpisodes: Boolean = false,
         manualFetch: Boolean = false,
-        fetchWindow: Pair<Long, Long> = Pair(0, 0),
-    ): Result<RemoteAnimeEpisodeUpdate> {
-        return try {
+        fetchWindow: ClosedRange<Instant>? = null,
+    ): Result<RemoteAnimeEpisodeUpdate> = withContext(Dispatchers.IO) {
+        try {
             val episodes = episodeRepository.getEpisodeByAnimeId(anime.id)
                 .sortedBy { it.sourceOrder }
-            val update = withIOContext {
-                source.getAnimeEpisodeUpdate(
-                    anime = anime.toSAnime(),
-                    episodes = episodes.map(Episode::toSEpisode),
-                    fetchDetails = fetchDetails,
-                    fetchEpisodes = fetchEpisodes,
-                )
-            }
+            val update = source.getAnimeEpisodeUpdate(
+                anime = anime.toSAnime(),
+                episodes = episodes.map(Episode::toSEpisode),
+                fetchDetails = fetchDetails,
+                fetchEpisodes = fetchEpisodes,
+            )
             awaitUpdateFromSource(anime, update.anime, manualFetch)
 
             // AM -->
@@ -98,12 +98,12 @@ class UpdateAnimeFromRemote(
                             // Never refresh thumbnails if the url is empty to avoid "losing" existing thumbnails
                             ep.previewUrl.isNullOrEmpty() -> null
                             !manualFetch && localEpisode?.previewUrl == ep.previewUrl -> null
-                            anime.isLocal() -> Clock.System.now().toEpochMilliseconds()
+                            anime.isLocal() -> Clock.System.now()
                             else -> {
                                 localEpisode?.previewUrl?.let {
                                     thumbnailCache.deleteFromCache(it)
                                 }
-                                Clock.System.now().toEpochMilliseconds()
+                                Clock.System.now()
                             }
                         }
 
@@ -134,7 +134,7 @@ class UpdateAnimeFromRemote(
         fetchDetails: Boolean = false,
         fetchSeasons: Boolean = false,
         manualFetch: Boolean = false,
-        fetchWindow: Pair<Long, Long> = Pair(0, 0),
+        fetchWindow: ClosedRange<Instant>? = null,
     ): Result<RemoteAnimeSeasonUpdate> {
         val source = sourceManager.getOrStub(anime.source)
         return awaitSeasonsUpdate(
@@ -153,19 +153,17 @@ class UpdateAnimeFromRemote(
         fetchDetails: Boolean = false,
         fetchSeasons: Boolean = false,
         manualFetch: Boolean = false,
-        fetchWindow: Pair<Long, Long> = Pair(0, 0),
-    ): Result<RemoteAnimeSeasonUpdate> {
-        return try {
+        fetchWindow: ClosedRange<Instant>? = null,
+    ): Result<RemoteAnimeSeasonUpdate> = withContext(Dispatchers.IO) {
+        try {
             val seasons = animeRepository.getAnimeSeasonsById(anime.id)
                 .sortedBy { it.anime.seasonSourceOrder }
-            val update = withIOContext {
-                source.getAnimeSeasonUpdate(
-                    anime = anime.toSAnime(),
-                    seasons = seasons.map { it.anime.toSAnime() },
-                    fetchDetails = fetchDetails,
-                    fetchSeasons = fetchSeasons,
-                )
-            }
+            val update = source.getAnimeSeasonUpdate(
+                anime = anime.toSAnime(),
+                seasons = seasons.map { it.anime.toSAnime() },
+                fetchDetails = fetchDetails,
+                fetchSeasons = fetchSeasons,
+            )
             awaitUpdateFromSource(anime, update.anime, manualFetch)
             val newSeasons = syncSeasonsWithSource.await(
                 rawSourceSeasons = update.seasons,
@@ -207,14 +205,14 @@ class UpdateAnimeFromRemote(
                 // Never refresh covers if the url is empty to avoid "losing" existing covers
                 remoteAnime.thumbnail_url.isNullOrEmpty() -> null
                 !manualFetch && localAnime.thumbnailUrl == remoteAnime.thumbnail_url -> null
-                localAnime.isLocal() -> Clock.System.now().toEpochMilliseconds()
+                localAnime.isLocal() -> Clock.System.now()
                 localAnime.hasCustomCover(coverCache) -> {
                     coverCache.deleteFromCache(localAnime, false)
                     null
                 }
                 else -> {
                     coverCache.deleteFromCache(localAnime, false)
-                    Clock.System.now().toEpochMilliseconds()
+                    Clock.System.now()
                 }
             }
 
@@ -223,14 +221,14 @@ class UpdateAnimeFromRemote(
                 // Never refresh backgrounds if the url is empty to avoid "losing" existing backgrounds
                 remoteAnime.background_url.isNullOrEmpty() -> null
                 !manualFetch && localAnime.backgroundUrl == remoteAnime.background_url -> null
-                localAnime.isLocal() -> Clock.System.now().toEpochMilliseconds()
+                localAnime.isLocal() -> Clock.System.now()
                 localAnime.hasCustomBackground(backgroundCache) -> {
                     backgroundCache.deleteFromCache(localAnime, false)
                     null
                 }
                 else -> {
                     backgroundCache.deleteFromCache(localAnime, false)
-                    Clock.System.now().toEpochMilliseconds()
+                    Clock.System.now()
                 }
             }
 

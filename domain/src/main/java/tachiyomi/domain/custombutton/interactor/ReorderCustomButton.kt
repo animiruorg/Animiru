@@ -5,7 +5,6 @@ import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import logcat.LogPriority
-import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.custombutton.model.CustomButton
 import tachiyomi.domain.custombutton.model.CustomButtonUpdate
@@ -17,17 +16,17 @@ class ReorderCustomButton(
 ) {
     private val mutex = Mutex()
 
-    suspend fun changeOrder(customButton: CustomButton, newIndex: Int) = withNonCancellableContext {
+    suspend fun changeOrder(customButton: CustomButton, newIndex: Int): Result {
         mutex.withLock {
             val customButtons = customButtonRepository.getAll()
                 .toMutableList()
 
             val currentIndex = customButtons.indexOfFirst { it.id == customButton.id }
             if (currentIndex == -1) {
-                return@withNonCancellableContext Result.Unchanged
+                return Result.Unchanged
             }
 
-            try {
+            return try {
                 customButtons.add(newIndex, customButtons.removeAt(currentIndex))
 
                 val updates = customButtons.mapIndexed { index, customButton ->

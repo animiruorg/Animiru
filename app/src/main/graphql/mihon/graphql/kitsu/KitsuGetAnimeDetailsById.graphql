@@ -1,0 +1,9 @@
+query KitsuGetAnimeDetailsById(
+  $id: ID!,
+) {
+  findAnimeById(
+    id: $id,
+  ) {
+    ...AnimeFragment
+  }
+}

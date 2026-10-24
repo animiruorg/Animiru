@@ -1,3 +1,5 @@
+import mihon.gradle.tasks.GenerateVectorDrawablesTask
+
 plugins {
     alias(mihonx.plugins.android.library)
     alias(mihonx.plugins.compose)
@@ -49,6 +51,57 @@ valkyrie {
             sourceFolder = "autoMirroredRounded"
             autoMirror = true
         }
+
+        nested {
+            name = "AutoMirroredRoundedFilled"
+            sourceFolder = "autoMirroredRoundedFilled"
+            autoMirror = true
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val resSource = variant.sources.res ?: return@onVariants
+
+        val variantName = variant.name.replaceFirstChar { it.uppercase() }
+        val task = tasks.register<GenerateVectorDrawablesTask>("generate${variantName}VectorDrawables") {
+            svgFiles.from(
+                listOf(
+                    "rounded/book",
+                    // AM -->
+                    "rounded/cast",
+                    // <-- AM
+                    "rounded/check",
+                    "rounded/close",
+                    // AM -->
+                    "rounded/dns",
+                    // <-- AM
+                    "rounded/drag_handle",
+                    "rounded/eyeglasses_2",
+                    // AM -->
+                    "rounded/forward_10",
+                    // <-- AM
+                    "rounded/more_vert",
+                    "rounded/refresh",
+                    "rounded/share",
+                    // AM -->
+                    "rounded/stop_circle",
+                    // <-- AM
+                    "roundedFilled/extension",
+                    "roundedFilled/folder",
+                    "roundedFilled/pause",
+                    "roundedFilled/photo",
+                    "roundedFilled/play_arrow",
+                    // AM -->
+                    "roundedFilled/skip_next",
+                    "roundedFilled/skip_previous",
+                    // <-- AM
+                    "roundedFilled/warning",
+                ).map { layout.projectDirectory.file("src/main/valkyrieResources/$it.svg") },
+            )
+        }
+        resSource.addGeneratedSourceDirectory(task) { it.outputDir }
     }
 }
 

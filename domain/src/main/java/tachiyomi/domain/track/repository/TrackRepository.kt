@@ -9,17 +9,17 @@ interface TrackRepository {
 
     suspend fun getTracksByAnimeId(animeId: Long): List<Track>
 
+    suspend fun getTracksByAnimeIds(animeIds: List<Long>): Map<Long, List<Track>>
+
+    suspend fun getTracks(): List<Track>
+
     fun getTracksAsFlow(): Flow<List<Track>>
 
     fun getTracksByAnimeIdAsFlow(animeId: Long): Flow<List<Track>>
 
     suspend fun delete(animeId: Long, trackerId: Long)
 
-    suspend fun insert(track: Track)
+    suspend fun upsert(track: Track)
 
-    suspend fun insertAll(tracks: List<Track>)
-
-    // AM (GROUPING) -->
-    suspend fun getTracks(): List<Track>
-    // <-- AM (GROUPING)
+    suspend fun upsertAll(tracks: List<Track>)
 }

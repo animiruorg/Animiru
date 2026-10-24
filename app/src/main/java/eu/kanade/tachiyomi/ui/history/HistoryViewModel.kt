@@ -14,13 +14,13 @@ import eu.kanade.domain.anime.interactor.UpdateAnime
 import eu.kanade.domain.track.interactor.AddTracks
 import eu.kanade.presentation.history.HistoryUiModel
 import eu.kanade.tachiyomi.util.lang.toLocalDate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -31,11 +31,12 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.mapAsCheckboxState
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.withIOContext
+import tachiyomi.core.common.util.lang.SubscriberGate
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.GetDuplicateLibraryAnime
@@ -57,6 +58,7 @@ import kotlin.time.Duration.Companion.seconds
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class HistoryViewModel(
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val addTracks: AddTracks,
     private val getCategories: GetCategories,
     private val getDuplicateLibraryAnime: GetDuplicateLibraryAnime,
@@ -69,6 +71,8 @@ class HistoryViewModel(
     private val updateAnime: UpdateAnime,
     private val sourceManager: SourceManager,
 ) : ViewModel() {
+
+    private val subscriberGate = SubscriberGate()
 
     val snackbarHostState: SnackbarHostState = SnackbarHostState()
 
@@ -88,9 +92,9 @@ class HistoryViewModel(
                     _events.send(Event.InternalError)
                 }
                 .map { it.toHistoryUiModels() }
-                .flowOn(Dispatchers.IO)
+                .flowOn(Dispatchers.Default)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
+        .stateIn(viewModelScope + subscriberGate, SharingStarted.Eagerly, emptyList())
 
     val state: StateFlow<State> = combine(
         searchQuery,
@@ -99,13 +103,13 @@ class HistoryViewModel(
     ) { searchQuery, history, dialog ->
         State(searchQuery = searchQuery, list = history, dialog = dialog)
     }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State())
+        .stateIn(viewModelScope + subscriberGate, subscriberGate.whileSubscribed(5.seconds), State())
 
     private fun List<HistoryWithRelations>.toHistoryUiModels(): List<HistoryUiModel> {
         return map { HistoryUiModel.Item(it) }
             .insertSeparators { before, after ->
-                val beforeDate = before?.item?.seenAt?.time?.toLocalDate()
-                val afterDate = after?.item?.seenAt?.time?.toLocalDate()
+                val beforeDate = before?.item?.seenAt?.toLocalDate()
+                val afterDate = after?.item?.seenAt?.toLocalDate()
                 when {
                     beforeDate != afterDate && afterDate != null -> HistoryUiModel.Header(afterDate)
                     // Return null to avoid adding a separator between two items.
@@ -115,11 +119,11 @@ class HistoryViewModel(
     }
 
     suspend fun getNextEpisode(): Episode? {
-        return withIOContext { getNextEpisodes.await(onlyUnseen = false).firstOrNull() }
+        return getNextEpisodes.await(onlyUnseen = false).firstOrNull()
     }
 
     fun getNextEpisodeForAnime(animeId: Long, episodeId: Long) {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             sendNextEpisodeEvent(getNextEpisodes.await(animeId, episodeId, onlyUnseen = false))
         }
     }
@@ -130,21 +134,21 @@ class HistoryViewModel(
     }
 
     fun removeFromHistory(history: HistoryWithRelations) {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             removeHistory.await(history)
         }
     }
 
     fun removeAllFromHistory(animeId: Long) {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             removeHistory.await(animeId)
         }
     }
 
     fun removeAllHistory() {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             val result = removeHistory.awaitAll()
-            if (!result) return@launchIO
+            if (!result) return@launch
             _events.send(Event.HistoryCleared)
         }
     }
@@ -172,7 +176,7 @@ class HistoryViewModel(
     }
 
     private fun moveAnimeToCategory(animeId: Long, categoryIds: List<Long>) {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             setAnimeCategories.await(animeId, categoryIds)
         }
     }
@@ -181,7 +185,7 @@ class HistoryViewModel(
         moveAnimeToCategory(anime.id, categories)
         if (anime.favorite) return
 
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             updateAnime.awaitUpdateFavorite(anime.id, true)
         }
     }
@@ -192,13 +196,13 @@ class HistoryViewModel(
     }
 
     fun addFavorite(animeId: Long) {
-        viewModelScope.launchIO {
-            val anime = getAnime.await(animeId) ?: return@launchIO
+        viewModelScope.launch {
+            val anime = getAnime.await(animeId) ?: return@launch
 
             val duplicates = getDuplicateLibraryAnime(anime)
             if (duplicates.isNotEmpty()) {
                 dialog.update { Dialog.DuplicateAnime(anime, duplicates) }
-                return@launchIO
+                return@launch
             }
 
             addFavorite(anime)
@@ -206,7 +210,7 @@ class HistoryViewModel(
     }
 
     fun addFavorite(anime: Anime) {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             // Move to default category if applicable
             val categories = getCategories()
             val defaultCategoryId = libraryPreferences.defaultCategory.get().toLong()
@@ -216,14 +220,14 @@ class HistoryViewModel(
                 // Default category set
                 defaultCategory != null -> {
                     val result = updateAnime.awaitUpdateFavorite(anime.id, true)
-                    if (!result) return@launchIO
+                    if (!result) return@launch
                     moveAnimeToCategory(anime.id, defaultCategory)
                 }
 
                 // Automatic 'Default' or no categories
                 defaultCategoryId == 0L || categories.isEmpty() -> {
                     val result = updateAnime.awaitUpdateFavorite(anime.id, true)
-                    if (!result) return@launchIO
+                    if (!result) return@launch
                     moveAnimeToCategory(anime.id, null)
                 }
 
@@ -232,7 +236,7 @@ class HistoryViewModel(
             }
 
             // Sync with tracking services if applicable
-            addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source))
+            appScope.launch { addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source)) }
         }
     }
 

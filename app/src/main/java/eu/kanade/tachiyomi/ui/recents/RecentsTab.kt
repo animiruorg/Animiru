@@ -30,7 +30,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import animiru.domain.player.service.PlayerPreferences
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
@@ -54,16 +53,18 @@ import eu.kanade.tachiyomi.ui.updates.AnimeUpdatesHalfTab
 import eu.kanade.tachiyomi.ui.updates.UpdatesSettingsViewModel
 import eu.kanade.tachiyomi.ui.updates.UpdatesViewModel
 import eu.kanade.tachiyomi.ui.updates.openEpisode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
 import mihon.feature.upcoming.UpcomingScreen
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.History
+import mihon.icons.materialsymbols.rounded.ReleaseAlert
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
@@ -78,7 +79,7 @@ data object RecentsTab : Tab {
         @Composable
         get() {
             val isSelected = LocalTabNavigator.current.current.key == key
-            val image = AnimatedImageVector.animatedVectorResource(R.drawable.anim_recents_enter)
+            val image = AnimatedImageVector.animatedVectorResource(R.drawable.animated_recents)
             return TabOptions(
                 index = 1u,
                 title = stringResource(AMMR.strings.label_recent_recents),
@@ -137,7 +138,7 @@ data object RecentsTab : Tab {
         LaunchedEffect(Unit) {
             // AM (DISCORD_RPC) -->
             with(DiscordRPCService) {
-                discordScope.launchIO { setScreen(context.applicationContext, DiscordScreen.RECENTS) }
+                discordScope.launch(Dispatchers.IO) { setScreen(context.applicationContext, DiscordScreen.RECENTS) }
             }
             // <-- AM (DISCORD_RPC)
             (context as? MainActivity)?.ready = true
@@ -211,7 +212,7 @@ fun RecentsScaffold(
                         onClick = { shouldShowHistoryScreen(false) },
                         leadingIcon = {
                             Icon(
-                                painter = painterResource(id = R.drawable.ic_updates_outline_24dp),
+                                imageVector = MaterialSymbols.Rounded.ReleaseAlert,
                                 contentDescription = null,
                                 modifier = Modifier.size(FilterChipDefaults.IconSize),
                             )
@@ -244,7 +245,7 @@ fun RecentsScaffold(
                     onMultiMarkAsSeenClicked = updatesViewModel::markUpdatesSeen,
                     onMultiDeleteClicked = updatesViewModel::showConfirmDeleteEpisodes,
                     onOpenEpisode = { updateItem, altPlayer ->
-                        scope.launchIO {
+                        scope.launch(Dispatchers.IO) {
                             openEpisode(context, updateItem, altPlayer)
                         }
                     },

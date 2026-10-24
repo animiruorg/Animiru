@@ -17,7 +17,7 @@ DROP INDEX library_favorite_index;
 ALTER TABLE animes ADD COLUMN favorite_at INTEGER;
 
 UPDATE animes
-SET favorite_at = coalesce(nullif(date_added, 0), favorite_modified_at * 1000, 0)
+SET favorite_at = coalesce(date_added, 0)
 WHERE favorite = 1;
 
 ALTER TABLE animes DROP COLUMN favorite;

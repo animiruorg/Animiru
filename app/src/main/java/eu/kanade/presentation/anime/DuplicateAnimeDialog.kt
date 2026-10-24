@@ -58,15 +58,15 @@ import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.Add
 import mihon.icons.materialsymbols.rounded.AttachMoney
 import mihon.icons.materialsymbols.rounded.Block
-import mihon.icons.materialsymbols.rounded.Brush
 import mihon.icons.materialsymbols.rounded.CalendarClock
+import mihon.icons.materialsymbols.rounded.Check
 import mihon.icons.materialsymbols.rounded.Close
-import mihon.icons.materialsymbols.rounded.Done
 import mihon.icons.materialsymbols.rounded.DoneAll
 import mihon.icons.materialsymbols.rounded.Person
 import mihon.icons.materialsymbols.rounded.Schedule
-import mihon.icons.materialsymbols.rounded.Warning
+import mihon.icons.materialsymbols.roundedfilled.Brush
 import mihon.icons.materialsymbols.roundedfilled.Pause
+import mihon.icons.materialsymbols.roundedfilled.Warning
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeWithEpisodeCount
 import tachiyomi.domain.source.model.StubSource
@@ -240,7 +240,7 @@ private fun DuplicateAnimeListItem(
         if (!anime.artist.isNullOrBlank() && anime.author != anime.artist) {
             AnimeDetailRow(
                 text = anime.artist!!,
-                iconImageVector = MaterialSymbols.Rounded.Brush,
+                iconImageVector = MaterialSymbols.RoundedFilled.Brush,
                 maxLines = 2,
             )
         }
@@ -260,7 +260,7 @@ private fun DuplicateAnimeListItem(
                 SAnime.ONGOING.toLong() -> MaterialSymbols.Rounded.Schedule
                 SAnime.COMPLETED.toLong() -> MaterialSymbols.Rounded.DoneAll
                 SAnime.LICENSED.toLong() -> MaterialSymbols.Rounded.AttachMoney
-                SAnime.PUBLISHING_FINISHED.toLong() -> MaterialSymbols.Rounded.Done
+                SAnime.PUBLISHING_FINISHED.toLong() -> MaterialSymbols.Rounded.Check
                 SAnime.CANCELLED.toLong() -> MaterialSymbols.Rounded.Close
                 SAnime.ON_HIATUS.toLong() -> MaterialSymbols.RoundedFilled.Pause
                 SAnime.UPCOMING.toLong() -> MaterialSymbols.Rounded.CalendarClock
@@ -276,7 +276,7 @@ private fun DuplicateAnimeListItem(
         ) {
             if (source is StubSource) {
                 Icon(
-                    imageVector = MaterialSymbols.Rounded.Warning,
+                    imageVector = MaterialSymbols.RoundedFilled.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.error,

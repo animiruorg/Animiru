@@ -13,6 +13,8 @@ interface HistoryRepository {
 
     suspend fun getHistoryByAnimeId(animeId: Long): List<History>
 
+    suspend fun getHistoryByAnimeIds(animeIds: List<Long>): Map<Long, List<History>>
+
     suspend fun resetHistory(historyId: Long)
 
     suspend fun resetHistoryByAnimeId(animeId: Long)

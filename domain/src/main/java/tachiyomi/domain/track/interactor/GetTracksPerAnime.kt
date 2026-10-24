@@ -11,6 +11,10 @@ class GetTracksPerAnime(
     private val trackRepository: TrackRepository,
 ) {
 
+    suspend fun await(): Map<Long, List<Track>> {
+        return trackRepository.getTracks().groupBy { it.animeId }
+    }
+
     fun subscribe(): Flow<Map<Long, List<Track>>> {
         return trackRepository.getTracksAsFlow().map { tracks -> tracks.groupBy { it.animeId } }
     }

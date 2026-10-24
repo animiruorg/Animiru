@@ -16,8 +16,8 @@ import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.Delete
 import mihon.icons.materialsymbols.rounded.DragHandle
 import mihon.icons.materialsymbols.rounded.Edit
-import mihon.icons.materialsymbols.rounded.Visibility
-import mihon.icons.materialsymbols.rounded.VisibilityOff
+import mihon.icons.materialsymbols.roundedfilled.Visibility
+import mihon.icons.materialsymbols.roundedfilled.VisibilityOff
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import tachiyomi.domain.category.model.Category
 import tachiyomi.i18n.MR
@@ -70,9 +70,9 @@ fun ReorderableCollectionItemScope.CategoryListItem(
                 content = {
                     Icon(
                         imageVector = if (category.hidden) {
-                            MaterialSymbols.Rounded.Visibility
+                            MaterialSymbols.RoundedFilled.Visibility
                         } else {
-                            MaterialSymbols.Rounded.VisibilityOff
+                            MaterialSymbols.RoundedFilled.VisibilityOff
                         },
                         contentDescription = stringResource(AYMR.strings.action_hide),
                     )

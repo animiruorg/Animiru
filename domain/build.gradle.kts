@@ -19,6 +19,7 @@ kotlin {
 dependencies {
     implementation(projects.sourceApi)
     implementation(projects.core.common)
+    implementation(projects.core.metro)
     // AM (GROUPING) -->
     implementation(projects.i18n)
     implementation(projects.i18nAniyomi)

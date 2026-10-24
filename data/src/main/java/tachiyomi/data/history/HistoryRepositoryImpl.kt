@@ -36,6 +36,15 @@ class HistoryRepositoryImpl(
         return database.historyQueries.getHistoryByAnimeId(animeId, HistoryMapper::mapHistory).awaitAsList()
     }
 
+    override suspend fun getHistoryByAnimeIds(animeIds: List<Long>): Map<Long, List<History>> {
+        return database.historyQueries
+            .getHistoryByAnimeIds(animeIds) { animeId, id, episodeId, seenAt ->
+                animeId to HistoryMapper.mapHistory(id, episodeId, seenAt)
+            }
+            .awaitAsList()
+            .groupBy({ it.first }, { it.second })
+    }
+
     override suspend fun resetHistory(historyId: Long) {
         try {
             database.historyQueries.resetHistoryById(historyId)
@@ -69,8 +78,8 @@ class HistoryRepositoryImpl(
     override suspend fun upsertHistory(historyUpdate: HistoryUpdate) {
         try {
             database.historyQueries.upsert(
-                historyUpdate.episodeId,
-                historyUpdate.seenAt,
+                episodeId = historyUpdate.episodeId,
+                seenAt = historyUpdate.seenAt,
             )
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, throwable = e)

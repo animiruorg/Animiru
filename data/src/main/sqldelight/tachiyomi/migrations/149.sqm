@@ -1,0 +1,169 @@
+-- Read the library's last seen time from history without joining it to every episode
+
+DROP VIEW historystatsView;
+DROP VIEW animeseasonsView;
+DROP VIEW animeseasonstatsView;
+DROP VIEW libraryView;
+
+CREATE VIEW animeseasonstatsView AS
+SELECT
+    season.state_parent_id,
+    count(*) AS child_count,
+    sum(CASE WHEN season.remote_fetch_type = 1 AND
+                 coalesce(ES.total, 0) = coalesce(ES.seenCount, 0)
+            THEN 1 ELSE 0 END) AS fully_seen_seasons,
+    max(coalesce(ES.latestUpload, 0)) AS max_latest_upload,
+    max(coalesce(ES.fetchedAt, 0)) AS max_fetched_at,
+    max(
+        coalesce(
+            CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = season.id)
+            THEN (
+                SELECT max(history.seen_at)
+                FROM history
+                JOIN episode
+                ON episode.id = history.episode_id
+                AND NOT EXISTS (
+                    SELECT 0 FROM excluded_scanlator
+                    WHERE excluded_scanlator.anime_id != season.id
+                    AND excluded_scanlator.scanlator = episode.remote_scanlator
+                )
+            )
+            ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = season.id)
+            END,
+            0
+        )
+    ) AS max_last_seen,
+    sum(coalesce(ES.bookmarkCount, 0)) AS total_bookmarks,
+    sum(coalesce(ES.fillermarkCount, 0)) AS total_fillermarks
+FROM anime season
+LEFT JOIN episodestatsView ES ON season.id = ES.anime_id
+WHERE season.state_parent_id IS NOT NULL
+GROUP BY season.state_parent_id;
+
+CREATE VIEW animeseasonsView AS
+SELECT
+    A.*,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.total, 0)
+        WHEN 0 THEN coalesce(ASS.child_count, 0)
+    END AS totalCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.seenCount, 0)
+        WHEN 0 THEN coalesce(ASS.fully_seen_seasons, 0)
+    END AS seenCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.latestUpload, 0)
+        WHEN 0 THEN coalesce(ASS.max_latest_upload, 0)
+    END AS latestUpload,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.fetchedAt, 0)
+        WHEN 0 THEN coalesce(ASS.max_fetched_at, 0)
+    END AS episodeFetchedAt,
+    CASE A.remote_fetch_type
+        -- Joining history to every episode is the slowest part of the query, and only entries with excluded
+        -- scanlators need the episodes to leave theirs out
+        WHEN 1 THEN coalesce(
+            CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = A.id)
+            THEN (
+                SELECT max(history.seen_at)
+                FROM history
+                JOIN episode
+                ON episode.id = history.episode_id
+                WHERE history.anime_id = A.id
+                AND NOT EXISTS (
+                    SELECT 0 FROM excluded_scanlator
+                    WHERE excluded_scanlator.anime_id = A.id
+                    AND excluded_scanlator.scanlator = episode.remote_scanlator
+                )
+            )
+            ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = A.id)
+            END,
+            0
+        )
+        WHEN 0 THEN coalesce(ASS.max_last_seen, 0)
+    END AS lastSeen,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.bookmarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_bookmarks, 0)
+    END AS bookmarkCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.fillermarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_fillermarks, 0)
+    END AS fillermarkCount
+FROM anime AS A
+LEFT JOIN episodestatsView AS ES
+ON A.id = ES.anime_id
+LEFT JOIN animeseasonstatsView AS ASS
+ON A.id = ASS.state_parent_id
+WHERE A.state_parent_id IS NOT NULL
+AND A.state_parent_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL);
+
+CREATE VIEW libraryView AS
+SELECT
+    A.*,
+    -- AY -->
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.total, 0)
+        WHEN 0 THEN coalesce(ASS.child_count, 0)
+    END AS totalCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.seenCount, 0)
+        WHEN 0 THEN coalesce(ASS.fully_seen_seasons, 0)
+    END AS seenCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.latestUpload, 0)
+        WHEN 0 THEN coalesce(ASS.max_latest_upload, 0)
+    END AS latestUpload,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.fetchedAt, 0)
+        WHEN 0 THEN coalesce(ASS.max_fetched_at, 0)
+    END AS episodeFetchedAt,
+    CASE A.remote_fetch_type
+        -- Joining history to every episode is the slowest part of the query, and only entries with excluded
+        -- scanlators need the episodes to leave theirs out
+        WHEN 1 THEN coalesce(
+            CASE WHEN EXISTS (SELECT 0 FROM excluded_scanlator WHERE excluded_scanlator.anime_id = A.id)
+            THEN (
+                SELECT max(history.seen_at)
+                FROM history
+                JOIN episode
+                ON episode.id = history.episode_id
+                WHERE history.anime_id = A.id
+                AND NOT EXISTS (
+                    SELECT 0 FROM excluded_scanlator
+                    WHERE excluded_scanlator.anime_id = A.id
+                    AND excluded_scanlator.scanlator = episode.remote_scanlator
+                )
+            )
+            ELSE (SELECT max(history.seen_at) FROM history WHERE history.anime_id = A.id)
+            END,
+            0
+        )
+        WHEN 0 THEN coalesce(ASS.max_last_seen, 0)
+    END AS lastSeen,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.bookmarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_bookmarks, 0)
+    END AS bookmarkCount,
+    CASE A.remote_fetch_type
+        WHEN 1 THEN coalesce(ES.fillermarkCount, 0)
+        WHEN 0 THEN coalesce(ASS.total_fillermarks, 0)
+    END AS fillermarkCount,
+    -- <-- AY
+    coalesce(AC.categories, '0') AS categories
+FROM anime A
+-- AY -->
+LEFT JOIN episodestatsView AS ES
+ON A.id = ES.anime_id
+-- <-- AY
+LEFT JOIN (
+    SELECT anime_id, group_concat(category_id) AS categories
+    FROM anime_category
+    WHERE anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
+    GROUP BY anime_id
+) AS AC
+ON AC.anime_id = A.id
+-- AY -->
+LEFT JOIN animeseasonstatsView AS ASS ON A.id = ASS.state_parent_id
+-- <-- AY
+WHERE A.user_favorite_at IS NOT NULL;

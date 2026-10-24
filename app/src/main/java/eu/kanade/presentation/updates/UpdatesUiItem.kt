@@ -40,12 +40,13 @@ import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.util.relativeTimeSpanString
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.ui.updates.UpdatesItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mihon.app.di.appGraph
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Label
 import mihon.icons.materialsymbols.roundedfilled.Bookmark
 import mihon.icons.materialsymbols.roundedfilled.Circle
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.updates.model.UpdatesWithRelations
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -60,16 +61,26 @@ internal fun LazyListScope.updatesLastUpdatedItem(
     lastUpdated: Long,
 ) {
     item(key = "updates-lastUpdated") {
-        Box(
-            modifier = Modifier
-                .animateItem(fadeInSpec = null, fadeOutSpec = null)
-                .padding(horizontal = MaterialTheme.padding.medium, vertical = MaterialTheme.padding.small),
-        ) {
-            Text(
-                text = stringResource(MR.strings.updates_last_update_info, relativeTimeSpanString(lastUpdated)),
-                fontStyle = FontStyle.Italic,
-            )
-        }
+        UpdatesLastUpdatedHeader(
+            lastUpdated = lastUpdated,
+            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+        )
+    }
+}
+
+@Composable
+internal fun UpdatesLastUpdatedHeader(
+    lastUpdated: Long,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .padding(horizontal = MaterialTheme.padding.medium, vertical = MaterialTheme.padding.small),
+    ) {
+        Text(
+            text = stringResource(MR.strings.updates_last_update_info, relativeTimeSpanString(lastUpdated)),
+            fontStyle = FontStyle.Italic,
+        )
     }
 }
 
@@ -117,8 +128,8 @@ internal fun LazyListScope.updatesUiItems(
                             // AY -->
                             stringResource(
                                 AYMR.strings.episode_progress,
-                                formatProgress(it),
-                                formatProgress(updatesItem.update.totalSeconds),
+                                formatProgress(it.toLong()),
+                                formatProgress(updatesItem.update.totalSeconds.toLong()),
                             )
                             // <-- AY
                         },
@@ -267,7 +278,7 @@ private fun UpdatesUiItem(
             fileSizeAsync == null
         ) {
             LaunchedEffect(update, Unit) {
-                fileSizeAsync = withIOContext {
+                fileSizeAsync = withContext(Dispatchers.IO) {
                     context.appGraph.downloadProvider.getEpisodeFileSize(
                         update.episodeName,
                         null,

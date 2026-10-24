@@ -19,9 +19,11 @@ import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.util.lang.compareToCaseInsensitiveNaturalOrder
 import eu.kanade.tachiyomi.util.storage.toFFmpegString
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
@@ -29,7 +31,6 @@ import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.storage.extension
 import tachiyomi.core.common.storage.nameWithoutExtension
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.core.metadata.tachiyomi.AnimeDetails
 import tachiyomi.core.metadata.tachiyomi.EpisodeDetails
@@ -89,7 +90,7 @@ class LocalSource(
         page: Int,
         query: String,
         filters: AnimeFilterList,
-    ): AnimesPage = withIOContext {
+    ): AnimesPage = withContext(Dispatchers.IO) {
         val lastModifiedLimit = if (filters === LatestFilters) {
             System.currentTimeMillis() - LATEST_THRESHOLD
         } else {
@@ -204,7 +205,7 @@ class LocalSource(
     // <-- AM (CUSTOM_INFORMATION)
 
     // Anime details related
-    private suspend fun getOldAnimeDetails(anime: SAnime): SAnime = withIOContext {
+    private suspend fun getOldAnimeDetails(anime: SAnime): SAnime = withContext(Dispatchers.IO) {
         coverManager.find(anime.url)?.let {
             anime.thumbnail_url = it.uri.toString()
         }
@@ -235,12 +236,12 @@ class LocalSource(
             logcat(LogPriority.ERROR, e) { "Error setting anime details from local metadata for ${anime.title}" }
         }
 
-        return@withIOContext anime
+        return@withContext anime
     }
 
     // AY -->
     // Seasons
-    private suspend fun getOldSeasonList(anime: SAnime): List<SAnime> = withIOContext {
+    private suspend fun getOldSeasonList(anime: SAnime): List<SAnime> = withContext(Dispatchers.IO) {
         val animeDirs = fileSystem.getFilesInAnimeDirectory(anime.url)
             // Filter out files that are hidden and is not a folder
             .filter { it.isDirectory && !it.name.orEmpty().startsWith('.') }
@@ -265,7 +266,7 @@ class LocalSource(
     // <-- AY
 
     // Episodes
-    private suspend fun getOldEpisodeList(anime: SAnime): List<SEpisode> = withIOContext {
+    private suspend fun getOldEpisodeList(anime: SAnime): List<SEpisode> = withContext(Dispatchers.IO) {
         // AY -->
         val episodesData = fileSystem.getFilesInAnimeDirectory(anime.url)
             .firstOrNull {

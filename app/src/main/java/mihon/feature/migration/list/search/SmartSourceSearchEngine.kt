@@ -2,6 +2,8 @@ package mihon.feature.migration.list.search
 
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mihon.domain.anime.model.toDomainAnime
 import tachiyomi.domain.anime.model.Anime
 
@@ -21,7 +23,8 @@ class SmartSourceSearchEngine(extraSearchParams: String?) : BaseSmartSearchEngin
         }
     }
 
+    // Sources aren't main-safe: their default implementations block on the network
     private fun makeSearchAction(source: AnimeSource): SearchAction<SAnime> = { query ->
-        source.getSearchAnime(1, query, source.getFilterList()).animes
+        withContext(Dispatchers.IO) { source.getSearchAnime(1, query, source.getFilterList()).animes }
     }
 }

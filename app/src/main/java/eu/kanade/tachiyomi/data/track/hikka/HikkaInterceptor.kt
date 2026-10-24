@@ -8,33 +8,17 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 class HikkaInterceptor(private val hikka: Hikka, private val json: Json) : Interceptor {
+
+    @Volatile
     private var oauth: HKOAuth? = hikka.loadOAuth()
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 
-        val currAuth = oauth ?: throw Exception("Hikka: You are not authorized")
+        var currAuth = oauth ?: throw Exception("Hikka: You are not authorized")
 
         if (currAuth.isExpired()) {
-            val refreshTokenResponse = chain.proceed(HikkaApi.refreshTokenRequest(currAuth.accessToken))
-            if (!refreshTokenResponse.isSuccessful) {
-                refreshTokenResponse.close()
-                hikka.logout()
-                throw Exception("Hikka: The token is expired")
-            } else {
-                refreshTokenResponse.close()
-            }
-
-            val authTokenInfoResponse = chain.proceed(HikkaApi.authTokenInfo(currAuth.accessToken))
-            if (!authTokenInfoResponse.isSuccessful) {
-                authTokenInfoResponse.close()
-                throw Exception("Hikka: Auth token info failed")
-            }
-
-            val authTokenInfo = with(json) {
-                authTokenInfoResponse.parseAs<HKAuthTokenInfo>()
-            }
-            setAuth(HKOAuth(currAuth.accessToken, authTokenInfo.expiration, authTokenInfo.created))
+            currAuth = refreshToken(chain, currAuth)
         }
 
         val authRequest = originalRequest.newBuilder()
@@ -43,6 +27,30 @@ class HikkaInterceptor(private val hikka: Hikka, private val json: Json) : Inter
             .build()
 
         return chain.proceed(authRequest)
+    }
+
+    private fun refreshToken(chain: Interceptor.Chain, expired: HKOAuth): HKOAuth = synchronized(this) {
+        val currAuth = oauth ?: expired
+        if (!currAuth.isExpired()) return@synchronized currAuth
+
+        val refreshTokenResponse = chain.proceed(HikkaApi.refreshTokenRequest(currAuth.accessToken))
+        if (!refreshTokenResponse.isSuccessful) {
+            refreshTokenResponse.close()
+            hikka.logout()
+            throw Exception("Hikka: The token is expired")
+        }
+        refreshTokenResponse.close()
+
+        val authTokenInfoResponse = chain.proceed(HikkaApi.authTokenInfo(currAuth.accessToken))
+        if (!authTokenInfoResponse.isSuccessful) {
+            authTokenInfoResponse.close()
+            throw Exception("Hikka: Auth token info failed")
+        }
+
+        val authTokenInfo = with(json) {
+            authTokenInfoResponse.parseAs<HKAuthTokenInfo>()
+        }
+        HKOAuth(currAuth.accessToken, authTokenInfo.expiration, authTokenInfo.created).also(::setAuth)
     }
 
     fun setAuth(oauth: HKOAuth?) {

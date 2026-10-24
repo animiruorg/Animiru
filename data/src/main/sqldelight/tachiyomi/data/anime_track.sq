@@ -1,0 +1,98 @@
+import kotlin.Boolean;
+import kotlin.time.Instant;
+
+CREATE TABLE anime_track(
+    id INTEGER NOT NULL PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
+    tracker_id INTEGER NOT NULL,
+    remote_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
+    library_id INTEGER,
+    title TEXT NOT NULL,
+    last_episode_seen REAL NOT NULL,
+    total_episodes INTEGER NOT NULL,
+    status INTEGER NOT NULL,
+    score REAL NOT NULL,
+    start_date INTEGER AS Instant,
+    finish_date INTEGER AS Instant,
+    private INTEGER AS Boolean NOT NULL DEFAULT 0,
+    UNIQUE (anime_id, tracker_id),
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX anime_track_tracker_id_remote_id_index ON anime_track(tracker_id, remote_id);
+
+delete:
+DELETE FROM anime_track
+WHERE anime_id = :animeId
+AND tracker_id = :trackerId;
+
+getTracks:
+SELECT
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+FROM anime_track;
+
+getTrackById:
+SELECT
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+FROM anime_track
+WHERE id = :id;
+
+getTracksByAnimeId:
+SELECT
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+FROM anime_track
+WHERE anime_id = :animeId;
+
+getTracksByAnimeIds:
+SELECT
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+FROM anime_track
+WHERE anime_id IN :animeIds
+ORDER BY anime_id, tracker_id;
+
+upsert:
+INSERT INTO anime_track(
+    anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+)
+VALUES (
+    :animeId, :trackerId, :remoteId, :remoteUrl, :libraryId, :title, :lastEpisodeSeen,
+    :totalEpisodes, :status, :score, :startDate, :finishDate, :private
+)
+ON CONFLICT(anime_id, tracker_id) DO UPDATE SET
+    remote_id = excluded.remote_id,
+    remote_url = excluded.remote_url,
+    library_id = excluded.library_id,
+    title = excluded.title,
+    last_episode_seen = excluded.last_episode_seen,
+    total_episodes = excluded.total_episodes,
+    status = excluded.status,
+    score = excluded.score,
+    start_date = excluded.start_date,
+    finish_date = excluded.finish_date,
+    private = excluded.private;
+
+
+update:
+UPDATE anime_track
+SET
+    anime_id = coalesce(:animeId, anime_id),
+    tracker_id = coalesce(:trackerId, tracker_id),
+    remote_id = coalesce(:remoteId, remote_id),
+    remote_url = coalesce(:remoteUrl, remote_url),
+    library_id = coalesce(:libraryId, library_id),
+    title = coalesce(:title, title),
+    last_episode_seen = coalesce(:lastEpisodeSeen, last_episode_seen),
+    total_episodes = coalesce(:totalEpisodes, total_episodes),
+    status = coalesce(:status, status),
+    score = coalesce(:score, score),
+    start_date = coalesce(:startDate, start_date),
+    finish_date = coalesce(:finishDate, finish_date),
+    private = coalesce(:private, private)
+WHERE id = :id;

@@ -15,10 +15,11 @@ import eu.kanade.presentation.more.stats.data.StatsData
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import tachiyomi.core.common.util.lang.launchIO
+import kotlinx.coroutines.launch
 import tachiyomi.domain.anime.interactor.GetLibraryAnime
 import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.library.model.LibraryAnime
@@ -26,7 +27,7 @@ import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.library.service.LibraryPreferences.Companion.ANIME_HAS_UNSEEN
 import tachiyomi.domain.library.service.LibraryPreferences.Companion.ANIME_NON_COMPLETED
 import tachiyomi.domain.library.service.LibraryPreferences.Companion.ANIME_NON_SEEN
-import tachiyomi.domain.track.interactor.GetTracks
+import tachiyomi.domain.track.interactor.GetTracksPerAnime
 import tachiyomi.domain.track.model.Track
 import tachiyomi.source.local.isLocal
 
@@ -39,7 +40,7 @@ class StatsViewModel(
     // AY -->
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     // <-- AY
-    private val getTracks: GetTracks,
+    private val getTracksPerAnime: GetTracksPerAnime,
     private val preferences: LibraryPreferences,
     private val trackerManager: TrackerManager,
 ) : ViewModel() {
@@ -50,7 +51,7 @@ class StatsViewModel(
     private val loggedInTrackers by lazy { trackerManager.loggedInTrackers() }
 
     init {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val libraryAnime = getLibraryAnime.await()
 
             val distinctLibraryAnime = libraryAnime.fastDistinctBy { it.id }
@@ -118,8 +119,11 @@ class StatsViewModel(
 
     private suspend fun getAnimeTrackMap(libraryAnime: List<LibraryAnime>): Map<Long, List<Track>> {
         val loggedInTrackerIds = loggedInTrackers.map { it.id }.toHashSet()
+        if (loggedInTrackerIds.isEmpty()) return emptyMap()
+
+        val tracksPerAnime = getTracksPerAnime.await()
         return libraryAnime.associate { anime ->
-            val tracks = getTracks.await(anime.id)
+            val tracks = tracksPerAnime[anime.id].orEmpty()
                 .fastFilter { it.trackerId in loggedInTrackerIds }
 
             anime.id to tracks

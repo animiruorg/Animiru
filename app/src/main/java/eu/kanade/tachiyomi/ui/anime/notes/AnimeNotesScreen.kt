@@ -5,7 +5,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.zacsweers.metro.AppScope
@@ -18,10 +17,13 @@ import dev.zacsweers.metrox.viewmodel.ManualViewModelAssistedFactoryKey
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import eu.kanade.presentation.anime.AnimeNotesScreen
 import eu.kanade.presentation.util.Screen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import tachiyomi.core.common.util.lang.launchNonCancellable
+import kotlinx.coroutines.launch
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.domain.anime.interactor.UpdateAnimeNotes
 import tachiyomi.domain.anime.model.Anime
 
@@ -45,6 +47,7 @@ class AnimeNotesScreen(
     @AssistedInject
     class Model(
         @Assisted private val anime: Anime,
+        @AppCoroutineScope private val appScope: CoroutineScope,
         private val updateAnimeNotes: UpdateAnimeNotes,
     ) : ViewModel() {
 
@@ -65,7 +68,8 @@ class AnimeNotesScreen(
                 it.copy(notes = content)
             }
 
-            viewModelScope.launchNonCancellable {
+            // On Main so the debounced saves and the one on leaving are written in order
+            appScope.launch(Dispatchers.Main.immediate) {
                 updateAnimeNotes(anime.id, content)
             }
         }

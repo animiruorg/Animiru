@@ -2,37 +2,34 @@ package eu.kanade.tachiyomi.data.track.anilist
 
 import android.net.Uri
 import androidx.core.net.toUri
+import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.api.Optional
+import com.apollographql.apollo.network.okHttpClient
 import eu.kanade.tachiyomi.data.database.models.Track
-import eu.kanade.tachiyomi.data.track.anilist.dto.ALAddAnimeResult
-import eu.kanade.tachiyomi.data.track.anilist.dto.ALCurrentUserResult
-import eu.kanade.tachiyomi.data.track.anilist.dto.ALSearchResult
-import eu.kanade.tachiyomi.data.track.anilist.dto.ALUserListAnimeQueryResult
-import eu.kanade.tachiyomi.data.track.anilist.dto.ALUserViewerData
+import eu.kanade.tachiyomi.data.track.anilist.dto.ALUser
 import eu.kanade.tachiyomi.data.track.model.TrackSearch
-import eu.kanade.tachiyomi.network.POST
-import eu.kanade.tachiyomi.network.awaitSuccess
+import eu.kanade.tachiyomi.network.dataOrElse
 import eu.kanade.tachiyomi.network.interceptor.rateLimit
-import eu.kanade.tachiyomi.network.jsonMime
-import eu.kanade.tachiyomi.network.parseAs
+import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
+import mihon.graphql.anilist.AniListAddAnimeMutation
+import mihon.graphql.anilist.AniListDeleteAnimeMutation
+import mihon.graphql.anilist.AniListGetAnimeDetailsQuery
+import mihon.graphql.anilist.AniListGetCurrentUserQuery
+import mihon.graphql.anilist.AniListGetLibAnimeQuery
+import mihon.graphql.anilist.AniListSearchAnimeQuery
+import mihon.graphql.anilist.AniListUpdateAnimeMutation
+import mihon.graphql.anilist.type.FuzzyDateInput
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody.Companion.toRequestBody
-import tachiyomi.core.common.util.lang.withIOContext
+import tachiyomi.core.common.util.system.logcat
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 class AnilistApi(
     val trackerId: Long,
-    private val json: Json,
     val client: OkHttpClient,
     interceptor: AnilistInterceptor,
 ) {
@@ -42,357 +39,170 @@ class AnilistApi(
         .rateLimit(permits = 25, period = 1.minutes)
         .build()
 
+    private val graphQlClient by lazy {
+        ApolloClient.Builder()
+            .serverUrl("https://graphql.anilist.co")
+            .okHttpClient(authClient)
+            .dispatcher(Dispatchers.IO)
+            // required to log the error body in dataOrElse, which also properly closes it
+            .httpExposeErrorBody(true)
+            .build()
+    }
+
     suspend fun addLibAnime(track: Track): Track {
-        return withIOContext {
-            val query = $$"""
-            |mutation AddAnime($animeId: Int, $progress: Int, $status: MediaListStatus, $private: Boolean) {
-                |SaveMediaListEntry (mediaId: $animeId, progress: $progress, status: $status, private: $private) {
-                |   id
-                |   status
-                |}
-            |}
-            |
-            """.trimMargin()
-            val payload = buildJsonObject {
-                put("query", query)
-                putJsonObject("variables") {
-                    put("animeId", track.remote_id)
-                    put("progress", track.last_episode_seen.toInt())
-                    put("status", track.toApiStatus())
-                    put("private", track.private)
+        return graphQlClient
+            .mutation(
+                AniListAddAnimeMutation(
+                    anime_id = track.remote_id.toInt(),
+                    progress = track.last_episode_seen.toInt(),
+                    status = track.toApiStatus(),
+                    private = track.private,
+                ),
+            )
+            .execute()
+            .dataOrElse(
+                errorLog = "AniList: Failed to add anime",
+                default = { null },
+            ) {
+                it.SaveMediaListEntry?.id?.let { libraryId ->
+                    track.library_id = libraryId.toLong()
+                    track
                 }
             }
-            with(json) {
-                authClient.newCall(
-                    POST(
-                        API_URL,
-                        body = payload.toString().toRequestBody(jsonMime),
-                    ),
-                )
-                    .awaitSuccess()
-                    .parseAs<ALAddAnimeResult>()
-                    .let {
-                        track.library_id = it.data.entry.id
-                        track
-                    }
-            }
-        }
+            ?: throw Exception("Failed to add anime")
     }
 
     suspend fun updateLibAnime(track: Track): Track {
-        return withIOContext {
-            val query = $$"""
-            |mutation UpdateAnime(
-                |$listId: Int, $progress: Int, $status: MediaListStatus, $private: Boolean,
-                |$score: Int, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput
-            |) {
-                |SaveMediaListEntry(
-                    |id: $listId, progress: $progress, status: $status, private: $private,
-                    |scoreRaw: $score, startedAt: $startedAt, completedAt: $completedAt
-                |) {
-                    |id
-                    |status
-                    |progress
-                |}
-            |}
-            |
-            """.trimMargin()
-            val payload = buildJsonObject {
-                put("query", query)
-                putJsonObject("variables") {
-                    put("listId", track.library_id)
-                    put("progress", track.last_episode_seen.toInt())
-                    put("status", track.toApiStatus())
-                    put("score", track.score.toInt())
-                    put("startedAt", createDate(track.started_watching_date))
-                    put("completedAt", createDate(track.finished_watching_date))
-                    put("private", track.private)
+        val libraryId = track.library_id
+        requireNotNull(libraryId) { "AniList cannot update track with null library_id" }
+
+        return graphQlClient
+            .mutation(
+                AniListUpdateAnimeMutation(
+                    library_id = libraryId.toInt(),
+                    progress = track.last_episode_seen.toInt(),
+                    status = track.toApiStatus(),
+                    private = track.private,
+                    score = track.score.toInt(),
+                    startedAt = createFuzzyDate(track.started_watching_date),
+                    completedAt = createFuzzyDate(track.finished_watching_date),
+                ),
+            )
+            .execute()
+            .dataOrElse(
+                errorLog = "AniList: Failed to update anime",
+                default = { null },
+            ) {
+                it.SaveMediaListEntry?.id?.let { remoteLibraryid ->
+                    track.library_id = remoteLibraryid.toLong()
+                    track
                 }
             }
-            authClient.newCall(POST(API_URL, body = payload.toString().toRequestBody(jsonMime)))
-                .awaitSuccess()
-            track
-        }
+            ?: throw Exception("Failed to update anime")
     }
 
     suspend fun deleteLibAnime(track: DomainTrack) {
-        withIOContext {
-            val query = $$"""
-            |mutation DeleteAnime($listId: Int) {
-                |DeleteMediaListEntry(id: $listId) {
-                    |deleted
-                |}
-            |}
-            |
-            """.trimMargin()
-            val payload = buildJsonObject {
-                put("query", query)
-                putJsonObject("variables") {
-                    put("listId", track.libraryId)
+        val libraryId = track.libraryId
+        requireNotNull(libraryId) { "AniList cannot delete track with null library_id" }
+
+        graphQlClient
+            .mutation(
+                AniListDeleteAnimeMutation(library_id = libraryId.toInt()),
+            )
+            .execute()
+            .dataOrElse(
+                errorLog = "AniList: Failed to delete anime",
+                default = { null },
+            ) {
+                it.DeleteMediaListEntry?.deleted?.let { deleted ->
+                    if (deleted) {
+                        logcat { "AniList: Deleted anime ${track.libraryId} successfully" }
+                    }
                 }
             }
-            authClient.newCall(POST(API_URL, body = payload.toString().toRequestBody(jsonMime)))
-                .awaitSuccess()
-        }
+            ?: throw Exception("Failed to delete anime")
     }
 
     suspend fun search(search: String): List<TrackSearch> {
-        return withIOContext {
-            val query = $$"""
-            |query Search($query: String) {
-                |Page (perPage: 50) {
-                    |media(search: $query, type: ANIME) {
-                        |id
-                        |studios {
-                            |edges {
-                                |isMain
-                                |node {
-                                    |name
-                                |}
-                            |}
-                        |}
-                        |title {
-                            |userPreferred
-                        |}
-                        |coverImage {
-                            |large
-                        |}
-                        |format
-                        |status
-                        |episodes
-                        |description
-                        |startDate {
-                            |year
-                            |month
-                            |day
-                        |}
-                        |averageScore
-                    |}
-                |}
-            |}
-            |
-            """.trimMargin()
-            val payload = buildJsonObject {
-                put("query", query)
-                putJsonObject("variables") {
-                    put("query", search)
-                }
+        return graphQlClient
+            .query(
+                AniListSearchAnimeQuery(search = search),
+            )
+            .execute()
+            .dataOrElse(
+                errorLog = "AniList: Search failed",
+                default = { emptyList() },
+            ) {
+                it.Page?.media
+                    ?.mapNotNull { alAnime -> alAnime?.toTrackSearch(trackerId) }
+                    ?: emptyList()
             }
-            with(json) {
-                authClient.newCall(
-                    POST(
-                        API_URL,
-                        body = payload.toString().toRequestBody(jsonMime),
-                    ),
-                )
-                    .awaitSuccess()
-                    .parseAs<ALSearchResult>()
-                    .data.page.media
-                    .map { it.toALAnime().toTrack(trackerId) }
-            }
-        }
     }
 
     suspend fun findLibAnime(track: Track, userid: Int): Track? {
-        return withIOContext {
-            val query = $$"""
-            |query ($id: Int!, $anime_id: Int!) {
-                |Page {
-                    |mediaList(userId: $id, type: ANIME, mediaId: $anime_id) {
-                        |id
-                        |status
-                        |scoreRaw: score(format: POINT_100)
-                        |progress
-                        |private
-                        |startedAt {
-                            |year
-                            |month
-                            |day
-                        |}
-                        |completedAt {
-                            |year
-                            |month
-                            |day
-                        |}
-                        |media {
-                            |id
-                            |title {
-                                |userPreferred
-                            |}
-                            |coverImage {
-                                |large
-                            |}
-                            |format
-                            |status
-                            |episodes
-                            |description
-                            |startDate {
-                                |year
-                                |month
-                                |day
-                            |}
-                            |studios {
-                                |edges {
-                                    |isMain
-                                    |node {
-                                        |name
-                                    |}
-                                |}
-                            |}
-                        |}
-                    |}
-                |}
-            |}
-            |
-            """.trimMargin()
-            val payload = buildJsonObject {
-                put("query", query)
-                putJsonObject("variables") {
-                    put("id", userid)
-                    put("anime_id", track.remote_id)
-                }
-            }
-            with(json) {
-                authClient.newCall(
-                    POST(
-                        API_URL,
-                        body = payload.toString().toRequestBody(jsonMime),
-                    ),
-                )
-                    .awaitSuccess()
-                    .parseAs<ALUserListAnimeQueryResult>()
-                    .data.page.mediaList
-                    .map { it.toALUserAnime() }
-                    .firstOrNull()
+        return graphQlClient
+            .query(
+                AniListGetLibAnimeQuery(
+                    user_id = userid,
+                    anime_id = track.remote_id.toInt(),
+                ),
+            )
+            .execute()
+            .dataOrElse(
+                errorLog = "AniList: Failed to find anime in library",
+                default = { null },
+            ) {
+                it.Page?.mediaList
+                    ?.firstOrNull()
                     ?.toTrack(trackerId)
             }
-        }
     }
 
-    suspend fun getLibAnime(track: Track, userId: Int): Track {
-        return findLibAnime(track, userId) ?: throw Exception("Could not find anime")
-    }
-
-    suspend fun getCurrentUser(): ALUserViewerData {
-        return withIOContext {
-            val query = """
-            |query User {
-                |Viewer {
-                    |id
-                    |name
-                    |mediaListOptions {
-                        |scoreFormat
-                    |}
-                |}
-            |}
-            |
-            """.trimMargin()
-            val payload = buildJsonObject {
-                put("query", query)
+    suspend fun getCurrentUser(): ALUser {
+        return graphQlClient
+            .query(AniListGetCurrentUserQuery())
+            .execute()
+            .dataOrElse(
+                errorLog = "AniList: Failed to get current user",
+                default = { null },
+            ) {
+                it.Viewer?.toALUser()
             }
-            with(json) {
-                authClient.newCall(
-                    POST(
-                        API_URL,
-                        body = payload.toString().toRequestBody(jsonMime),
-                    ),
-                )
-                    .awaitSuccess()
-                    .parseAs<ALCurrentUserResult>()
-                    .data.viewer
-            }
-        }
+            ?: throw Exception("Failed to get AniList user data")
     }
 
     suspend fun getAnimeDetails(id: Int): TrackSearch? {
-        return withIOContext {
-            val query = $$"""
-            |query Search($anime_id: Int) {
-                |Page (perPage: 1) {
-                    |media(id: $anime_id, type: ANIME) {
-                        |id
-                        |studios {
-                            |edges {
-                                |isMain
-                                |node {
-                                    |name
-                                |}
-                            |}
-                        |}
-                        |title {
-                            |userPreferred
-                        |}
-                        |coverImage {
-                            |large
-                        |}
-                        |format
-                        |status
-                        |episodes
-                        |description
-                        |startDate {
-                            |year
-                            |month
-                            |day
-                        |}
-                        |averageScore
-                    |}
-                |}
-            |}
-            |
-            """.trimMargin()
-
-            val payload = buildJsonObject {
-                put("query", query)
-                putJsonObject("variables") {
-                    put("anime_id", id)
-                }
+        return graphQlClient
+            .query(
+                AniListGetAnimeDetailsQuery(anime_id = id),
+            )
+            .execute()
+            .dataOrElse(
+                errorLog = "AniList: Failed to get anime details",
+                default = { null },
+            ) {
+                it.Page?.media
+                    ?.firstOrNull()
+                    ?.toTrackSearch(trackerId)
             }
-
-            with(json) {
-                authClient.newCall(
-                    POST(
-                        API_URL,
-                        body = payload.toString().toRequestBody(jsonMime),
-                    ),
-                )
-                    .awaitSuccess()
-                    .parseAs<ALSearchResult>()
-                    .data.page.media
-                    .firstOrNull()
-                    ?.toALAnime()
-                    ?.toTrack(trackerId)
-            }
-        }
     }
 
-    private fun createDate(dateValue: Long): JsonObject {
-        if (dateValue == 0L) {
-            return buildJsonObject {
-                put("year", JsonNull)
-                put("month", JsonNull)
-                put("day", JsonNull)
-            }
-        }
+    private fun createFuzzyDate(dateValue: Long): FuzzyDateInput {
+        // all absent/null
+        if (dateValue == 0L) return FuzzyDateInput()
 
         val dateTime = Instant.fromEpochMilliseconds(dateValue).toLocalDateTime(TimeZone.currentSystemDefault())
-        return buildJsonObject {
-            put("year", dateTime.year)
-            put("month", dateTime.month.number)
-            put("day", dateTime.day)
-        }
+        return FuzzyDateInput(
+            year = Optional.present(dateTime.year),
+            month = Optional.present(dateTime.month.number),
+            day = Optional.present(dateTime.day),
+        )
     }
 
     companion object {
         private const val CLIENT_ID = "7719"
-        private const val API_URL = "https://graphql.anilist.co/"
-        private const val BASE_URL = "https://anilist.co/api/v2/"
-        private const val BASE_ANIME_URL = "https://anilist.co/anime/"
 
-        fun animeUrl(mediaId: Long): String {
-            return BASE_ANIME_URL + mediaId
-        }
-
-        fun authUrl(): Uri = "${BASE_URL}oauth/authorize".toUri().buildUpon()
+        fun authUrl(): Uri = "https://anilist.co/api/v2/oauth/authorize".toUri().buildUpon()
             .appendQueryParameter("client_id", CLIENT_ID)
             .appendQueryParameter("response_type", "token")
             .build()

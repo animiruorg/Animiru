@@ -20,12 +20,15 @@ import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
 import eu.kanade.tachiyomi.util.system.WebViewUtil
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import eu.kanade.tachiyomi.util.system.toShareIntent
+import eu.kanade.tachiyomi.util.system.toWebViewHeaders
 import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.view.setComposeContent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.app.di.appGraph
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
@@ -70,11 +73,13 @@ class WebViewActivity : BaseActivity() {
             // Null until the source it belongs to has been resolved
             val headers by produceState<Map<String, String>?>(initialValue = null) {
                 val source = sourceManager.get(intent.extras!!.getLong(SOURCE_KEY)) as? AnimeHttpSource
-                value = try {
-                    source?.headers?.toMultimap()?.mapValues { it.value.getOrNull(0) ?: "" }.orEmpty()
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, e) { "Failed to build headers" }
-                    emptyMap()
+                value = withContext(Dispatchers.IO) {
+                    try {
+                        source?.headers?.toWebViewHeaders().orEmpty()
+                    } catch (e: Exception) {
+                        logcat(LogPriority.ERROR, e) { "Failed to build headers" }
+                        emptyMap()
+                    }
                 }
             }
 
@@ -98,7 +103,9 @@ class WebViewActivity : BaseActivity() {
 
         // AM (DISCORD_RPC) -->
         with(DiscordRPCService) {
-            discordScope.launchIO { setScreen(this@WebViewActivity.applicationContext, DiscordScreen.WEBVIEW) }
+            discordScope.launch(Dispatchers.IO) {
+                setScreen(this@WebViewActivity.applicationContext, DiscordScreen.WEBVIEW)
+            }
         }
         // <-- AM (DISCORD_RPC)
     }
@@ -107,7 +114,7 @@ class WebViewActivity : BaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
         with(DiscordRPCService) {
-            discordScope.launchIO { setScreen(this@WebViewActivity.applicationContext, lastUsedScreen) }
+            discordScope.launch(Dispatchers.IO) { setScreen(this@WebViewActivity.applicationContext, lastUsedScreen) }
         }
     }
     // <-- AM (DISCORD_RPC)

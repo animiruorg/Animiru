@@ -32,12 +32,15 @@ import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 private val HistoryItemHeight = 96.dp
 
 @Composable
 fun HistoryItem(
     history: HistoryWithRelations,
+    timeFormatter: DateTimeFormatter,
     onClickCover: () -> Unit,
     onClickResume: () -> Unit,
     onClickDelete: () -> Unit,
@@ -69,7 +72,9 @@ fun HistoryItem(
                 overflow = TextOverflow.Ellipsis,
                 style = textStyle,
             )
-            val seenAt = remember { history.seenAt?.toTimestampString() ?: "" }
+            val seenAt = remember(timeFormatter, history.seenAt) {
+                history.seenAt?.toTimestampString(timeFormatter) ?: ""
+            }
             Text(
                 text = if (history.episodeNumber > -1) {
                     stringResource(
@@ -115,6 +120,7 @@ private fun HistoryItemPreviews(
         Surface {
             HistoryItem(
                 history = historyWithRelations,
+                timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT),
                 onClickCover = {},
                 onClickResume = {},
                 onClickDelete = {},

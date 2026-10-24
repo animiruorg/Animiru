@@ -66,8 +66,7 @@ class AnimeRestorer(
         backupAnimes: List<BackupAnime>,
         backupCategories: List<BackupCategory>,
         // AM -->
-        allBackupAnimes: List<BackupAnime>,
-        ids: HashSet<Long>,
+        ids: HashMap<Long, Pair<Long, String>>,
         // <-- AM
     ) {
         val dbCategoriesByName = getCategories.await().associateBy { it.name }
@@ -81,8 +80,8 @@ class AnimeRestorer(
                 },
             )
 
-            val parentAnime = allBackupAnimes.find { it.id == backupAnime.parentId }?.let {
-                ParentAnime(url = it.url, sourceId = it.source)
+            val parentAnime = ids.get(backupAnime.parentId)?.let {
+                ParentAnime(sourceId = it.first, url = it.second)
             }
             // <-- AM
 
@@ -106,8 +105,13 @@ class AnimeRestorer(
             )
         }
 
-        restoreRepository.restoreAnime(entries) {
-            fetchInterval.withFetchInterval(it, now, timeZone, currentFetchWindow)
+        restoreRepository.restoreAnime(entries) { anime ->
+            fetchInterval.withFetchInterval(anime, now, timeZone, currentFetchWindow).apply {
+                // A next update still ahead was worked out with the episodes the backup came from
+                anime.nextUpdate
+                    ?.takeIf { it >= currentFetchWindow.start }
+                    ?.let { nextUpdate = it }
+            }
         }
     }
 }

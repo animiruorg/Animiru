@@ -22,15 +22,15 @@ import java.io.Serializable as JavaSerializable
 data class Anime(
     val id: Long,
     val source: Long,
-    val lastUpdate: Long,
-    val nextUpdate: Long,
+    val lastUpdate: Instant?,
+    val nextUpdate: Instant?,
     val fetchInterval: Int,
-    val favoriteAt: Long?,
+    val favoriteAt: Instant?,
     val viewerFlags: Long,
     val episodeFlags: Long,
-    val coverLastModified: Long,
+    val coverLastModified: Instant?,
     // AY -->
-    val backgroundLastModified: Long,
+    val backgroundLastModified: Instant?,
     // <-- AY
     val url: String,
     // AM (CUSTOM_INFORMATION) -->
@@ -89,9 +89,7 @@ data class Anime(
         get() = favoriteAt != null
 
     val expectedNextUpdate: Instant?
-        get() = nextUpdate
-            .takeIf { status != SAnime.COMPLETED.toLong() }
-            ?.let { Instant.fromEpochMilliseconds(it) }
+        get() = nextUpdate?.takeIf { status != SAnime.COMPLETED.toLong() }
 
     val sorting: Long
         get() = episodeFlags and EPISODE_SORTING_MASK
@@ -375,6 +373,11 @@ data class Anime(
         const val ANIME_INTRO_DISABLE_MASK = 0x100000000000000L
         // <-- AY
 
+        /**
+         * [favoriteAt] of an entry added to the library before the time it was added was recorded.
+         */
+        val UNKNOWN_FAVORITE_AT = Instant.fromEpochMilliseconds(0)
+
         fun create() = Anime(
             id = -1L,
             url = "",
@@ -382,15 +385,15 @@ data class Anime(
             ogTitle = "",
             // <-- AM (CUSTOM_INFORMATION)
             source = -1L,
-            lastUpdate = 0L,
-            nextUpdate = 0L,
+            lastUpdate = null,
+            nextUpdate = null,
             fetchInterval = 0,
             favoriteAt = null,
             viewerFlags = 0L,
             episodeFlags = 0L,
-            coverLastModified = 0L,
+            coverLastModified = null,
             // AY -->
-            backgroundLastModified = 0L,
+            backgroundLastModified = null,
             // <-- AY
             // AM (CUSTOM_INFORMATION) -->
             ogArtist = null,

@@ -45,7 +45,6 @@ import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import eu.kanade.domain.anime.interactor.SetAnimeViewerFlags
 import eu.kanade.domain.anime.interactor.UpdateAnime
 import eu.kanade.domain.base.BasePreferences
-import eu.kanade.domain.episode.model.toDbEpisode
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.track.interactor.TrackEpisode
 import eu.kanade.domain.track.service.TrackPreferences
@@ -61,9 +60,6 @@ import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
-import eu.kanade.tachiyomi.data.database.models.Episode
-import eu.kanade.tachiyomi.data.database.models.isRecognizedNumber
-import eu.kanade.tachiyomi.data.database.models.toDomainEpisode
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.model.Download
@@ -107,6 +103,7 @@ import eu.kanade.tachiyomi.util.storage.cacheImageDir
 import eu.kanade.tachiyomi.util.system.getWanIp
 import `is`.xyz.mpv.MPVNode
 import `is`.xyz.mpv.Utils
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -126,10 +123,13 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -138,10 +138,6 @@ import tachiyomi.cast.CastManager
 import tachiyomi.cast.domain.TrackInformation
 import tachiyomi.cast.domain.VideoInformation
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
-import tachiyomi.core.common.util.lang.launchNonCancellable
-import tachiyomi.core.common.util.lang.withIOContext
-import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.model.Anime
@@ -151,6 +147,7 @@ import tachiyomi.domain.custombutton.model.CustomButton
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.episode.interactor.UpdateEpisode
+import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.episode.service.getEpisodeSort
 import tachiyomi.domain.history.interactor.GetNextEpisodes
@@ -168,16 +165,18 @@ import tachiyomi.source.local.image.LocalEpisodeThumbnailManager
 import tachiyomi.source.local.isLocal
 import java.io.File
 import java.io.InputStream
-import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @AssistedInject
 class PlayerViewModel(
     @Assisted private val savedState: SavedStateHandle,
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val context: Context,
     private val json: Json,
     private val mpvFactory: MPVPlayer.Factory,
@@ -337,6 +336,14 @@ class PlayerViewModel(
     private val _eventFlow = MutableSharedFlow<Event>()
     val eventFlow = _eventFlow.asSharedFlow()
 
+    // Serializes the progress writes, which outlive the player, so they are applied in order
+    private val progressWrites = Mutex()
+
+    // Set on Main, flushed from the episode load too
+    @Volatile
+    private var pendingProgressEpisode: Episode? = null
+    private var pendingProgressSave: Job? = null
+
     private var httpServer: HttpServer? = null
     private var timerJob: Job? = null
     private var getHosterVideoLinksJob: Job? = null
@@ -349,13 +356,13 @@ class PlayerViewModel(
         }
 
     init {
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             getCustomButtons.subscribeAll().collectLatest { buttons ->
                 setupCustomButtons(buttons)
             }
         }
 
-        viewModelScope.launchIO {
+        viewModelScope.launch {
             subtitlePreferences.subtitleSystemFonts.changes().collectLatest { fonts ->
                 updateUiData { it.copy(fontList = fetchFonts(fonts)) }
             }
@@ -823,7 +830,7 @@ class PlayerViewModel(
                     }
                     qualityIndex = Pair(hostIndex, vidIndex)
                 } else {
-                    episodeLoader.getHosters(episode.toDomainEpisode()!!, anime, source)
+                    episodeLoader.getHosters(episode, anime, source)
                         .takeIf { it.isNotEmpty() }
                         ?.also { currentHosterList = it }
                         ?: run {
@@ -868,6 +875,7 @@ class PlayerViewModel(
 
     private suspend fun setupEpisodeList(anime: Anime) {
         val episodes = getEpisodesByAnimeId.await(anime.id)
+        val sortedEpisodes = episodes
             .sortedWith(getEpisodeSort(anime, sortDescending = false))
             .run {
                 if (basePreferences.downloadedOnly.get()) {
@@ -876,14 +884,13 @@ class PlayerViewModel(
                     this
                 }
             }
-            .map { it.toDbEpisode() }
 
-        val selectedEpisode = episodes.find { it.id == episodeId }
+        val selectedEpisode = sortedEpisodes.find { it.id == episodeId }
             ?: error("Requested episode of id $episodeId not found in episode list")
 
         val source = stateData.value.currentSource ?: return
 
-        val filtered = episodes.filterNot {
+        val filtered = sortedEpisodes.filterNot {
             (anime.unseenFilterRaw == Anime.EPISODE_SHOW_SEEN && !it.seen) ||
                 (anime.unseenFilterRaw == Anime.EPISODE_SHOW_UNSEEN && it.seen) ||
                 (
@@ -932,34 +939,40 @@ class PlayerViewModel(
             filtered += listOf(selectedEpisode)
         }
 
-        updateStateData { it.copy(currentPlaylist = filtered.toList()) }
+        updateStateData {
+            it.copy(
+                currentPlaylist = filtered.toList(),
+                unfilteredEpisodeList = episodes,
+            )
+        }
     }
 
-    private fun isEpisodeOnline(episode: Episode): Boolean? {
+    private suspend fun isEpisodeOnline(episode: Episode): Boolean? {
         val currentState = stateData.value
 
         val anime = currentState.currentAnime ?: return null
         val source = currentState.currentSource ?: return null
         return source is AnimeHttpSource &&
             !episodeLoader.isDownload(
-                episode.toDomainEpisode()!!,
+                episode,
                 anime,
                 source,
             )
     }
 
-    private fun setupEpisode(episode: Episode) {
+    private suspend fun setupEpisode(episode: Episode) {
         val currentState = stateData.value
 
         val currentEpisodeIndex = currentState.currentPlaylist.indexOfFirst {
             episode.id == it.id
         }
+        val isEpisodeOnline = isEpisodeOnline(episode)
 
         updateStateData {
             it.copy(
                 currentEpisode = episode,
                 currentPlaylistIndex = currentEpisodeIndex,
-                isEpisodeOnline = isEpisodeOnline(episode) == true,
+                isEpisodeOnline = isEpisodeOnline == true,
                 hasPreviousEpisode = currentEpisodeIndex != 0,
                 hasNextEpisode = currentEpisodeIndex != currentState.currentPlaylist.size - 1,
             )
@@ -969,7 +982,7 @@ class PlayerViewModel(
             it.copy(mediaTitle = episode.name)
         }
 
-        setPropertyDouble("user-data/current-anime/episode-number", episode.episode_number.toDouble())
+        setPropertyDouble("user-data/current-anime/episode-number", episode.episodeNumber)
     }
 
     fun setupPlayerOrientation() {
@@ -1087,7 +1100,7 @@ class PlayerViewModel(
             }
 
             if (isTorrent) {
-                video = withIOContext {
+                video = withContext(Dispatchers.IO) {
                     TorrentServerService.start(context)
                     val videoUrl = getTorrentUrl(video.videoUrl, video.videoTitle).toHttpUrl().newBuilder()
                         .host(address)
@@ -1405,7 +1418,7 @@ class PlayerViewModel(
             ?: throw Exception("No source available")
 
         getHosterVideoLinksJob?.cancel()
-        getHosterVideoLinksJob = viewModelScope.launchIO {
+        getHosterVideoLinksJob = viewModelScope.launch(Dispatchers.IO) {
             updateStateData {
                 it.copy(
                     hosterState = hosterList.map { hoster ->
@@ -1498,7 +1511,7 @@ class PlayerViewModel(
         val (hosterIdx, videoIdx) = hosterLoader.selectBestVideo(stateData.value.hosterState)
         if (hosterIdx == -1) return false
         val newVideo = (stateData.value.hosterState[hosterIdx] as HosterState.Ready).videoList[videoIdx]
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             loadVideo(newVideo, hosterIdx, videoIdx)
         }
         return true
@@ -1588,7 +1601,7 @@ class PlayerViewModel(
             clearTracks()
         }
 
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             loadThumbnails(resolvedVideo, source)
         }
 
@@ -1614,7 +1627,7 @@ class PlayerViewModel(
                 if (episode.seen && !preservePos) {
                     0L
                 } else {
-                    episode.last_second_seen / 1000L
+                    episode.lastSecondSeen / 1000L
                 }
             }
         } else if (castState.hasLoadedVideo) {
@@ -1645,12 +1658,12 @@ class PlayerViewModel(
         }
 
         if (torrentPreferences.torrServerEnable.get() && isTorrent(video)) {
-            launchIO {
+            viewModelScope.launch(Dispatchers.IO) {
                 TorrentServerService.start(context)
                 torrentLinkHandler(video.videoUrl, video.videoTitle, videoOptions)
             }
         } else {
-            launchIO {
+            viewModelScope.launch(Dispatchers.IO) {
                 val httpSource = stateData.value.currentSource as? AnimeHttpSource
                 var videoUrl: String = video.videoUrl
                 if (video.usesHttpServer() && httpSource != null) {
@@ -1661,7 +1674,7 @@ class PlayerViewModel(
                     } catch (e: Exception) {
                         logcat(LogPriority.ERROR, e) { "Failed to start http server" }
                         _eventFlow.emit(Event.ToastResource(AYMR.strings.http_server_start_failure))
-                        return@launchIO
+                        return@launch
                     }
 
                     val newVideo = video.copyHttpServer(port)
@@ -1845,7 +1858,7 @@ class PlayerViewModel(
             return
         }
 
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val success = loadVideo(video, hosterIndex, videoIndex)
             if (success) {
                 if (uiData.value.sheetShown == Sheets.QualityTracks ||
@@ -1875,7 +1888,7 @@ class PlayerViewModel(
                 val hosterName = stateData.value.hosterList[index].hosterName
                 updateHosterStateAt(index, HosterState.Loading(hosterName))
 
-                viewModelScope.launchIO {
+                viewModelScope.launch(Dispatchers.IO) {
                     val hosterState = episodeLoader.loadHosterVideos(
                         source = source,
                         hoster = stateData.value.hosterList[index],
@@ -1918,7 +1931,7 @@ class PlayerViewModel(
     }
 
     private fun loadAniSkip(chapterCount: Int, duration: Int?) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             if (introSkipEnabled && aniSkipEnabled && !(disableAniSkipOnChapters && chapterCount > 0)) {
                 aniSkipResponse(duration)?.let { stamps ->
                     updateStateData { it.copy(aniskipChapters = stamps) }
@@ -1967,7 +1980,7 @@ class PlayerViewModel(
         // Write to mpv table
         setPropertyString("user-data/current-anime/episode-title", episode.name)
 
-        val epNumber = episode.episode_number.let { number ->
+        val epNumber = episode.episodeNumber.let { number ->
             if (ceil(number) == floor(number)) number.toInt() else number
         }.toString().padStart(2, '0')
 
@@ -2202,7 +2215,7 @@ class PlayerViewModel(
                     updateSubtitleTrackAt(track.index) {
                         it.copy(state = TrackState.Loading)
                     }
-                    viewModelScope.launchIO {
+                    viewModelScope.launch {
                         mpvCommand(
                             "sub-add",
                             track.data.url,
@@ -2277,7 +2290,7 @@ class PlayerViewModel(
                     updateAudioTrackAt(track.index) {
                         it.copy(state = TrackState.Loading)
                     }
-                    viewModelScope.launchIO {
+                    viewModelScope.launch {
                         mpvCommand(
                             "audio-add",
                             track.data.url,
@@ -2374,14 +2387,14 @@ class PlayerViewModel(
 
         setupEpisode(chosenEpisode)
 
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             try {
                 currentHosterList = episodeLoader.getHosters(
-                    episode = chosenEpisode.toDomainEpisode()!!,
+                    episode = chosenEpisode,
                     anime,
                     source,
                 )
-                this@PlayerViewModel.episodeId = chosenEpisode.id!!
+                this@PlayerViewModel.episodeId = chosenEpisode.id
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 logcat(LogPriority.ERROR, e) { e.message ?: "Error getting links" }
@@ -2986,14 +2999,14 @@ class PlayerViewModel(
                 lastThumbnailFetch = now
 
                 thumbnailFetchJob?.cancel()
-                thumbnailFetchJob = viewModelScope.launchIO {
-                    val source = stateData.value.currentSource as? AnimeHttpSource ?: return@launchIO
+                thumbnailFetchJob = viewModelScope.launch(Dispatchers.IO) {
+                    val source = stateData.value.currentSource as? AnimeHttpSource ?: return@launch
 
                     try {
                         val tileUrl = thumbInfo.imageTileUrls[info.imageIndex]
                         val bitmap = source.getImageTile(tileUrl)
                         if (bitmap != null) {
-                            withUIContext {
+                            withContext(Dispatchers.Main) {
                                 thumbnailTileCache[info.imageIndex] = bitmap
                                 createThumbnail(bitmap, info)
                             }
@@ -3016,22 +3029,12 @@ class PlayerViewModel(
 
     // === Aniyomi ===
 
-    /**
-     * Called when the activity is saved and not changing configurations. It updates the database
-     * to persist the current progress of the active episode.
-     */
-    fun onSaveInstanceStateNonConfigurationChange() {
-        val currentEpisode = stateData.value.currentEpisode ?: return
-        viewModelScope.launchNonCancellable {
-            saveEpisodeProgress(currentEpisode)
-        }
-    }
-
     override fun onCleared() {
         stateData.value.currentEpisode?.let {
-            saveWatchingProgress(it)
+            updateEpisodeProgress(it)
             episodeToDownload?.let { toDownload ->
-                downloadManager.addDownloadsToStartOfQueue(listOf(toDownload))
+                // viewModelScope is already cancelled here
+                appScope.launch { downloadManager.addDownloadsToStartOfQueue(listOf(toDownload)) }
             }
         }
 
@@ -3076,28 +3079,93 @@ class PlayerViewModel(
             }
         }
 
-        // It's called seconds, but it's supposed to be in milliseconds. WTF?
-        currentEpisode.last_second_seen = position.toLong() * 1000L
-        currentEpisode.total_seconds = duration.toLong() * 1000L
-
-        episodePosition = position.toLong()
-        val shouldTrack = !stateData.value.incognitoMode || stateData.value.hasTrackers
-        if (position >= duration * progress && shouldTrack) {
-            viewModelScope.launchNonCancellable {
-                updateEpisodeProgressOnComplete(currentEpisode)
-            }
-        }
-
-        saveWatchingProgress(currentEpisode)
+        updateEpisodeProgress(currentEpisode)
 
         val inDownloadRange = position.toDouble() / duration > 0.35
         if (inDownloadRange) {
-            downloadNextEpisodes()
+            appScope.launch {
+                downloadNextEpisodes()
+            }
+        }
+    }
+
+    private fun updateTrackEpisodeSeen(episode: Episode) {
+        if (basePreferences.incognitoMode.get() || !stateData.value.hasTrackers) return
+        if (!trackPreferences.autoUpdateTrack.get()) return
+
+        val anime = stateData.value.currentAnime ?: return
+
+        appScope.launch {
+            trackEpisode.await(context, anime.id, episode.episodeNumber)
+        }
+    }
+
+    private var lastUpdateTime: Instant = Instant.DISTANT_PAST
+
+    /**
+     * Saves this [episodeUpdate] progress (last second seen and whether it's seen).
+     * If incognito mode isn't on
+     *
+     * Completing an episode is saved right away. Other changes are saved once the player settles on a second, or
+     * when [saveWatchingProgress] is called, so going through the video doesn't write to the database on every second.
+     */
+    private fun updateEpisodeProgress(episode: Episode) {
+        val stateData = stateData.value
+        val position = playbackData.value.position * 1000
+        val duration = playbackData.value.duration * 1000
+        if (stateData.incognitoMode) return
+
+        if (pendingProgressEpisode != episode) saveEpisodeProgress()
+        val updatedEpisode = stateData.currentEpisode?.copy(
+            lastSecondSeen = position.takeIf { it > 0 } ?: episode.lastSecondSeen,
+            totalSeconds = duration.takeIf { it > 0 } ?: episode.totalSeconds,
+            seen = episode.seen,
+        )
+        updateStateData { it.copy(currentEpisode = updatedEpisode) }
+
+        if (episode.lastSecondSeen >= episode.totalSeconds * progress) {
+            pendingProgressEpisode = null
+            writeEpisodeProgress(episode, onComplete = true)
+        } else {
+            pendingProgressEpisode = updatedEpisode
+
+            val now = Clock.System.now()
+            if (now - lastUpdateTime > PROGRESS_SAVE_DELAY) {
+                lastUpdateTime = now
+                saveEpisodeProgress()
+            }
+        }
+    }
+
+    /**
+     * Writes the progress of the episode whose position change hasn't been saved yet.
+     */
+    private fun saveEpisodeProgress() {
+        val playerEpisode = pendingProgressEpisode ?: return
+        pendingProgressEpisode = null
+        writeEpisodeProgress(playerEpisode, onComplete = false)
+    }
+
+    /**
+     * Writes the progress of [episode] on the app scope, so it's saved even when the player is closing.
+     */
+    private fun writeEpisodeProgress(episode: Episode, onComplete: Boolean) {
+        // Immediate and through the mutex, which is fair, so the writes land in the order they were made
+        appScope.launch(Dispatchers.Main.immediate) {
+            progressWrites.withLock {
+                if (onComplete) updateEpisodeProgressOnComplete(episode)
+                updateEpisode.await(
+                    EpisodeUpdate(episode.id) {
+                        seen = episode.seen
+                        lastSecondSeen = episode.lastSecondSeen
+                        totalSeconds = episode.totalSeconds
+                    },
+                )
+            }
         }
     }
 
     private suspend fun updateEpisodeProgressOnComplete(currentEp: Episode) {
-        currentEp.seen = true
         updateTrackEpisodeSeen(currentEp)
         deleteEpisodeIfNeeded(currentEp)
 
@@ -3110,9 +3178,9 @@ class PlayerViewModel(
                 if (
                     !episode.seen &&
                     episode.isRecognizedNumber &&
-                    episode.episode_number == currentEp.episode_number
+                    episode.episodeNumber == currentEp.episodeNumber
                 ) {
-                    EpisodeUpdate(episode.id!!) { seen = true }
+                    EpisodeUpdate(episode.id) { seen = true }
                 } else {
                     null
                 }
@@ -3120,59 +3188,14 @@ class PlayerViewModel(
         updateEpisode.awaitAll(duplicateUnseenEpisodes)
     }
 
-    private fun updateTrackEpisodeSeen(episode: Episode) {
-        if (basePreferences.incognitoMode.get() || !stateData.value.hasTrackers) return
-        if (!trackPreferences.autoUpdateTrack.get()) return
-
-        val anime = stateData.value.currentAnime ?: return
-
-        viewModelScope.launchNonCancellable {
-            trackEpisode.await(context, anime.id, episode.episode_number.toDouble())
-        }
-    }
-
-    fun saveCurrentEpisodeWatchingProgress() {
-        stateData.value.currentEpisode?.let {
-            saveWatchingProgress(it)
-        }
-    }
-
-    /**
-     * Called when episode is changed in player or when activity is paused.
-     */
-    private fun saveWatchingProgress(episode: Episode) {
-        viewModelScope.launchNonCancellable {
-            saveEpisodeProgress(episode)
-            saveEpisodeHistory(episode)
-        }
-    }
-
-    /**
-     * Saves this [episode] progress (last second seen and whether it's seen).
-     * If incognito mode isn't on or has at least 1 tracker
-     */
-    private suspend fun saveEpisodeProgress(episode: Episode) {
-        val stateData = stateData.value
-        if (!stateData.incognitoMode || stateData.hasTrackers) {
-            updateEpisode.await(
-                EpisodeUpdate(episode.id!!) {
-                    seen = episode.seen
-                    bookmark = episode.bookmark
-                    fillermark = episode.fillermark
-                    lastSecondSeen = episode.last_second_seen
-                    totalSeconds = episode.total_seconds
-                },
-            )
-        }
-    }
-
     /**
      * Saves this [episode] last seen history if incognito mode isn't on.
      */
     private suspend fun saveEpisodeHistory(episode: Episode) {
+        saveEpisodeProgress()
         if (!stateData.value.incognitoMode) {
-            val episodeId = episode.id!!
-            val seenAt = Date()
+            val episodeId = episode.id
+            val seenAt = Clock.System.now()
             upsertHistory.await(
                 HistoryUpdate(episodeId, seenAt),
             )
@@ -3183,7 +3206,8 @@ class PlayerViewModel(
      * Bookmarks the currently active episode.
      */
     fun bookmarkEpisode(episodeId: Long?, bookmarked: Boolean) {
-        viewModelScope.launchNonCancellable {
+        // On Main so quick toggles are saved in order
+        viewModelScope.launch {
             updateEpisode.await(
                 EpisodeUpdate(episodeId!!) {
                     bookmark = bookmarked
@@ -3196,7 +3220,8 @@ class PlayerViewModel(
      * Fillermarks the currently active episode.
      */
     fun fillermarkEpisode(episodeId: Long?, fillermarked: Boolean) {
-        viewModelScope.launchNonCancellable {
+        // On Main so quick toggles are saved in order
+        viewModelScope.launch {
             updateEpisode.await(
                 EpisodeUpdate(episodeId!!) {
                     fillermark = fillermarked
@@ -3205,7 +3230,7 @@ class PlayerViewModel(
         }
     }
 
-    private fun downloadNextEpisodes() {
+    private suspend fun downloadNextEpisodes() {
         if (downloadAheadAmount == 0) return
         val anime = stateData.value.currentAnime ?: return
         val source = stateData.value.currentSource ?: return
@@ -3219,14 +3244,14 @@ class PlayerViewModel(
 
         val nextEpisode = currentPlaylist[currentPlaylistIndex + 1]
         val episodesAreDownloaded =
-            episodeLoader.isDownload(currentEpisode.toDomainEpisode()!!, anime, source) &&
-                episodeLoader.isDownload(nextEpisode.toDomainEpisode()!!, anime, source)
+            episodeLoader.isDownload(currentEpisode, anime, source) &&
+                episodeLoader.isDownload(nextEpisode, anime, source)
 
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             if (!episodesAreDownloaded) {
-                return@launchIO
+                return@launch
             }
-            val episodesToDownload = getNextEpisodes.await(anime.id, nextEpisode.id!!)
+            val episodesToDownload = getNextEpisodes.await(anime.id, nextEpisode.id)
                 .take(downloadAheadAmount)
             downloadManager.downloadEpisodes(anime, episodesToDownload)
         }
@@ -3237,7 +3262,7 @@ class PlayerViewModel(
      * If both conditions are satisfied enqueues episode for delete
      * @param chosenEpisode current episode, which is going to be marked as seen.
      */
-    private fun deleteEpisodeIfNeeded(chosenEpisode: Episode) {
+    private suspend fun deleteEpisodeIfNeeded(chosenEpisode: Episode) {
         // Determine which episode should be deleted and enqueue
         val currentEpisodePosition = stateData.value.currentPlaylist.indexOf(chosenEpisode)
         val removeAfterSeenSlots = downloadPreferences.removeAfterSeenSlots.get()
@@ -3247,22 +3272,33 @@ class PlayerViewModel(
         // If episode is completely seen no need to download it
         episodeToDownload = null
 
-        // Check if deleting option is enabled and episode exists
-        if (removeAfterSeenSlots != -1 && episodeToDelete != null) {
-            enqueueDeleteSeenEpisodes(episodeToDelete)
+        if (episodeToDelete == null || !episodeToDelete.seen) return
+
+        val markDuplicateAsSeen = libraryPreferences.markDuplicateSeenEpisodeAsSeen.get()
+            .contains(LibraryPreferences.MARK_DUPLICATE_EPISODE_SEEN_EXISTING)
+        val duplicateEpisodes = if (markDuplicateAsSeen) {
+            stateData.value.unfilteredEpisodeList
+                .filter {
+                    it.id != episodeToDelete.id &&
+                        it.isRecognizedNumber &&
+                        it.episodeNumber == episodeToDelete.episodeNumber
+                }
+                // The list is loaded once, before these were marked seen along with episodeToDelete
+                .map { it.copy(seen = true) }
+        } else {
+            emptyList()
         }
+        enqueueDeleteEpisodes(listOf(episodeToDelete) + duplicateEpisodes)
     }
 
     /**
-     * Enqueues this [episode] to be deleted when [deletePendingEpisodes] is called. The download
-     * manager handles persisting it across process deaths.
+     * Enqueues these [episodes] to be deleted when [deletePendingEpisodes] is called. The download
+     * manager handles persisting them across process deaths.
      */
-    private fun enqueueDeleteSeenEpisodes(episode: Episode) {
-        if (!episode.seen) return
+    private suspend fun enqueueDeleteEpisodes(episodes: List<Episode>) {
         val anime = stateData.value.currentAnime ?: return
-        viewModelScope.launchNonCancellable {
-            downloadManager.enqueueEpisodesToDelete(listOf(episode.toDomainEpisode()!!), anime)
-        }
+
+        downloadManager.enqueueEpisodesToDelete(episodes, anime)
     }
 
     /**
@@ -3270,7 +3306,9 @@ class PlayerViewModel(
      * are ignored.
      */
     fun deletePendingEpisodes() {
-        viewModelScope.launchNonCancellable {
+        appScope.launch {
+            // Progress writes started before leaving may still enqueue the episode just finished
+            progressWrites.withLock {}
             downloadManager.deletePendingEpisodes()
         }
     }
@@ -3290,28 +3328,36 @@ class PlayerViewModel(
         val anime = stateData.value.currentAnime ?: return
         val episode = stateData.value.currentEpisode ?: return
 
-        viewModelScope.launchNonCancellable {
-            val result = try {
-                when (artType) {
-                    ArtType.Cover -> anime.editCover(coverManager, imageStream(), updateAnime, coverCache)
-                    ArtType.Background -> anime.editBackground(
-                        backgroundManager,
-                        imageStream(),
-                        updateAnime,
-                        backgroundCache,
-                    )
-                    ArtType.Thumbnail -> episode.editThumbnail(anime, thumbnailManager, imageStream())
-                }
+        viewModelScope.launch {
+            val result = appScope.async {
+                try {
+                    when (artType) {
+                        ArtType.Cover -> anime.editCover(coverManager, imageStream(), updateAnime, coverCache)
+                        ArtType.Background -> anime.editBackground(
+                            backgroundManager,
+                            imageStream(),
+                            updateAnime,
+                            backgroundCache,
+                        )
+                        ArtType.Thumbnail -> episode.editThumbnail(
+                            anime,
+                            thumbnailManager,
+                            updateEpisode,
+                            imageStream(),
+                        )
+                    }
 
-                if (anime.isLocal() || anime.favorite) {
-                    SetAsArt.Success
-                } else {
-                    SetAsArt.AddToLibraryFirst
+                    if (anime.isLocal() || anime.favorite) {
+                        SetAsArt.Success
+                    } else {
+                        SetAsArt.AddToLibraryFirst
+                    }
+                } catch (e: Exception) {
+                    logcat(LogPriority.ERROR, e) { "Failed to set art" }
+                    SetAsArt.Error
                 }
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, e) { "Failed to set art" }
-                SetAsArt.Error
-            }
+            }.await()
+
             _eventFlow.emit(Event.SetArtResult(result, artType))
         }
     }
@@ -3332,8 +3378,8 @@ class PlayerViewModel(
         val seconds = Utils.prettyTime(pos)
         val filename = generateFilename(anime, seconds) ?: return
 
-        try {
-            viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
                 destDir.deleteRecursively()
                 val uri = imageSaver.save(
                     image = Image.Screenshot(
@@ -3343,9 +3389,11 @@ class PlayerViewModel(
                     ),
                 )
                 _eventFlow.emit(Event.ShareImage(uri, seconds))
+            } catch (e: Exception) {
+                if (e is CancellationException) {
+                    logcat(LogPriority.ERROR, e)
+                }
             }
-        } catch (e: Throwable) {
-            logcat(LogPriority.ERROR, e)
         }
     }
 
@@ -3366,22 +3414,25 @@ class PlayerViewModel(
         // Pictures directory.
         val relativePath = DiskUtil.buildValidFilename(anime.title)
 
-        // Copy file in background.
-        viewModelScope.launchNonCancellable {
-            try {
-                val uri = imageSaver.save(
-                    image = Image.Screenshot(
-                        inputStream = imageStream,
-                        name = filename,
-                        location = Location.Pictures(relativePath),
-                    ),
-                )
-                notifier.onComplete(uri)
-                _eventFlow.emit(Event.SavedImage(SaveImageResult.Success(uri)))
-            } catch (e: Throwable) {
-                notifier.onError(e.message)
-                _eventFlow.emit(Event.SavedImage(SaveImageResult.Error(e)))
-            }
+        // The save and its notification outlive the player, the result event doesn't
+        viewModelScope.launch {
+            val result = appScope.async {
+                try {
+                    val uri = imageSaver.save(
+                        image = Image.Screenshot(
+                            inputStream = imageStream,
+                            name = filename,
+                            location = Location.Pictures(relativePath),
+                        ),
+                    )
+                    withContext(Dispatchers.Main) { notifier.onComplete(uri) }
+                    SaveImageResult.Success(uri)
+                } catch (e: Throwable) {
+                    notifier.onError(e.message)
+                    SaveImageResult.Error(e)
+                }
+            }.await()
+            _eventFlow.emit(Event.SavedImage(result))
         }
     }
 
@@ -3522,8 +3573,10 @@ class PlayerViewModel(
         if (!anime.favorite) return
         // Skip unnecessary database operation
         if (skipIntroLength == getAnimeSkipIntroLength().toLong()) return
-        viewModelScope.launchIO {
-            setAnimeViewerFlags.awaitSetSkipIntroLength(anime.id, skipIntroLength)
+        viewModelScope.launch {
+            appScope.async {
+                setAnimeViewerFlags.awaitSetSkipIntroLength(anime.id, skipIntroLength)
+            }.await()
             val newAnime = getAnime.await(anime.id)
             updateStateData { it.copy(currentAnime = newAnime) }
         }
@@ -3537,7 +3590,7 @@ class PlayerViewModel(
     suspend fun aniSkipResponse(playerDuration: Int?): List<TimeStamp>? {
         val animeId = stateData.value.currentAnime?.id ?: return null
         var malId: Long?
-        val episodeNumber = stateData.value.currentEpisode?.episode_number?.toInt() ?: return null
+        val episodeNumber = stateData.value.currentEpisode?.episodeNumber?.toInt() ?: return null
         if (getTracks.await(animeId).isEmpty()) {
             logcat(LogPriority.DEBUG) { "AniSkip: No tracks found for anime $animeId" }
             return null
@@ -3587,6 +3640,7 @@ class PlayerViewModel(
         val hasTrackers: Boolean = false,
         val incognitoMode: Boolean = false,
         val currentPlaylist: List<Episode> = emptyList(),
+        val unfilteredEpisodeList: List<Episode> = emptyList(),
         val currentPlaylistIndex: Int = -1,
         val hasPreviousEpisode: Boolean = false,
         val hasNextEpisode: Boolean = false,
@@ -3713,3 +3767,5 @@ class PlayerViewModel(
         data class UpdateDiscordRPC(val paused: Boolean, val position: Int? = null) : Event
     }
 }
+
+private val PROGRESS_SAVE_DELAY = 2.seconds

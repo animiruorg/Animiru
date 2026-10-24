@@ -96,10 +96,9 @@ object SettingsDownloadScreen : SearchableSettings {
             ),
             // <-- AM
             Preference.PreferenceItem.SliderPreference(
-                value = parallelSourceLimit,
+                preference = downloadPreferences.parallelSourceLimit,
                 valueRange = 1..10,
                 title = stringResource(MR.strings.pref_download_concurrent_sources),
-                onValueChanged = { downloadPreferences.parallelSourceLimit.set(it) },
             ),
             // AM -->
             Preference.PreferenceItem.SwitchPreference(
@@ -110,7 +109,7 @@ object SettingsDownloadScreen : SearchableSettings {
                 preference = downloadPreferences.downloadThreads,
                 entries = (1..64).associateWith { it.toString() },
                 title = stringResource(AMMR.strings.pref_download_threads),
-                enabled = internalDownloader,
+                visible = internalDownloader,
             ),
             Preference.PreferenceItem.TextPreference(
                 title = stringResource(AMMR.strings.am_download_speed_limit),
@@ -119,7 +118,7 @@ object SettingsDownloadScreen : SearchableSettings {
                 } else {
                     stringResource(AMMR.strings.am_download_speed_limit_value, speedLimit)
                 },
-                enabled = internalDownloader,
+                visible = internalDownloader,
                 onClick = { showDownloadLimitDialog = true },
             ),
             // <-- AM
@@ -238,7 +237,7 @@ object SettingsDownloadScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = downloadNewUnseenEpisodesOnlyPref,
                     title = stringResource(AYMR.strings.pref_download_new_unseen_episodes_only),
-                    enabled = downloadNewEpisodes,
+                    visible = downloadNewEpisodes,
                 ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.categories),
@@ -247,7 +246,7 @@ object SettingsDownloadScreen : SearchableSettings {
                         included = included,
                         excluded = excluded,
                     ),
-                    enabled = downloadNewEpisodes,
+                    visible = downloadNewEpisodes,
                     onClick = { showDialog = true },
                 ),
             ),

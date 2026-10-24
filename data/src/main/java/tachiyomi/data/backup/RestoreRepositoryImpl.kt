@@ -21,8 +21,8 @@ import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.episode.repository.EpisodeRepository
 import tachiyomi.domain.track.model.Track
 import tachiyomi.domain.track.repository.TrackRepository
-import java.util.Date
 import kotlin.math.max
+import kotlin.time.Instant
 
 @Inject
 @SingleIn(AppScope::class)
@@ -34,11 +34,12 @@ class RestoreRepositoryImpl(
     private val trackRepository: TrackRepository,
 ) : RestoreRepository {
 
-    override suspend fun getAnimeUrlsBySourceId(): Map<Long, List<String>> {
-        return database.animesQueries
+    override suspend fun getAnimeUrlsBySourceId(): Map<Long, Set<String>> {
+        return database.animeQueries
             .getAllAnimeSourceAndUrl()
             .awaitAsList()
-            .groupBy({ it.source }, { it.url })
+            .groupBy({ it.source_id }, { it.remote_url })
+            .mapValues { it.value.toSet() }
     }
 
     override suspend fun restoreAnime(entries: List<RestoredAnime>, update: suspend (Anime) -> AnimeUpdate) {
@@ -79,7 +80,10 @@ class RestoreRepositoryImpl(
         val details = if (dbAnime.initialized || !anime.initialized) dbAnime else anime
         return dbAnime.copy(
             favoriteAt = if (dbAnime.favorite || anime.favorite) {
-                listOfNotNull(dbAnime.favoriteAt, anime.favoriteAt).filter { it > 0 }.minOrNull() ?: 0L
+                listOfNotNull(dbAnime.favoriteAt, anime.favoriteAt)
+                    .filter { it > Anime.UNKNOWN_FAVORITE_AT }
+                    .minOrNull()
+                    ?: Anime.UNKNOWN_FAVORITE_AT
             } else {
                 null
             },
@@ -94,6 +98,7 @@ class RestoreRepositoryImpl(
             initialized = dbAnime.initialized || anime.initialized,
             // Merge both backup and local data with local winning
             memo = JsonObject(anime.memo + dbAnime.memo),
+            nextUpdate = dbAnime.nextUpdate ?: anime.nextUpdate,
             // AM -->
             backgroundUrl = details.backgroundUrl,
             fetchType = details.fetchType,
@@ -104,68 +109,68 @@ class RestoreRepositoryImpl(
     }
 
     private suspend fun updateAnime(anime: Anime): Anime {
-        database.animesQueries.updateFromBackup(
-            favoriteAt = anime.favoriteAt,
-            artist = anime.artist,
-            author = anime.author,
-            description = anime.description,
-            genre = anime.genre,
-            title = anime.title,
-            status = anime.status,
-            thumbnailUrl = anime.thumbnailUrl,
-            lastUpdate = anime.lastUpdate,
-            initialized = anime.initialized,
-            viewer = anime.viewerFlags,
-            episodeFlags = anime.episodeFlags,
-            coverLastModified = anime.coverLastModified,
-            updateStrategy = anime.updateStrategy,
-            notes = anime.notes,
+        database.animeQueries.updateFromBackup(
+            userFavoriteAt = anime.favoriteAt,
+            remoteArtist = anime.ogArtist,
+            remoteAuthor = anime.ogAuthor,
+            remoteDescription = anime.ogDescription,
+            remoteGenre = anime.ogGenre,
+            remoteTitle = anime.ogTitle,
+            remoteStatus = anime.ogStatus,
+            remoteCover = anime.thumbnailUrl,
+            stateEpisodeLastUpdate = anime.lastUpdate,
+            stateInitialized = anime.initialized,
+            userPlayerFlags = anime.viewerFlags,
+            userEpisodeFlags = anime.episodeFlags,
+            stateCoverLastModified = anime.coverLastModified,
+            remoteUpdateStrategy = anime.updateStrategy,
+            userNotes = anime.notes,
             // AM -->
-            fetchType = anime.fetchType,
-            parentId = anime.parentId,
-            seasonFlags = anime.seasonFlags,
-            seasonNumber = anime.seasonNumber,
-            seasonSourceOrder = anime.seasonSourceOrder,
-            backgroundUrl = anime.backgroundUrl,
-            backgroundLastModified = anime.backgroundLastModified,
+            remoteFetchType = anime.fetchType,
+            stateParentId = anime.parentId,
+            userSeasonFlags = anime.seasonFlags,
+            remoteSeasonNumber = anime.seasonNumber,
+            remoteSeasonSourceOrder = anime.seasonSourceOrder,
+            remoteBackground = anime.backgroundUrl,
+            stateBackgroundLastModified = anime.backgroundLastModified,
             // <-- AM
-            memo = anime.memo,
-            animeId = anime.id,
+            remoteMemo = anime.memo,
+            id = anime.id,
         )
         return anime
     }
 
     private suspend fun insertAnime(anime: Anime): Long {
-        return database.animesQueries.insertReturningId(
-            favoriteAt = anime.favoriteAt,
-            source = anime.source,
-            url = anime.url,
-            artist = anime.artist,
-            author = anime.author,
-            description = anime.description,
-            genre = anime.genre,
-            title = anime.title,
-            status = anime.status,
-            thumbnailUrl = anime.thumbnailUrl,
-            lastUpdate = anime.lastUpdate,
-            nextUpdate = 0L,
-            initialized = anime.initialized,
-            viewerFlags = anime.viewerFlags,
-            episodeFlags = anime.episodeFlags,
-            coverLastModified = anime.coverLastModified,
-            updateStrategy = anime.updateStrategy,
-            calculateInterval = 0L,
-            notes = anime.notes,
+        return database.animeQueries.insertReturningId(
+            userFavoriteAt = anime.favoriteAt,
+            sourceId = anime.source,
+            remoteUrl = anime.url,
+            remoteArtist = anime.ogArtist,
+            remoteAuthor = anime.ogAuthor,
+            remoteDescription = anime.ogDescription,
+            remoteGenre = anime.ogGenre,
+            remoteTitle = anime.ogTitle,
+            remoteStatus = anime.ogStatus,
+            remoteCover = anime.thumbnailUrl,
+            stateEpisodeLastUpdate = anime.lastUpdate,
+            stateEpisodeNextUpdate = null,
+            stateInitialized = anime.initialized,
+            userPlayerFlags = anime.viewerFlags,
+            userEpisodeFlags = anime.episodeFlags,
+            stateCoverLastModified = anime.coverLastModified,
+            remoteUpdateStrategy = anime.updateStrategy,
+            stateEpisodeFetchInterval = 0L,
+            userNotes = anime.notes,
             // AM -->
-            fetchType = anime.fetchType,
-            parentId = anime.parentId,
-            seasonFlags = anime.seasonFlags,
-            seasonNumber = anime.seasonNumber,
-            seasonSourceOrder = anime.seasonSourceOrder,
-            backgroundUrl = anime.backgroundUrl,
-            backgroundLastModified = anime.backgroundLastModified,
+            remoteFetchType = anime.fetchType,
+            stateParentId = anime.parentId,
+            userSeasonFlags = anime.seasonFlags,
+            remoteSeasonNumber = anime.seasonNumber,
+            remoteSeasonSourceOrder = anime.seasonSourceOrder,
+            remoteBackground = anime.backgroundUrl,
+            stateBackgroundLastModified = anime.backgroundLastModified,
             // <-- AM
-            memo = anime.memo,
+            remoteMemo = anime.memo,
         )
             .awaitAsOne()
     }
@@ -219,78 +224,87 @@ class RestoreRepositoryImpl(
             .partition { it.id > 0 }
 
         newEpisodes.forEach { episode ->
-            database.episodesQueries.insert(
-                episode.animeId,
-                episode.url,
-                episode.name,
-                episode.scanlator,
-                episode.seen,
-                episode.bookmark,
+            database.episodeQueries.insertReturningId(
+                animeId = episode.animeId,
+                remoteUrl = episode.url,
+                remoteName = episode.name,
+                remoteScanlator = episode.scanlator,
+                userSeen = episode.seen,
+                userBookmark = episode.bookmark,
                 // AM -->
-                episode.fillermark,
+                remoteFillermark = episode.fillermark,
                 // <-- AM
-                episode.lastSecondSeen,
+                userLastSecondSeen = episode.lastSecondSeen,
                 // AM -->
-                episode.totalSeconds,
+                stateTotalSeconds = episode.totalSeconds,
                 // <-- AM
-                episode.episodeNumber,
-                episode.sourceOrder,
-                episode.dateFetch,
-                episode.dateUpload,
+                remoteEpisodeNumber = episode.episodeNumber,
+                remoteOrder = episode.sourceOrder,
+                stateDateFetch = episode.dateFetch,
+                remoteDateUpload = episode.dateUpload,
                 // AM -->
-                episode.summary,
-                episode.previewUrl,
+                remoteSummary = episode.summary,
+                remotePreviewUrl = episode.previewUrl,
                 // <-- AM
-                episode.memo,
+                remoteMemo = episode.memo,
             )
+                .awaitAsOneOrNull()
         }
         existingEpisodes.forEach { episode ->
-            database.episodesQueries.updateFromBackup(
-                seen = episode.seen,
-                bookmark = episode.bookmark,
+            database.episodeQueries.updateFromBackup(
+                userSeen = episode.seen,
+                userBookmark = episode.bookmark,
                 // AM -->
-                fillermark = episode.fillermark,
-                totalSeconds = episode.totalSeconds,
-                thumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
+                remoteFillermark = episode.fillermark,
+                stateTotalSeconds = episode.totalSeconds,
+                stateThumbnailLastModifiedAt = episode.thumbnailLastModifiedAt,
                 // <-- AM
-                lastSecondSeen = episode.lastSecondSeen,
-                episodeId = episode.id,
-                memo = episode.memo,
+                userLastSecondSeen = episode.lastSecondSeen,
+                id = episode.id,
+                remoteMemo = episode.memo,
             )
         }
     }
 
     private fun Episode.forComparison() =
-        this.copy(id = 0L, animeId = 0L, dateFetch = 0L, dateUpload = 0L, thumbnailLastModifiedAt = 0L)
+        this.copy(
+            id = 0L,
+            animeId = 0L,
+            dateFetch = Instant.DISTANT_PAST,
+            dateUpload = null,
+            thumbnailLastModifiedAt = null,
+        )
 
     private suspend fun restoreHistory(anime: Anime, restoredHistory: List<RestoredHistory>) {
+        if (restoredHistory.isEmpty()) return
+        val episodeIdsByUrl = episodeRepository.getEpisodeByAnimeId(anime.id).associate { it.url to it.id }
+        val dbHistoryByEpisodeId = database.historyQueries
+            .getHistoryByAnimeId(anime.id)
+            .awaitAsList()
+            .associateBy { it.episode_id }
+
         val toUpdate = restoredHistory
-            .groupBy { it.episodeUrl }
-            .mapNotNull { (episodeUrl, copies) ->
-                val seenAt = copies.maxOf { it.seenAt?.time ?: 0L }
-                val dbHistory = database.historyQueries
-                    .getHistoryByEpisodeUrlAndAnimeId(episodeUrl, anime.id)
-                    .awaitAsOneOrNull()
+            // Episode doesn't exist; skip
+            .filter { it.episodeUrl in episodeIdsByUrl }
+            // A backup of a library that still had duplicate episodes carries a history entry for
+            // each copy; they are one episode now, read as late as any copy and for as long as all
+            .groupBy { episodeIdsByUrl.getValue(it.episodeUrl) }
+            .map { (episodeId, copies) ->
+                val seenAt = copies.mapNotNull { it.seenAt }.maxOrNull()
 
-                if (dbHistory == null) {
-                    val episode = database.episodesQueries
-                        .getEpisodeByUrlAndAnimeId(episodeUrl, anime.id)
-                        .awaitAsOneOrNull()
-                        // Episode doesn't exist; skip
-                        ?: return@mapNotNull null
-                    // New history entry
-                    return@mapNotNull Pair(episode._id, Date(seenAt))
-                }
+                val dbHistory = dbHistoryByEpisodeId[episodeId]
+                    ?: return@map Pair(episodeId, seenAt)
 
-                // Update history entry
+                // Update history entry. 0 is kept rather than written as NULL, since it marks history
+                // the user removed.
                 Pair(
-                    dbHistory.episode_id,
-                    Date(max(seenAt, dbHistory.last_seen?.time ?: 0L)),
+                    episodeId,
+                    listOfNotNull(seenAt, dbHistory.seen_at).maxOrNull(),
                 )
             }
 
         toUpdate.forEach { (episodeId, seenAt) ->
-            database.historyQueries.upsert(episodeId, seenAt)
+            database.historyQueries.upsert(episodeId = episodeId, seenAt = seenAt)
         }
     }
 
@@ -306,52 +320,38 @@ class RestoreRepositoryImpl(
                         animeId = anime.id,
                     )
 
-                if (track.forComparison() == dbTrack.forComparison()) {
-                    // Same state; skip
-                    return@mapNotNull null
-                }
+                if (track.lastEpisodeSeen <= dbTrack.lastEpisodeSeen) return@mapNotNull null
 
                 // Update to an existing track
-                dbTrack.copy(
-                    remoteId = track.remoteId,
-                    libraryId = track.libraryId,
-                    lastEpisodeSeen = max(dbTrack.lastEpisodeSeen, track.lastEpisodeSeen),
-                )
+                dbTrack.copy(lastEpisodeSeen = track.lastEpisodeSeen)
             }
             .partition { it.id > 0 }
 
         if (newTracks.isNotEmpty()) {
-            trackRepository.insertAll(newTracks)
+            trackRepository.upsertAll(newTracks)
         }
 
         existingTracks.forEach { track ->
-            database.anime_syncQueries.update(
-                track.animeId,
-                track.trackerId,
-                track.remoteId,
-                track.libraryId,
-                track.title,
-                track.lastEpisodeSeen,
-                track.totalEpisodes,
-                track.status,
-                track.score,
-                track.remoteUrl,
-                track.startDate,
-                track.finishDate,
-                track.private,
-                track.id,
+            database.anime_trackQueries.update(
+                animeId = track.animeId,
+                trackerId = track.trackerId,
+                remoteId = track.remoteId,
+                libraryId = track.libraryId,
+                title = track.title,
+                lastEpisodeSeen = track.lastEpisodeSeen,
+                totalEpisodes = track.totalEpisodes,
+                status = track.status,
+                score = track.score,
+                remoteUrl = track.remoteUrl,
+                startDate = track.startDate,
+                finishDate = track.finishDate,
+                private = track.private,
+                id = track.id,
             )
         }
     }
 
-    private fun Track.forComparison() = this.copy(id = 0L, animeId = 0L)
-
     private suspend fun restoreExcludedScanlators(anime: Anime, excludedScanlators: List<String>) {
-        if (excludedScanlators.isEmpty()) return
-        val existingExcludedScanlators = database.excluded_scanlatorsQueries
-            .getExcludedScanlatorsByAnimeId(anime.id)
-            .awaitAsList()
-        val toInsert = excludedScanlators.filter { it !in existingExcludedScanlators }
-        toInsert.forEach { database.excluded_scanlatorsQueries.insert(anime.id, it) }
+        excludedScanlators.forEach { database.excluded_scanlatorQueries.insert(anime.id, it) }
     }
 }

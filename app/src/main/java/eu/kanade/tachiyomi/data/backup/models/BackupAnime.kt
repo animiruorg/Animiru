@@ -5,8 +5,10 @@ import eu.kanade.tachiyomi.animesource.model.FetchType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
 import mihon.core.common.extensions.JsonObjectEmptyBytes
+import mihon.core.common.extensions.toInstantOrNull
 import mihon.core.common.extensions.toJsonObject
 import tachiyomi.domain.anime.model.Anime
+import kotlin.time.Instant
 
 @Suppress("DEPRECATION")
 @Serializable
@@ -45,6 +47,7 @@ data class BackupAnime(
     @ProtoNumber(110) var notes: String = "",
     @ProtoNumber(111) var initialized: Boolean = false,
     @ProtoNumber(112) var memo: ByteArray = JsonObjectEmptyBytes,
+    @ProtoNumber(113) var nextUpdate: Long = 0,
 
     // AM (CUSTOM_INFORMATION) -->
     // Bump values by 200
@@ -91,9 +94,9 @@ data class BackupAnime(
             // For libraries older than dateAdded, the favorite timestamp is the only record of when
             // an entry was added. It was written by a trigger in seconds, unlike dateAdded.
             favoriteAt = if (this@BackupAnime.favorite) {
-                this@BackupAnime.dateAdded.takeIf { it != 0L }
-                    ?: this@BackupAnime.favoriteModifiedAt?.times(1000)
-                    ?: 0L
+                this@BackupAnime.dateAdded.toInstantOrNull()
+                    ?: this@BackupAnime.favoriteModifiedAt?.let { Instant.fromEpochSeconds(it) }
+                    ?: Anime.UNKNOWN_FAVORITE_AT
             } else {
                 null
             },
@@ -110,6 +113,7 @@ data class BackupAnime(
             seasonSourceOrder = this@BackupAnime.seasonSourceOrder,
             // <-- AY
             memo = this@BackupAnime.memo.toJsonObject(),
+            nextUpdate = this@BackupAnime.nextUpdate.toInstantOrNull(),
         )
     }
 }

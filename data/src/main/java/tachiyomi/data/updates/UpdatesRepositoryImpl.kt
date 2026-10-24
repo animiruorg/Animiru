@@ -1,5 +1,6 @@
 package tachiyomi.data.updates
 
+import app.cash.sqldelight.Query
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -12,6 +13,7 @@ import tachiyomi.data.subscribeToList
 import tachiyomi.domain.anime.model.AnimeCover
 import tachiyomi.domain.updates.model.UpdatesWithRelations
 import tachiyomi.domain.updates.repository.UpdatesRepository
+import kotlin.time.Instant
 
 @Inject
 @SingleIn(AppScope::class)
@@ -22,19 +24,14 @@ class UpdatesRepositoryImpl(
 
     override suspend fun awaitWithSeen(
         seen: Boolean,
-        after: Long,
+        after: Instant,
         limit: Long,
     ): List<UpdatesWithRelations> {
-        return database.updatesViewQueries.getUpdatesBySeenStatus(
-            seen = seen,
-            after = after,
-            limit = limit,
-            mapper = ::mapUpdatesWithRelations,
-        ).awaitAsList()
+        return getUpdatesBySeenStatus(seen = seen, after = after, limit = limit).awaitAsList()
     }
 
     override fun subscribeAll(
-        after: Long,
+        after: Instant,
         limit: Long,
         unseen: Boolean?,
         started: Boolean?,
@@ -63,16 +60,26 @@ class UpdatesRepositoryImpl(
 
     override fun subscribeWithSeen(
         seen: Boolean,
-        after: Long,
+        after: Instant,
         limit: Long,
     ): Flow<List<UpdatesWithRelations>> {
-        return database.updatesViewQueries.getUpdatesBySeenStatus(
-            seen = seen,
-            after = after,
-            limit = limit,
-            mapper = ::mapUpdatesWithRelations,
-        )
-            .subscribeToList()
+        return getUpdatesBySeenStatus(seen = seen, after = after, limit = limit).subscribeToList()
+    }
+
+    private fun getUpdatesBySeenStatus(seen: Boolean, after: Instant, limit: Long): Query<UpdatesWithRelations> {
+        return if (seen) {
+            database.updatesViewQueries.getSeenUpdates(
+                after = after,
+                limit = limit,
+                mapper = ::mapUpdatesWithRelations,
+            )
+        } else {
+            database.updatesViewQueries.getUnseenUpdates(
+                after = after,
+                limit = limit,
+                mapper = ::mapUpdatesWithRelations,
+            )
+        }
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -91,16 +98,16 @@ class UpdatesRepositoryImpl(
         // AY -->
         fillermark: Boolean,
         // <-- AY
-        lastSecondSeen: Long,
+        lastSecondSeen: Int,
         // AY -->
-        totalSeconds: Long,
+        totalSeconds: Int,
         // <-- AY
         sourceId: Long,
         favorite: Boolean,
         thumbnailUrl: String?,
-        coverLastModified: Long,
-        dateUpload: Long,
-        dateFetch: Long,
+        coverLastModified: Instant?,
+        dateUpload: Instant?,
+        dateFetch: Instant,
         excludedScanlator: String?,
     ): UpdatesWithRelations = UpdatesWithRelations(
         animeId = animeId,

@@ -21,10 +21,11 @@ import eu.kanade.tachiyomi.ui.anime.AnimeScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.updates.UpdatesViewModel.Event
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
 import tachiyomi.core.common.i18n.stringResource
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.i18n.MR
 
 // AM (RECENTS_FILTER_CHIP) -->
@@ -47,12 +48,13 @@ fun AnimeUpdatesHalfTab(
         onDownloadEpisode = viewModel::downloadEpisodes,
         onUpdateSelected = viewModel::toggleSelection,
         onOpenEpisode = { updateItem: UpdatesItem, altPlayer: Boolean ->
-            scope.launchIO {
+            scope.launch(Dispatchers.IO) {
                 openEpisode(context, updateItem, altPlayer)
             }
             Unit
         },
         contentPadding = contentPadding,
+        hasActiveFilters = state.hasActiveFilters,
     )
     // <-- AM (RECENTS_FILTER_CHIP)
 

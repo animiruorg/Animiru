@@ -28,13 +28,13 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.anime.components.DotSeparatorText
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
-import eu.kanade.tachiyomi.data.database.models.Episode
-import eu.kanade.tachiyomi.data.database.models.EpisodeImpl
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.roundedfilled.Bookmark
 import mihon.icons.materialsymbols.roundedfilled.Label
+import tachiyomi.domain.episode.model.Episode
 import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
 import tachiyomi.presentation.core.components.material.padding
+import kotlin.time.Instant
 
 @Composable
 fun EpisodeListItem(
@@ -67,13 +67,11 @@ fun EpisodeListItem(
     val textStyle = if (isCurrentEpisode) FontStyle.Italic else FontStyle.Normal
 
     val clickBookmark: (Boolean) -> Unit = { bookmarked ->
-        episode.bookmark = bookmarked
         isBookmarked = bookmarked
         onBookmarkClicked(episode.id, bookmarked)
     }
 
     val clickFillermark: (Boolean) -> Unit = { fillermarked ->
-        episode.fillermark = fillermarked
         isFillermarked = fillermarked
         onFillermarkClicked(episode.id, fillermarked)
     }
@@ -163,11 +161,11 @@ fun EpisodeListItem(
 private fun EpisodeListItemPreview() {
     TachiyomiPreviewTheme {
         EpisodeListItem(
-            episode = EpisodeImpl().also {
-                it.name = "Open Fire"
-                it.episode_number = 2f
-                it.date_upload = 1191967200000
-            },
+            episode = Episode.create().copy(
+                name = "Open Fire",
+                episodeNumber = 2.0,
+                dateUpload = Instant.fromEpochMilliseconds(1191967200000),
+            ),
             isCurrentEpisode = false,
             title = "Open Fire",
             date = "2007-10-10",

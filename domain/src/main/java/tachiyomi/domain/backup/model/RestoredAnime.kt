@@ -3,7 +3,7 @@ package tachiyomi.domain.backup.model
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
 import tachiyomi.domain.track.model.Track
-import java.util.Date
+import kotlin.time.Instant
 
 data class RestoredAnime(
     val anime: Anime,
@@ -19,7 +19,7 @@ data class RestoredAnime(
 
 data class RestoredHistory(
     val episodeUrl: String,
-    val seenAt: Date?,
+    val seenAt: Instant?,
 )
 
 // AM -->

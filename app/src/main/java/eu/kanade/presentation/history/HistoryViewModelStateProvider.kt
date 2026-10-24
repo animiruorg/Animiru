@@ -6,12 +6,10 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import tachiyomi.domain.anime.model.AnimeCover
 import tachiyomi.domain.history.model.HistoryWithRelations
-import java.util.Date
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
-import kotlin.time.toJavaInstant
 
 class HistoryViewModelStateProvider : PreviewParameterProvider<HistoryViewModel.State> {
 
@@ -104,13 +102,13 @@ class HistoryViewModelStateProvider : PreviewParameterProvider<HistoryViewModel.
                         ogTitle = "Test Title",
                         // <-- AM (CUSTOM_INFORMATION)
                         episodeNumber = Random.nextDouble(),
-                        seenAt = Date.from(Clock.System.now().toJavaInstant()),
+                        seenAt = Clock.System.now(),
                         coverData = AnimeCover(
                             animeId = Random.nextLong(),
                             sourceId = Random.nextLong(),
                             isAnimeFavorite = Random.nextBoolean(),
                             url = "https://example.com/cover.png",
-                            lastModified = Random.nextLong(),
+                            lastModified = Instant.fromEpochMilliseconds(Random.nextLong()),
                         ),
                     ),
                 ),

@@ -72,7 +72,7 @@ fun CastScreen(
         CastInfoBox(
             anime = stateData.currentAnime,
             episodeTitle = stateData.currentEpisode?.name,
-            episodeNumber = stateData.currentEpisode?.episode_number?.toDouble(),
+            episodeNumber = stateData.currentEpisode?.episodeNumber,
             modifier = Modifier.constrainAs(infoBox) {
                 if (isLandscape) {
                     start.linkTo(parent.start)

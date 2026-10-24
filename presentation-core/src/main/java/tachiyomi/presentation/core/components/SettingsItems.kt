@@ -304,7 +304,7 @@ fun <T> SelectItem(
                     vertical = SettingsItemsPaddings.Vertical,
                 ),
             label = { Text(text = label) },
-            value = toString(options[selectedIndex]),
+            value = options.getOrNull(selectedIndex)?.let { toString(it) }.orEmpty(),
             onValueChange = {},
             readOnly = true,
             singleLine = true,

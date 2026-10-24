@@ -2,7 +2,6 @@ package eu.kanade.presentation.anime
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -75,14 +75,14 @@ import eu.kanade.tachiyomi.ui.anime.AnimeSeasonItem
 import eu.kanade.tachiyomi.ui.anime.AnimeViewModel
 import eu.kanade.tachiyomi.ui.anime.EpisodeList
 import eu.kanade.tachiyomi.util.system.copyToClipboard
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import mihon.app.di.appGraph
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.roundedfilled.PlayArrow
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.episode.model.Episode
-import tachiyomi.domain.episode.service.missingEntriesCount
 import tachiyomi.domain.library.model.LibraryDisplayMode
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.source.model.StubSource
@@ -123,6 +123,7 @@ fun AnimeScreen(
     onEpisodeClicked: (episode: Episode, alt: Boolean) -> Unit,
     // <-- AY
     onDownloadEpisode: ((List<EpisodeList.Item>, EpisodeDownloadAction) -> Unit)?,
+    downloadProgressProvider: (episodeId: Long) -> Int,
     onAddToLibraryClicked: () -> Unit,
     onWebViewClicked: (() -> Unit)?,
     onWebViewLongClicked: (() -> Unit)?,
@@ -211,6 +212,7 @@ fun AnimeScreen(
             // <-- AM (FILE_SIZE)
             onEpisodeClicked = onEpisodeClicked,
             onDownloadEpisode = onDownloadEpisode,
+            downloadProgressProvider = downloadProgressProvider,
             onAddToLibraryClicked = onAddToLibraryClicked,
             onWebViewClicked = onWebViewClicked,
             onWebViewLongClicked = onWebViewLongClicked,
@@ -274,6 +276,7 @@ fun AnimeScreen(
             // <-- AM (FILE_SIZE)
             onEpisodeClicked = onEpisodeClicked,
             onDownloadEpisode = onDownloadEpisode,
+            downloadProgressProvider = downloadProgressProvider,
             onAddToLibraryClicked = onAddToLibraryClicked,
             onWebViewClicked = onWebViewClicked,
             onWebViewLongClicked = onWebViewLongClicked,
@@ -342,6 +345,7 @@ private fun AnimeScreenSmallImpl(
     onEpisodeClicked: (Episode, Boolean) -> Unit,
     // <-- AY
     onDownloadEpisode: ((List<EpisodeList.Item>, EpisodeDownloadAction) -> Unit)?,
+    downloadProgressProvider: (episodeId: Long) -> Int,
     onAddToLibraryClicked: () -> Unit,
     onWebViewClicked: (() -> Unit)?,
     onWebViewLongClicked: (() -> Unit)?,
@@ -433,9 +437,6 @@ private fun AnimeScreenSmallImpl(
         // <-- AY
         Scaffold(
             topBar = {
-                val selectedEpisodeCount: Int = remember(episodes) {
-                    episodes.count { it.selected }
-                }
                 val isFirstItemVisible by remember {
                     derivedStateOf { itemListState.firstVisibleItemIndex == 0 }
                 }
@@ -471,7 +472,7 @@ private fun AnimeScreenSmallImpl(
                     onClickEditInfo = onEditInfoClicked.takeIf { state.anime.favorite },
                     // <-- AM (CUSTOM_INFORMATION)
                     onClickEditNotes = onEditNotesClicked,
-                    actionModeCounter = selectedEpisodeCount,
+                    actionModeCounter = state.selectedEpisodes.size,
                     onCancelActionMode = { onAllEpisodeSelected(false) },
                     onSelectAll = { onAllEpisodeSelected(true) },
                     onInvertSelection = { onInvertSelection() },
@@ -483,11 +484,8 @@ private fun AnimeScreenSmallImpl(
                 )
             },
             bottomBar = {
-                val selectedEpisodes = remember(episodes) {
-                    episodes.filter { it.selected }
-                }
                 SharedAnimeBottomActionMenu(
-                    selected = selectedEpisodes,
+                    selected = state.selectedEpisodes,
                     // AY -->
                     onEpisodeClicked = onEpisodeClicked,
                     alwaysUseExternalPlayer = alwaysUseExternalPlayer,
@@ -505,17 +503,12 @@ private fun AnimeScreenSmallImpl(
             },
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             floatingActionButton = {
-                val isFABVisible = remember(episodes) {
-                    episodes.fastAny { !it.episode.seen } && !isAnySelected
-                }
+                val isFABVisible = state.hasUnseenItems && !isAnySelected
                 SmallExtendedFloatingActionButton(
                     text = {
-                        val isWatching = remember(state.episodes) {
-                            state.episodes.fastAny { it.episode.seen }
-                        }
                         Text(
                             text = stringResource(
-                                if (isWatching) MR.strings.action_resume else MR.strings.action_start,
+                                if (state.hasSeenItems) MR.strings.action_resume else MR.strings.action_start,
                             ),
                         )
                     },
@@ -633,28 +626,19 @@ private fun AnimeScreenSmallImpl(
                         span = { GridItemSpan(maxLineSpan) },
                         // <-- AY
                     ) {
-                        val missingEpisodeCount = remember(episodes) {
-                            episodes.map { it.episode.episodeNumber }.missingEntriesCount()
-                        }
-                        // AY -->
-                        val missingSeasonsCount = remember(seasons) {
-                            seasons.map { it.seasonAnime.anime.seasonNumber }.missingEntriesCount()
-                        }
+                        // AM -->
                         ItemHeader(
                             enabled = !isAnySelected,
                             itemCount = when (state.anime.fetchType) {
                                 FetchType.Seasons -> seasons.size
                                 FetchType.Episodes -> episodes.size
                             },
-                            missingItemsCount = when (state.anime.fetchType) {
-                                FetchType.Seasons -> missingSeasonsCount
-                                FetchType.Episodes -> missingEpisodeCount
-                            },
+                            missingItemsCount = state.missingItemCount,
                             onClick = onFilterClicked,
                             fetchType = state.anime.fetchType,
                             modifier = Modifier.ignorePadding(offsetGridPaddingPx),
                         )
-                        // <-- AY
+                        // <-- AM
                     }
 
                     // AY -->
@@ -710,7 +694,7 @@ private fun AnimeScreenSmallImpl(
                                 showFileSize = showFileSize,
                                 // <-- AM (FILE_SIZE)
                                 episodes = listItem,
-                                isAnyEpisodeSelected = episodes.fastAny { it.selected },
+                                isAnyEpisodeSelected = state.selectedEpisodes.isNotEmpty(),
                                 // AY -->
                                 showSummaries = state.showSummaries,
                                 showPreviews = state.showPreviews,
@@ -719,6 +703,7 @@ private fun AnimeScreenSmallImpl(
                                 episodeSwipeEndAction = episodeSwipeEndAction,
                                 onEpisodeClicked = onEpisodeClicked,
                                 onDownloadEpisode = onDownloadEpisode,
+                                downloadProgressProvider = downloadProgressProvider,
                                 onEpisodeSelected = onEpisodeSelected,
                                 onEpisodeSwipe = onEpisodeSwipe,
                                 itemModifier = Modifier.ignorePadding(offsetGridPaddingPx),
@@ -753,6 +738,7 @@ fun AnimeScreenLargeImpl(
     onEpisodeClicked: (Episode, Boolean) -> Unit,
     // <-- AY
     onDownloadEpisode: ((List<EpisodeList.Item>, EpisodeDownloadAction) -> Unit)?,
+    downloadProgressProvider: (episodeId: Long) -> Int,
     onAddToLibraryClicked: () -> Unit,
     onWebViewClicked: (() -> Unit)?,
     onWebViewLongClicked: (() -> Unit)?,
@@ -847,9 +833,6 @@ fun AnimeScreenLargeImpl(
         // <-- AY
         Scaffold(
             topBar = {
-                val selectedEpisodeCount = remember(episodes) {
-                    episodes.count { it.selected }
-                }
                 AnimeToolbar(
                     modifier = Modifier.onSizeChanged { topBarHeight = it.height },
                     title = state.anime.title,
@@ -873,7 +856,7 @@ fun AnimeScreenLargeImpl(
                     // <-- AM (CUSTOM_INFORMATION)
                     onClickEditNotes = onEditNotesClicked,
                     onCancelActionMode = { onAllEpisodeSelected(false) },
-                    actionModeCounter = selectedEpisodeCount,
+                    actionModeCounter = state.selectedEpisodes.size,
                     onSelectAll = { onAllEpisodeSelected(true) },
                     onInvertSelection = { onInvertSelection() },
                     titleAlphaProvider = { 1f },
@@ -881,44 +864,36 @@ fun AnimeScreenLargeImpl(
                 )
             },
             bottomBar = {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.BottomEnd,
-                ) {
-                    val selectedEpisodes = remember(episodes) {
-                        episodes.filter { it.selected }
-                    }
-                    SharedAnimeBottomActionMenu(
-                        selected = selectedEpisodes,
-                        // AY -->
-                        onEpisodeClicked = onEpisodeClicked,
-                        alwaysUseExternalPlayer = alwaysUseExternalPlayer,
-                        // <-- AY
-                        onMultiBookmarkClicked = onMultiBookmarkClicked,
-                        // AY -->
-                        onMultiFillermarkClicked = onMultiFillermarkClicked,
-                        // <-- AY
-                        onMultiMarkAsSeenClicked = onMultiMarkAsSeenClicked,
-                        onMarkPreviousAsSeenClicked = onMarkPreviousAsSeenClicked,
-                        onDownloadEpisode = onDownloadEpisode,
-                        onMultiDeleteClicked = onMultiDeleteClicked,
-                        fillFraction = 0.5f,
-                    )
-                }
+                // Aligned by its own modifier: a wrapper would always be laid out, and the scaffold then drops the
+                // navigation bar inset under the FAB
+                SharedAnimeBottomActionMenu(
+                    selected = state.selectedEpisodes,
+                    // AY -->
+                    onEpisodeClicked = onEpisodeClicked,
+                    alwaysUseExternalPlayer = alwaysUseExternalPlayer,
+                    // <-- AY
+                    onMultiBookmarkClicked = onMultiBookmarkClicked,
+                    // AY -->
+                    onMultiFillermarkClicked = onMultiFillermarkClicked,
+                    // <-- AY
+                    onMultiMarkAsSeenClicked = onMultiMarkAsSeenClicked,
+                    onMarkPreviousAsSeenClicked = onMarkPreviousAsSeenClicked,
+                    onDownloadEpisode = onDownloadEpisode,
+                    onMultiDeleteClicked = onMultiDeleteClicked,
+                    fillFraction = 0.5f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(Alignment.End),
+                )
             },
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             floatingActionButton = {
-                val isFABVisible = remember(episodes) {
-                    episodes.fastAny { !it.episode.seen } && !isAnySelected
-                }
+                val isFABVisible = state.hasUnseenItems && !isAnySelected
                 SmallExtendedFloatingActionButton(
                     text = {
-                        val isWatching = remember(state.episodes) {
-                            state.episodes.fastAny { it.episode.seen }
-                        }
                         Text(
                             text = stringResource(
-                                if (isWatching) MR.strings.action_resume else MR.strings.action_start,
+                                if (state.hasSeenItems) MR.strings.action_resume else MR.strings.action_start,
                             ),
                         )
                     },
@@ -1016,28 +991,19 @@ fun AnimeScreenLargeImpl(
                                 span = { GridItemSpan(maxLineSpan) },
                                 // <-- AY
                             ) {
-                                val missingEpisodeCount = remember(episodes) {
-                                    episodes.map { it.episode.episodeNumber }.missingEntriesCount()
-                                }
-                                // AY -->
-                                val missingSeasonsCount = remember(seasons) {
-                                    seasons.map { it.seasonAnime.anime.seasonNumber }.missingEntriesCount()
-                                }
+                                // AM -->
                                 ItemHeader(
                                     enabled = !isAnySelected,
                                     itemCount = when (state.anime.fetchType) {
                                         FetchType.Seasons -> seasons.size
                                         FetchType.Episodes -> episodes.size
                                     },
-                                    missingItemsCount = when (state.anime.fetchType) {
-                                        FetchType.Seasons -> missingSeasonsCount
-                                        FetchType.Episodes -> missingEpisodeCount
-                                    },
+                                    missingItemsCount = state.missingItemCount,
                                     onClick = onFilterButtonClicked,
                                     fetchType = state.anime.fetchType,
                                     modifier = Modifier.ignorePadding(offsetGridPaddingPx),
                                 )
-                                // <-- AY
+                                // <-- AM
                             }
 
                             // AY -->
@@ -1092,7 +1058,7 @@ fun AnimeScreenLargeImpl(
                                         showFileSize = showFileSize,
                                         // <-- AM (FILE_SIZE)
                                         episodes = listItem,
-                                        isAnyEpisodeSelected = episodes.fastAny { it.selected },
+                                        isAnyEpisodeSelected = state.selectedEpisodes.isNotEmpty(),
                                         // AY -->
                                         showSummaries = state.showSummaries,
                                         showPreviews = state.showPreviews,
@@ -1101,6 +1067,7 @@ fun AnimeScreenLargeImpl(
                                         episodeSwipeEndAction = episodeSwipeEndAction,
                                         onEpisodeClicked = onEpisodeClicked,
                                         onDownloadEpisode = onDownloadEpisode,
+                                        downloadProgressProvider = downloadProgressProvider,
                                         onEpisodeSelected = onEpisodeSelected,
                                         onEpisodeSwipe = onEpisodeSwipe,
                                         // AY -->
@@ -1157,7 +1124,7 @@ private fun SharedAnimeBottomActionMenu(
         }.takeIf { selected.fastAny { !it.episode.seen } },
         onMarkAsUnseenClicked = {
             onMultiMarkAsSeenClicked(selected.fastMap { it.episode }, false)
-        }.takeIf { selected.fastAny { it.episode.seen || it.episode.lastSecondSeen > 0L } },
+        }.takeIf { selected.fastAny { it.episode.seen || it.episode.lastSecondSeen > 0 } },
         onMarkPreviousAsSeenClicked = {
             onMarkPreviousAsSeenClicked(selected[0].episode)
         }.takeIf { selected.size == 1 },
@@ -1225,6 +1192,7 @@ private fun LazyGridScope.sharedEpisodeItems(
     // AY -->
     onEpisodeClicked: (Episode, Boolean) -> Unit,
     // <-- AY
+    downloadProgressProvider: (episodeId: Long) -> Int,
     onDownloadEpisode: ((List<EpisodeList.Item>, EpisodeDownloadAction) -> Unit)?,
     onEpisodeSelected: (EpisodeList.Item, Boolean, Boolean) -> Unit,
     onEpisodeSwipe: (EpisodeList.Item, LibraryPreferences.EpisodeSwipeAction) -> Unit,
@@ -1273,7 +1241,7 @@ private fun LazyGridScope.sharedEpisodeItems(
                 val isEpisodeDownloaded = item.downloadState == Download.State.DOWNLOADED
                 if (isEpisodeDownloaded && showFileSize && fileSizeAsync == null) {
                     LaunchedEffect(item, Unit) {
-                        fileSizeAsync = withIOContext {
+                        fileSizeAsync = withContext(Dispatchers.IO) {
                             downloadProvider.getEpisodeFileSize(
                                 item.episode.name,
                                 item.episode.url,
@@ -1304,8 +1272,8 @@ private fun LazyGridScope.sharedEpisodeItems(
                             // AY -->
                             stringResource(
                                 AYMR.strings.episode_progress,
-                                formatTime(it),
-                                formatTime(item.episode.totalSeconds),
+                                formatTime(it.toLong()),
+                                formatTime(item.episode.totalSeconds.toLong()),
                             )
                             // <-- AY
                         },
@@ -1325,7 +1293,7 @@ private fun LazyGridScope.sharedEpisodeItems(
                     // <-- AY
                     downloadIndicatorEnabled = !isAnyEpisodeSelected && !anime.isLocal(),
                     downloadStateProvider = { item.downloadState },
-                    downloadProgressProvider = { item.downloadProgress },
+                    downloadProgressProvider = { downloadProgressProvider(item.id) },
                     episodeSwipeStartAction = episodeSwipeStartAction,
                     episodeSwipeEndAction = episodeSwipeEndAction,
                     onLongClick = {

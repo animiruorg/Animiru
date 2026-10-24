@@ -38,35 +38,35 @@ class AnimeRepositoryImpl(
 ) : AnimeRepository {
 
     override suspend fun getAnimeById(id: Long): Anime {
-        return database.animesQueries.getAnimeById(id, AnimeMapper::mapAnime).awaitAsOne()
+        return database.animeQueries.getAnimeById(id, AnimeMapper::mapAnime).awaitAsOne()
     }
 
     override fun getAnimeByIdAsFlow(id: Long): Flow<Anime> {
-        return database.animesQueries.getAnimeById(id, AnimeMapper::mapAnime).subscribeToOne()
+        return database.animeQueries.getAnimeById(id, AnimeMapper::mapAnime).subscribeToOne()
     }
 
     override suspend fun getAnimeByUrlAndSourceId(url: String, sourceId: Long): Anime? {
-        return database.animesQueries.getAnimeByUrlAndSource(
-            url,
-            sourceId,
-            AnimeMapper::mapAnime,
+        return database.animeQueries.getAnimeByUrlAndSource(
+            sourceId = sourceId,
+            remoteUrl = url,
+            mapper = AnimeMapper::mapAnime,
         ).awaitAsOneOrNull()
     }
 
     override fun getAnimeByUrlAndSourceIdAsFlow(url: String, sourceId: Long): Flow<Anime?> {
-        return database.animesQueries.getAnimeByUrlAndSource(
-            url,
-            sourceId,
-            AnimeMapper::mapAnime,
+        return database.animeQueries.getAnimeByUrlAndSource(
+            sourceId = sourceId,
+            remoteUrl = url,
+            mapper = AnimeMapper::mapAnime,
         ).subscribeToOneOrNull()
     }
 
     override suspend fun getFavorites(): List<Anime> {
-        return database.animesQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
     }
 
     override suspend fun getSeenAnimeNotInLibrary(): List<Anime> {
-        return database.animesQueries.getSeenAnimeNotInLibrary(AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getSeenAnimeNotInLibrary(AnimeMapper::mapAnime).awaitAsList()
     }
 
     override suspend fun getLibraryAnime(): List<LibraryAnime> {
@@ -78,14 +78,14 @@ class AnimeRepositoryImpl(
     }
 
     override fun getFavoritesBySourceId(sourceId: Long): Flow<List<Anime>> {
-        return database.animesQueries.getFavoriteBySourceId(sourceId, AnimeMapper::mapAnime).subscribeToList()
+        return database.animeQueries.getFavoriteBySourceId(sourceId, AnimeMapper::mapAnime).subscribeToList()
     }
 
     override suspend fun getDuplicateLibraryAnime(id: Long, title: String): List<AnimeWithEpisodeCount> {
-        return database.animesQueries.getDuplicateLibraryAnime(
-            id,
-            title,
-            AnimeMapper::mapAnimeWithEpisodeCount,
+        return database.animeQueries.getDuplicateLibraryAnime(
+            id = id,
+            remoteTitle = title,
+            mapper = AnimeMapper::mapAnimeWithEpisodeCount,
         ).awaitAsList()
     }
 
@@ -95,11 +95,10 @@ class AnimeRepositoryImpl(
         includedCategories: List<Long>,
     ): Flow<List<Anime>> {
         val timeZone = TimeZone.currentSystemDefault()
-        val epochMillis =
-            Clock.System.now().toLocalDateTime(timeZone).date.atStartOfDayIn(timeZone).toEpochMilliseconds()
-        return database.animesQueries
+        val startOfDay = Clock.System.now().toLocalDateTime(timeZone).date.atStartOfDayIn(timeZone)
+        return database.animeQueries
             .getUpcomingAnime(
-                startOfDay = epochMillis,
+                startOfDay = startOfDay,
                 statuses = statuses,
                 includedEmpty = includedCategories.isEmpty(),
                 includedCategories = includedCategories,
@@ -112,7 +111,7 @@ class AnimeRepositoryImpl(
 
     override suspend fun resetViewerFlags(): Boolean {
         return try {
-            database.animesQueries.resetViewerFlags()
+            database.animeQueries.resetViewerFlags()
             true
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
@@ -121,27 +120,34 @@ class AnimeRepositoryImpl(
     }
 
     override suspend fun deleteNonLibraryAnime(sourceIds: List<Long>, keepSeenAnime: Boolean) {
-        database.animesQueries.deleteAnimesNotInLibraryByAnimeIds(sourceIds, keepSeenAnime.toLong())
+        database.animeQueries.deleteNonLibraryAnimeByAnimeIds(sourceIds, keepSeenAnime.toLong())
     }
 
     override suspend fun setAnimeCategories(animeId: Long, categoryIds: List<Long>) {
         database.transaction {
-            database.animes_categoriesQueries.deleteAnimeCategoryByAnimeId(animeId)
+            database.anime_categoryQueries.deleteAnimeCategoryByAnimeId(animeId)
             categoryIds.forEach { categoryId ->
-                database.animes_categoriesQueries.insert(animeId, categoryId)
+                database.anime_categoryQueries.insert(animeId = animeId, categoryId = categoryId)
             }
         }
     }
 
     override suspend fun getExcludedScanlators(animeId: Long): Set<String> {
-        return database.excluded_scanlatorsQueries
+        return database.excluded_scanlatorQueries
             .getExcludedScanlatorsByAnimeId(animeId)
             .awaitAsList()
             .toSet()
     }
 
+    override suspend fun getExcludedScanlatorsByAnimeIds(animeIds: List<Long>): Map<Long, List<String>> {
+        return database.excluded_scanlatorQueries
+            .getExcludedScanlatorsByAnimeIds(animeIds)
+            .awaitAsList()
+            .groupBy({ it.anime_id }, { it.scanlator })
+    }
+
     override fun getExcludedScanlatorsAsFlow(animeId: Long): Flow<Set<String>> {
-        return database.excluded_scanlatorsQueries
+        return database.excluded_scanlatorQueries
             .getExcludedScanlatorsByAnimeId(animeId)
             .subscribeToList()
             .map { it.toSet() }
@@ -149,14 +155,18 @@ class AnimeRepositoryImpl(
 
     override suspend fun setExcludedScanlators(animeId: Long, excludedScanlators: Set<String>) {
         database.transaction {
-            val current = database.excluded_scanlatorsQueries
+            val current = database.excluded_scanlatorQueries
                 .getExcludedScanlatorsByAnimeId(animeId)
                 .awaitAsList()
                 .toSet()
             excludedScanlators.minus(current).forEach { scanlator ->
-                database.excluded_scanlatorsQueries.insert(animeId, scanlator)
+                database.excluded_scanlatorQueries.insert(animeId, scanlator)
             }
-            database.excluded_scanlatorsQueries.remove(animeId, current.minus(excludedScanlators))
+            val toRemove = current.minus(excludedScanlators)
+            // An empty delete still tells every episoide query to run again
+            if (toRemove.isNotEmpty()) {
+                database.excluded_scanlatorQueries.remove(animeId, toRemove)
+            }
         }
     }
 
@@ -188,63 +198,63 @@ class AnimeRepositoryImpl(
     ): List<Anime> {
         return database.transactionWithResult {
             if (removedIds.isNotEmpty()) {
-                database.animesQueries.removeParentIdByIds(removedIds)
+                database.animeQueries.removeParentIdByIds(removedIds)
             }
             val existing = added.map { it.id to it.url }
                 .distinct()
                 .toMutableSet()
             val stored = added.filter { existing.add(it.id to it.url) }.map { season ->
-                val animeId = database.animesQueries.insertReturningId(
-                    season.source,
-                    season.url,
-                    season.artist,
-                    season.author,
-                    season.description,
-                    season.genre,
-                    season.title,
-                    season.status,
-                    season.thumbnailUrl,
-                    season.favoriteAt,
-                    season.lastUpdate,
-                    season.nextUpdate,
-                    season.initialized,
-                    season.viewerFlags,
-                    season.episodeFlags,
-                    season.coverLastModified,
-                    season.updateStrategy,
-                    season.fetchInterval.toLong(),
-                    season.notes,
-                    season.fetchType,
-                    season.parentId,
-                    season.seasonFlags,
-                    season.seasonNumber,
-                    season.seasonSourceOrder,
-                    season.backgroundUrl,
-                    season.backgroundLastModified,
-                    season.memo,
+                val animeId = database.animeQueries.insertReturningId(
+                    sourceId = season.id,
+                    remoteUrl = season.url,
+                    remoteTitle = season.ogTitle,
+                    remoteAuthor = season.ogAuthor,
+                    remoteArtist = season.ogArtist,
+                    remoteDescription = season.ogDescription,
+                    remoteGenre = season.ogGenre,
+                    remoteStatus = season.ogStatus,
+                    remoteCover = season.thumbnailUrl,
+                    remoteUpdateStrategy = season.updateStrategy,
+                    remoteMemo = season.memo,
+                    remoteFetchType = season.fetchType,
+                    remoteSeasonNumber = season.seasonNumber,
+                    remoteSeasonSourceOrder = season.seasonSourceOrder,
+                    remoteBackground = season.backgroundUrl,
+                    userFavoriteAt = season.favoriteAt,
+                    userNotes = season.notes,
+                    userPlayerFlags = season.viewerFlags,
+                    userEpisodeFlags = season.episodeFlags,
+                    userSeasonFlags = season.seasonFlags,
+                    stateEpisodeLastUpdate = season.lastUpdate,
+                    stateEpisodeNextUpdate = season.nextUpdate,
+                    stateEpisodeFetchInterval = season.fetchInterval.toLong(),
+                    stateCoverLastModified = season.coverLastModified,
+                    stateInitialized = season.initialized,
+                    stateParentId = season.parentId,
+                    stateBackgroundLastModified = season.backgroundLastModified,
                 )
                     .awaitAsOne()
                 season.copy(id = animeId)
             }
             updated.forEach { seasonUpdate ->
-                database.animesQueries.updateRemote(
-                    artist = seasonUpdate.artist,
-                    author = seasonUpdate.author,
-                    description = seasonUpdate.description,
-                    genre = seasonUpdate.genre,
-                    title = seasonUpdate.title,
-                    status = seasonUpdate.status,
-                    thumbnailUrl = seasonUpdate.thumbnailUrl,
-                    initialized = seasonUpdate.initialized,
-                    coverLastModified = seasonUpdate.coverLastModified,
-                    updateStrategy = seasonUpdate.updateStrategy,
-                    parentId = seasonUpdate.parentId,
-                    seasonNumber = seasonUpdate.seasonNumber,
-                    seasonSourceOrder = seasonUpdate.seasonSourceOrder,
-                    backgroundUrl = seasonUpdate.backgroundUrl,
-                    backgroundLastModified = seasonUpdate.backgroundLastModified,
-                    memo = seasonUpdate.memo,
-                    animeId = seasonUpdate.id,
+                database.animeQueries.updateRemote(
+                    remoteArtist = seasonUpdate.artist,
+                    remoteAuthor = seasonUpdate.author,
+                    remoteDescription = seasonUpdate.description,
+                    remoteGenre = seasonUpdate.genre,
+                    remoteTitle = seasonUpdate.title,
+                    remoteStatus = seasonUpdate.status,
+                    remoteCover = seasonUpdate.thumbnailUrl,
+                    stateInitialized = seasonUpdate.initialized,
+                    stateCoverLastModified = seasonUpdate.coverLastModified,
+                    remoteUpdateStrategy = seasonUpdate.updateStrategy,
+                    stateParentId = seasonUpdate.parentId,
+                    remoteSeasonNumber = seasonUpdate.seasonNumber,
+                    remoteSeasonSourceOrder = seasonUpdate.seasonSourceOrder,
+                    remoteBackground = seasonUpdate.backgroundUrl,
+                    stateBackgroundLastModified = seasonUpdate.backgroundLastModified,
+                    remoteMemo = seasonUpdate.memo,
+                    id = seasonUpdate.id,
                 )
             }
             stored
@@ -255,39 +265,39 @@ class AnimeRepositoryImpl(
     override suspend fun insertNetworkAnime(anime: List<Anime>): List<Anime> {
         return database.transactionWithResult {
             anime.map {
-                database.animesQueries.insertNetworkAnime(
-                    source = it.source,
-                    url = it.url,
-                    artist = it.artist,
-                    author = it.author,
-                    description = it.description,
-                    genre = it.genre,
-                    title = it.title,
-                    status = it.status,
-                    thumbnailUrl = it.thumbnailUrl,
+                database.animeQueries.insertNetworkAnime(
+                    sourceId = it.source,
+                    remoteUrl = it.url,
+                    remoteArtist = it.ogArtist,
+                    remoteAuthor = it.ogAuthor,
+                    remoteDescription = it.ogDescription,
+                    remoteGenre = it.ogGenre,
+                    remoteTitle = it.ogTitle,
+                    remoteStatus = it.ogStatus,
+                    remoteCover = it.thumbnailUrl,
                     // AY -->
-                    backgroundUrl = it.backgroundUrl,
+                    remoteBackground = it.backgroundUrl,
                     // <-- AY
-                    favoriteAt = it.favoriteAt,
-                    lastUpdate = it.lastUpdate,
-                    nextUpdate = it.nextUpdate,
-                    calculateInterval = it.fetchInterval.toLong(),
-                    initialized = it.initialized,
-                    viewerFlags = it.viewerFlags,
-                    episodeFlags = it.episodeFlags,
-                    coverLastModified = it.coverLastModified,
+                    userFavoriteAt = it.favoriteAt,
+                    stateEpisodeLastUpdate = it.lastUpdate,
+                    stateEpisodeNextUpdate = it.nextUpdate,
+                    stateEpisodeFetchInterval = it.fetchInterval.toLong(),
+                    stateInitialized = it.initialized,
+                    userPlayerFlags = it.viewerFlags,
+                    userEpisodeFlags = it.episodeFlags,
+                    stateCoverLastModified = it.coverLastModified,
                     // AY -->
-                    backgroundLastModified = it.backgroundLastModified,
+                    stateBackgroundLastModified = it.backgroundLastModified,
                     // <-- AY
-                    updateStrategy = it.updateStrategy,
+                    remoteUpdateStrategy = it.updateStrategy,
                     // AY -->
-                    fetchType = it.fetchType,
-                    parentId = it.parentId,
-                    seasonFlags = it.seasonFlags,
-                    seasonNumber = it.seasonNumber,
-                    seasonSourceOrder = it.seasonSourceOrder,
+                    remoteFetchType = it.fetchType,
+                    stateParentId = it.parentId,
+                    userSeasonFlags = it.seasonFlags,
+                    remoteSeasonNumber = it.seasonNumber,
+                    remoteSeasonSourceOrder = it.seasonSourceOrder,
                     // <-- AY
-                    memo = it.memo,
+                    remoteMemo = it.memo,
                     updateTitle = it.title.isNotBlank(),
                     updateCover = !it.thumbnailUrl.isNullOrBlank(),
                     updateDetails = it.initialized,
@@ -312,7 +322,7 @@ class AnimeRepositoryImpl(
 
     override suspend fun removeParentIdByIds(animeIds: List<Long>) {
         try {
-            database.animesQueries.removeParentIdByIds(animeIds)
+            database.animeQueries.removeParentIdByIds(animeIds)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
         }
@@ -324,31 +334,31 @@ class AnimeRepositoryImpl(
     }
 
     override suspend fun getChildrenByParentId(parentId: Long): List<Anime> {
-        return database.animesQueries.getChildrenByParentId(parentId, AnimeMapper::mapAnime).awaitAsList()
+        return database.animeQueries.getChildrenByParentId(parentId, AnimeMapper::mapAnime).awaitAsList()
     }
     // <-- AY
 
     override suspend fun updateRemote(update: AnimeRemoteUpdate): Boolean {
         return try {
-            database.animesQueries.updateRemote(
-                artist = update.artist,
-                author = update.author,
-                description = update.description,
-                genre = update.genre,
-                title = update.title,
-                status = update.status,
-                thumbnailUrl = update.thumbnailUrl,
-                initialized = update.initialized,
-                coverLastModified = update.coverLastModified,
-                updateStrategy = update.updateStrategy,
-                memo = update.memo,
-                animeId = update.id,
+            database.animeQueries.updateRemote(
+                remoteArtist = update.artist,
+                remoteAuthor = update.author,
+                remoteDescription = update.description,
+                remoteGenre = update.genre,
+                remoteTitle = update.title,
+                remoteStatus = update.status,
+                remoteCover = update.thumbnailUrl,
+                stateInitialized = update.initialized,
+                stateCoverLastModified = update.coverLastModified,
+                remoteUpdateStrategy = update.updateStrategy,
+                remoteMemo = update.memo,
+                id = update.id,
                 // AM -->
-                backgroundUrl = update.backgroundUrl,
-                backgroundLastModified = update.backgroundLastModified,
-                parentId = update.parentId,
-                seasonNumber = update.seasonNumber,
-                seasonSourceOrder = update.seasonSourceOrder,
+                remoteBackground = update.backgroundUrl,
+                stateBackgroundLastModified = update.backgroundLastModified,
+                stateParentId = update.parentId,
+                remoteSeasonNumber = update.seasonNumber,
+                remoteSeasonSourceOrder = update.seasonSourceOrder,
                 // <-- AM
             )
             true
@@ -362,21 +372,21 @@ class AnimeRepositoryImpl(
         database.transaction {
             animeUpdates.forEach { value ->
                 with(value) {
-                    database.animesQueries.update(
-                        favoriteAtSet = isSet(::favoriteAt),
-                        favoriteAt = favoriteAt,
-                        lastUpdate = lastUpdate,
-                        nextUpdate = nextUpdate,
-                        viewer = viewerFlags,
-                        episodeFlags = episodeFlags,
-                        coverLastModified = coverLastModified,
-                        calculateInterval = fetchInterval?.toLong(),
-                        notes = notes,
+                    database.animeQueries.update(
+                        userFavoriteAtSet = isSet(::favoriteAt),
+                        userFavoriteAt = favoriteAt,
+                        stateEpisodeLastUpdate = lastUpdate,
+                        stateEpisodeNextUpdate = nextUpdate,
+                        userPlayerFlags = viewerFlags,
+                        userEpisodeFlags = episodeFlags,
+                        stateCoverLastModified = coverLastModified,
+                        stateEpisodeFetchInterval = fetchInterval?.toLong(),
+                        userNotes = notes,
                         // AM -->
-                        seasonFlags = seasonFlags,
-                        backgroundLastModified = backgroundLastModified,
+                        userSeasonFlags = seasonFlags,
+                        stateBackgroundLastModified = backgroundLastModified,
                         // <-- AM
-                        animeId = id,
+                        id = id,
                     )
                 }
             }
@@ -384,49 +394,8 @@ class AnimeRepositoryImpl(
     }
 
     // AM -->
-    override suspend fun getAllAnime(): List<Anime> {
-        return database.animesQueries.getAllAnime(AnimeMapper::mapAnime).awaitAsList()
-    }
-
-    override suspend fun getAllAnimeThatNeedsSync(): List<Anime> {
-        return database.animesQueries.getFavorites(AnimeMapper::mapAnime).awaitAsList()
-    }
-
-    override suspend fun updateAnime(anime: Anime) {
-        database.animesQueries.updateFromBackup(
-            artist = anime.artist,
-            author = anime.author,
-            description = anime.description,
-            genre = anime.genre,
-            title = anime.title,
-            status = anime.status,
-            thumbnailUrl = anime.thumbnailUrl,
-            favoriteAt = anime.favoriteAt,
-            lastUpdate = anime.lastUpdate,
-            initialized = anime.initialized,
-            viewer = anime.viewerFlags,
-            episodeFlags = anime.episodeFlags,
-            coverLastModified = anime.coverLastModified,
-            updateStrategy = anime.updateStrategy,
-            notes = anime.notes,
-            // AM -->
-            fetchType = anime.fetchType,
-            parentId = anime.parentId,
-            seasonFlags = anime.seasonFlags,
-            seasonNumber = anime.seasonNumber,
-            seasonSourceOrder = anime.seasonSourceOrder,
-            backgroundUrl = anime.backgroundUrl,
-            backgroundLastModified = anime.backgroundLastModified,
-            // <-- AM
-            memo = anime.memo,
-            animeId = anime.id,
-        )
-    }
-    // <-- AM
-
-    // AM -->
     override suspend fun updateCustomInfo(customInfo: AnimeCustomUpdate) {
-        database.animesQueries.updateCustomInformation(
+        database.animeQueries.updateCustomInformation(
             customArtist = customInfo.customArtist,
             customAuthor = customInfo.customAuthor,
             customDescription = customInfo.customDescription,
@@ -440,7 +409,7 @@ class AnimeRepositoryImpl(
     override suspend fun updateCustomInfoAll(customInfos: List<AnimeCustomUpdate>) {
         database.transaction {
             customInfos.forEach { customInfo ->
-                database.animesQueries.updateCustomInformation(
+                database.animeQueries.updateCustomInformation(
                     customArtist = customInfo.customArtist,
                     customAuthor = customInfo.customAuthor,
                     customDescription = customInfo.customDescription,

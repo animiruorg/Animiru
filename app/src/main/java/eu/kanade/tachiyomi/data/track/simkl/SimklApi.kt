@@ -17,7 +17,9 @@ import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.jsonMime
 import eu.kanade.tachiyomi.network.parseAs
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.addJsonObject
@@ -29,7 +31,6 @@ import kotlinx.serialization.json.putJsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
-import tachiyomi.core.common.util.lang.withIOContext
 
 class SimklApi(
     private val trackerId: Long,
@@ -41,7 +42,7 @@ class SimklApi(
     private val authClient = client.newBuilder().addInterceptor(interceptor).build()
 
     suspend fun addLibAnime(track: Track): Track {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val type = track.tracking_url
                 .substringAfter("/")
                 .substringBefore("/")
@@ -65,7 +66,7 @@ class SimklApi(
         }.toString().toRequestBody(jsonMime)
         authClient.newCall(
             POST("$API_URL/sync/add-to-list", body = payload),
-        ).awaitSuccess()
+        ).awaitSuccess().close()
     }
 
     private suspend fun updateRating(track: Track, mediaType: String) {
@@ -83,11 +84,11 @@ class SimklApi(
         if (track.score == 0.0) {
             authClient.newCall(
                 POST("$API_URL/sync/ratings/remove", body = payload),
-            ).awaitSuccess()
+            ).awaitSuccess().close()
         } else {
             authClient.newCall(
                 POST("$API_URL/sync/ratings", body = payload),
-            ).awaitSuccess()
+            ).awaitSuccess().close()
         }
     }
 
@@ -127,7 +128,7 @@ class SimklApi(
     }.toString().toRequestBody(jsonMime)
 
     suspend fun updateLibAnime(track: Track): Track {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             // determine media type
             val type = track.tracking_url
                 .substringAfter("/")
@@ -155,7 +156,7 @@ class SimklApi(
     }
 
     private suspend fun getEntryDetails(type: String, id: Int): TrackSearch? {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             try {
                 with(json) {
                     val url = API_URL.toHttpUrl().newBuilder().apply {
@@ -172,7 +173,7 @@ class SimklApi(
                 null
             } catch (e: HttpException) {
                 if (e.code == 404 || e.code == 302) {
-                    return@withIOContext null
+                    return@withContext null
                 }
                 throw e
             }
@@ -180,7 +181,7 @@ class SimklApi(
     }
 
     suspend fun searchAnime(search: String, type: String): List<TrackSearch> {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val searchUrl = "$API_URL/search/$type".toUri().buildUpon()
                 .appendQueryParameter("q", search)
                 .appendQueryParameter("extended", "full")
@@ -200,7 +201,7 @@ class SimklApi(
      * returns all info about it or null if it isn't found.
      */
     suspend fun findLibAnime(track: Track): Track? {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             val payload = buildJsonArray {
                 addJsonObject {
                     put("simkl", track.remote_id)
@@ -212,12 +213,12 @@ class SimklApi(
                 )
                     .awaitSuccess()
                     .parseAs<List<SimklSyncWatched>>()
-                    .firstOrNull() ?: return@withIOContext null
+                    .firstOrNull() ?: return@withContext null
             }
 
-            if (foundAnime.result != true) return@withIOContext null
-            val lastWatched = foundAnime.lastWatchedAt ?: return@withIOContext null
-            val status = foundAnime.list ?: return@withIOContext null
+            if (foundAnime.result != true) return@withContext null
+            val lastWatched = foundAnime.lastWatchedAt ?: return@withContext null
+            val status = foundAnime.list ?: return@withContext null
             val type = track.tracking_url
                 .substringAfter("/")
                 .substringBefore("/")
@@ -234,7 +235,7 @@ class SimklApi(
                     ?.getFromType(queryType)
                     ?.firstOrNull { item ->
                         item.getFromType(typeName).ids.simkl == track.remote_id
-                    } ?: return@withIOContext null
+                    } ?: return@withContext null
             }
 
             listAnime.toTrack(trackerId, typeName, type, status)
@@ -252,7 +253,7 @@ class SimklApi(
     }
 
     suspend fun accessToken(code: String): SimklOAuth {
-        return withIOContext {
+        return withContext(Dispatchers.IO) {
             with(json) {
                 client.newCall(accessTokenRequest(code))
                     .awaitSuccess()

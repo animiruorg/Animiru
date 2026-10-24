@@ -4,9 +4,11 @@ import android.content.Context
 import android.net.Uri
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.data.backup.models.Backup
-import eu.kanade.tachiyomi.data.backup.models.LegacyBackup
-import kotlinx.serialization.SerializationException
+import eu.kanade.tachiyomi.data.backup.models.BackupAnime
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.protobuf.ProtoBuf
+import okio.BufferedSource
 import okio.buffer
 import okio.gzip
 import okio.source
@@ -20,9 +22,49 @@ class BackupDecoder(
     private val parser: ProtoBuf,
 ) {
     /**
+     * Decode everything but the entries of a potentially-gzipped backup, counting the entries without decoding them.
+     */
+    fun decodeMetadata(uri: Uri): Metadata {
+        return read(uri) { reader ->
+            orInvalid {
+                var entryCount = 0
+                // AM -->
+                var allIds = hashMapOf<Long, Pair<Long, String>>()
+                // <-- AM
+                while (reader.nextEntry()) {
+                    // AM -->
+                    val details = reader.readEntryId()
+                    if (details != null) {
+                        allIds.put(details.first, Pair(details.second, details.third))
+                    }
+                    // <-- AM
+                    entryCount++
+                }
+                Metadata(entryCount, reader.readMetadata(), allIds)
+            }
+        }
+    }
+
+    /**
+     * Decode the entries of a potentially-gzipped backup one at a time, skipping those whose index [include] rejects.
+     */
+    fun decodeEntries(uri: Uri, include: (index: Int) -> Boolean = { true }): Flow<BackupAnime> = flow {
+        read(uri) { reader ->
+            var index = 0
+            while (orInvalid { reader.nextEntry() }) {
+                if (include(index++)) {
+                    emit(orInvalid { reader.readEntry() })
+                } else {
+                    orInvalid { reader.skipEntry() }
+                }
+            }
+        }
+    }
+
+    /**
      * Decode a potentially-gzipped backup.
      */
-    fun decode(uri: Uri): Backup {
+    private inline fun <T> read(uri: Uri, block: (BackupReader) -> T): T {
         return context.contentResolver.openInputStream(uri)!!.use { inputStream ->
             val source = inputStream.source().buffer()
 
@@ -30,28 +72,34 @@ class BackupDecoder(
                 require(2)
             }
             val id1id2 = peeked.readShort()
-            val backupString = when (id1id2.toInt()) {
+            val backupSource: BufferedSource = when (id1id2.toInt()) {
                 0x1f8b -> source.gzip().buffer() // 0x1f8b is gzip magic bytes
                 MAGIC_JSON_SIGNATURE1, MAGIC_JSON_SIGNATURE2, MAGIC_JSON_SIGNATURE3 -> {
                     throw IOException(context.stringResource(MR.strings.invalid_backup_file_json))
                 }
                 else -> source
-            }.use { it.readByteArray() }
-
-            try {
-                // AY -->
-                if (BackupDetector.isLegacyBackup(backupString)) {
-                    parser.decodeFromByteArray(LegacyBackup.serializer(), backupString)
-                        .toBackup()
-                } else {
-                    parser.decodeFromByteArray(Backup.serializer(), backupString)
-                }
-                // <-- AY
-            } catch (_: SerializationException) {
-                throw IOException(context.stringResource(MR.strings.invalid_backup_file_unknown))
             }
+
+            backupSource.use { block(BackupReader(it, parser)) }
         }
     }
+
+    // Only around reading, so the JSON error above and anything thrown downstream of emit keep their own messages
+    private inline fun <T> orInvalid(block: () -> T): T {
+        return try {
+            block()
+        } catch (e: IOException) {
+            throw IOException(context.stringResource(MR.strings.invalid_backup_file_unknown), e)
+        }
+    }
+
+    data class Metadata(
+        val entryCount: Int,
+        val backup: Backup,
+        // AM -->
+        val ids: HashMap<Long, Pair<Long, String>>,
+        // <-- AM
+    )
 
     companion object {
         private const val MAGIC_JSON_SIGNATURE1 = 0x7b7d // `{}`

@@ -2,12 +2,14 @@ package eu.kanade.tachiyomi.data.backup.create
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.backup.BackupFileValidator
+import eu.kanade.tachiyomi.data.backup.BackupWriter
 import eu.kanade.tachiyomi.data.backup.create.creators.AnimeBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.CategoriesBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.CustomButtonBackupCreator
@@ -24,6 +26,8 @@ import eu.kanade.tachiyomi.data.backup.models.BackupExtensionStore
 import eu.kanade.tachiyomi.data.backup.models.BackupPreference
 import eu.kanade.tachiyomi.data.backup.models.BackupSource
 import eu.kanade.tachiyomi.data.backup.models.BackupSourcePreferences
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.serialization.protobuf.ProtoBuf
 import logcat.LogPriority
 import okio.buffer
@@ -93,33 +97,38 @@ class BackupCreator(
             val nonFavoriteAnime = if (options.seenEntries) animeRepository.getSeenAnimeNotInLibrary() else emptyList()
             val backupAnime = backupAnimes(getFavorites.await() + nonFavoriteAnime, options)
 
-            val backup = Backup(
-                backupPreferences = backupAppPreferences(options),
-                backupSourcePreferences = backupSourcePreferences(options),
-
-                // AY -->
-                isLegacy = false,
-                backupAnime = backupAnime,
-                backupCategories = backupCategories(options),
-                backupSources = backupSources(backupAnime),
-                backupExtensions = backupExtensions(options),
-                backupExtensionStores = backupExtensionStores(options),
-                backupCustomButton = backupCustomButtons(options),
-                // <-- AY
-            )
-
-            val byteArray = parser.encodeToByteArray(Backup.serializer(), backup)
-            if (byteArray.isEmpty()) {
-                throw IllegalStateException(context.stringResource(MR.strings.empty_backup_error))
-            }
-
             file.openOutputStream()
                 .also {
                     // Force overwrite old file
                     (it as? FileOutputStream)?.channel?.truncate(0)
                 }
                 .sink().gzip().buffer().use {
-                    it.write(byteArray)
+                    val writer = BackupWriter(it, parser)
+                    val sourceIds = mutableSetOf<Long>()
+                    backupAnime.collect { anime ->
+                        Log.i("SOMETHING-create", "${anime.title} - ${anime.episodes.joinToString(", ") { it.name }}")
+                        writer.writeEntry(anime)
+                        sourceIds += anime.source
+                    }
+                    writer.writeMetadata(
+                        Backup(
+                            backupPreferences = backupAppPreferences(options),
+                            backupSourcePreferences = backupSourcePreferences(options),
+
+                            // AY -->
+                            isLegacy = false,
+                            backupAnime = emptyList(),
+                            backupCategories = backupCategories(options),
+                            backupSources = backupSources(sourceIds),
+                            backupExtensions = backupExtensions(options),
+                            backupExtensionStores = backupExtensionStores(options),
+                            backupCustomButton = backupCustomButtons(options),
+                            // <-- AY
+                        ),
+                    )
+                    if (writer.isEmpty) {
+                        throw IllegalStateException(context.stringResource(MR.strings.empty_backup_error))
+                    }
                 }
             val fileUri = file.uri
 
@@ -144,14 +153,14 @@ class BackupCreator(
         return categoriesBackupCreator()
     }
 
-    internal suspend fun backupAnimes(animes: List<Anime>, options: BackupOptions): List<BackupAnime> {
-        if (!options.libraryEntries) return emptyList()
+    internal fun backupAnimes(animes: List<Anime>, options: BackupOptions): Flow<BackupAnime> {
+        if (!options.libraryEntries) return emptyFlow()
 
         return animeBackupCreator(animes, options)
     }
 
-    internal suspend fun backupSources(animes: List<BackupAnime>): List<BackupSource> {
-        return sourcesBackupCreator(animes)
+    private suspend fun backupSources(sourceIds: Set<Long>): List<BackupSource> {
+        return sourcesBackupCreator(sourceIds)
     }
 
     internal fun backupAppPreferences(options: BackupOptions): List<BackupPreference> {

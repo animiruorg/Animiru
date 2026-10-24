@@ -13,9 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import eu.kanade.tachiyomi.R
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.roundedfilled.PlayArrow
 
 @Composable
 fun DoubleTapSeekTriangles(isForward: Boolean) {
@@ -52,7 +52,7 @@ private fun DoubleTapArrow(
     alpha: Float,
 ) {
     Icon(
-        painter = painterResource(R.drawable.ic_play_seek_triangle),
+        imageVector = MaterialSymbols.RoundedFilled.PlayArrow,
         contentDescription = null,
         modifier = Modifier
             .size(width = 16.dp, height = 20.dp)

@@ -1,0 +1,12 @@
+query AniListSearchAnime(
+  $search: String!,
+) {
+  Page (perPage: 50) {
+    media(
+      search: $search,
+      type: ANIME,
+    ) {
+      ...AnimeFragment
+    }
+  }
+}

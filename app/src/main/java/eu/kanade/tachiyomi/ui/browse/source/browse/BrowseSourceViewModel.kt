@@ -31,9 +31,12 @@ import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.util.removeBackgrounds
 import eu.kanade.tachiyomi.util.removeCovers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
@@ -42,9 +45,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import mihon.core.metro.AppCoroutineScope
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.mapAsCheckboxState
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.anime.interactor.GetAnime
 import tachiyomi.domain.anime.interactor.GetDuplicateLibraryAnime
 import tachiyomi.domain.anime.model.Anime
@@ -58,12 +61,14 @@ import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.source.interactor.GetRemoteAnime
 import tachiyomi.domain.source.service.SourceManager
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import eu.kanade.tachiyomi.animesource.model.AnimeFilter as SourceModelFilter
 
 @AssistedInject
 class BrowseSourceViewModel(
     @Assisted private val sourceId: Long,
     @Assisted listingQuery: String?,
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val sourceManager: SourceManager,
     sourcePreferences: SourcePreferences,
     private val libraryPreferences: LibraryPreferences,
@@ -97,7 +102,7 @@ class BrowseSourceViewModel(
     private val source: AnimeSource? get() = state.value.source
 
     init {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             val source = sourceManager.getOrStub(sourceId)
 
             state.update {
@@ -138,7 +143,7 @@ class BrowseSourceViewModel(
                 pagingData.map { anime ->
                     getAnime.subscribe(anime.url, anime.source)
                         .map { it ?: anime }
-                        .stateIn(viewModelScope)
+                        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), anime)
                 }
                     .filter { !hideInLibraryItems || !it.value.favorite }
             }
@@ -249,25 +254,17 @@ class BrowseSourceViewModel(
      * @param anime the anime to update.
      */
     fun changeAnimeFavorite(anime: Anime) {
-        viewModelScope.launch {
+        appScope.launch {
             val update = if (anime.favorite) {
-                val coverLastModified = anime.removeCovers(coverCache).coverLastModified
+                anime.removeCovers(coverCache)
                 // AM -->
-                val backgroundLastModified = anime.removeBackgrounds(backgroundCache).backgroundLastModified
+                anime.removeBackgrounds(backgroundCache)
                 // <-- AM
-                AnimeUpdate(anime.id) {
-                    favoriteAt = null
-                    if (coverLastModified != anime.coverLastModified) this.coverLastModified = coverLastModified
-                    // AM -->
-                    if (backgroundLastModified != anime.backgroundLastModified) {
-                        this.backgroundLastModified = backgroundLastModified
-                    }
-                    // <-- AM
-                }
+                AnimeUpdate(anime.id) { favoriteAt = null }
             } else {
                 setAnimeDefaultEpisodeFlags.await(anime)
                 addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source))
-                AnimeUpdate(anime.id) { favoriteAt = Clock.System.now().toEpochMilliseconds() }
+                AnimeUpdate(anime.id) { favoriteAt = Clock.System.now() }
             }
 
             updateAnime.await(update)
@@ -330,7 +327,7 @@ class BrowseSourceViewModel(
     }
 
     fun moveAnimeToCategories(anime: Anime, categoryIds: List<Long>) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             setAnimeCategories.await(
                 animeId = anime.id,
                 categoryIds = categoryIds.toList(),

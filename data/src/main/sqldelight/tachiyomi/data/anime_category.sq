@@ -1,0 +1,20 @@
+CREATE TABLE anime_category(
+    anime_id INTEGER NOT NULL,
+    category_id INTEGER NOT NULL,
+    UNIQUE(anime_id, category_id),
+    FOREIGN KEY(category_id) REFERENCES category (id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(anime_id) REFERENCES anime (id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX anime_category_category_id_index ON anime_category(category_id);
+
+insert:
+INSERT INTO anime_category(anime_id, category_id)
+VALUES (:animeId, :categoryId)
+ON CONFLICT(anime_id, category_id) DO NOTHING;
+
+deleteAnimeCategoryByAnimeId:
+DELETE FROM anime_category
+WHERE anime_id = :animeId;

@@ -36,8 +36,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.i18n.MR
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 // AM (BROWSE) -->
@@ -67,7 +67,8 @@ class ExtensionsViewModel(
     @Suppress("LocalVariableName")
     private val items = combine(
         searchQuery
-            .debounce(0.25.seconds)
+            // No query is the common case on every open, so don't delay it
+            .debounce { if (it.isNullOrEmpty()) Duration.ZERO else 0.25.seconds }
             .map { searchQueryPredicate(it ?: "") },
         currentDownloads,
         getExtensions.subscribe(),
@@ -98,7 +99,7 @@ class ExtensionsViewModel(
             }
         }
     }
-        .flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     val state: StateFlow<State> = combine(
@@ -120,7 +121,7 @@ class ExtensionsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), State())
 
     init {
-        viewModelScope.launchIO { findAvailableExtensions() }
+        viewModelScope.launch(Dispatchers.IO) { findAvailableExtensions() }
     }
 
     fun searchQueryPredicate(query: String): (Extension) -> Boolean {
@@ -158,23 +159,23 @@ class ExtensionsViewModel(
     }
 
     fun updateAllExtensions() {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             state.value.items.values.flatten()
                 .map { it.extension }
-                .filterIsInstance<Extension.Loaded>()
+                .filterIsInstance<Extension.Installed>()
                 .filter { it.hasUpdate }
                 .forEach(::updateExtension)
         }
     }
 
     fun installExtension(extension: Extension.Available) {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             extensionManager.installExtension(extension).collectToInstallUpdate(extension)
         }
     }
 
-    fun updateExtension(extension: Extension.Loaded) {
-        viewModelScope.launchIO {
+    fun updateExtension(extension: Extension.Installed) {
+        viewModelScope.launch(Dispatchers.IO) {
             extensionManager.updateExtension(extension).collectToInstallUpdate(extension)
         }
     }
@@ -204,7 +205,7 @@ class ExtensionsViewModel(
     }
 
     fun findAvailableExtensions() {
-        viewModelScope.launchIO {
+        viewModelScope.launch(Dispatchers.IO) {
             isRefreshing.update { true }
 
             extensionManager.findAvailableExtensions()

@@ -2,6 +2,7 @@ package tachiyomi.domain.anime.model
 
 import eu.kanade.tachiyomi.animesource.model.AnimeUpdateStrategy
 import kotlinx.serialization.json.JsonObject
+import kotlin.time.Instant
 
 data class AnimeRemoteUpdate(
     val id: Long,
@@ -15,10 +16,10 @@ data class AnimeRemoteUpdate(
     val updateStrategy: AnimeUpdateStrategy,
     val memo: JsonObject,
     val initialized: Boolean,
-    val coverLastModified: Long?,
+    val coverLastModified: Instant?,
     // AM -->
     val backgroundUrl: String?,
-    val backgroundLastModified: Long?,
+    val backgroundLastModified: Instant?,
     val parentId: Long?,
     val seasonNumber: Double?,
     val seasonSourceOrder: Long?,

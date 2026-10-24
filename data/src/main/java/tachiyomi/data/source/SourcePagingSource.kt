@@ -5,8 +5,9 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.AnimesPage
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mihon.domain.anime.model.toDomainAnime
-import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.source.repository.SourcePagingSource
@@ -54,7 +55,7 @@ abstract class BaseSourcePagingSource(
 
         return try {
             val source = source()
-            val animesPage = withIOContext {
+            val animesPage = withContext(Dispatchers.IO) {
                 requestNextPage(source, page.toInt())
                     .takeIf { it.animes.isNotEmpty() }
                     ?: throw NoResultsException()

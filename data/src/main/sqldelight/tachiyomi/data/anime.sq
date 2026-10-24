@@ -1,0 +1,430 @@
+import eu.kanade.tachiyomi.animesource.model.AnimeUpdateStrategy;
+import eu.kanade.tachiyomi.animesource.model.FetchType;
+import kotlin.Boolean;
+import kotlin.String;
+import kotlin.collections.List;
+import kotlin.time.Instant;
+import kotlinx.serialization.json.JsonObject;
+
+CREATE TABLE anime(
+    id INTEGER NOT NULL PRIMARY KEY,
+    source_id INTEGER NOT NULL,
+    remote_url TEXT NOT NULL,
+    remote_title TEXT NOT NULL,
+    remote_author TEXT,
+    remote_artist TEXT,
+    remote_description TEXT,
+    remote_genre TEXT AS List<String>,
+    remote_status INTEGER NOT NULL,
+    remote_cover TEXT,
+    remote_update_strategy INTEGER AS AnimeUpdateStrategy NOT NULL,
+    remote_memo BLOB AS JsonObject NOT NULL,
+    -- AM -->
+    remote_fetch_type INTEGER AS FetchType NOT NULL DEFAULT 1,
+    remote_season_number REAL NOT NULL,
+    remote_season_source_order INTEGER NOT NULL,
+    remote_background TEXT,
+    -- <-- AM
+    user_favorite_at INTEGER AS Instant,
+    user_notes TEXT NOT NULL,
+    user_player_flags INTEGER NOT NULL,
+    user_episode_flags INTEGER NOT NULL,
+    -- AM -->
+    user_season_flags INTEGER NOT NULL,
+    user_custom_artist TEXT,
+    user_custom_author TEXT,
+    user_custom_description TEXT,
+    user_custom_genre TEXT AS List<String>,
+    user_custom_title TEXT,
+    user_custom_status INTEGER,
+    -- <-- AM
+    state_episode_last_update INTEGER AS Instant,
+    state_episode_next_update INTEGER AS Instant,
+    state_episode_fetch_interval INTEGER NOT NULL,
+    state_cover_last_modified INTEGER AS Instant,
+    state_initialized INTEGER AS Boolean NOT NULL,
+    -- AM -->
+    state_parent_id INTEGER,
+    state_background_last_modified INTEGER AS Instant,
+    -- <-- AM
+    UNIQUE(source_id, remote_url)
+);
+
+CREATE INDEX anime_user_favorite_at_index ON anime(user_favorite_at) WHERE user_favorite_at IS NOT NULL;
+-- AM -->
+CREATE INDEX anime_parent_id_index ON anime(state_parent_id);
+CREATE INDEX anime_fetch_type_index ON anime(remote_fetch_type);
+-- <-- AM
+
+getAnimeById:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE id = :id;
+
+getAnimeByUrlAndSource:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE source_id = :sourceId
+AND remote_url = :remoteUrl;
+
+getFavorites:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE user_favorite_at IS NOT NULL;
+
+getSeenAnimeNotInLibrary:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE user_favorite_at IS NULL
+AND EXISTS (
+    SELECT 1
+    FROM episode
+    WHERE episode.anime_id = anime.id
+    AND (user_seen = 1 OR user_last_second_seen != 0)
+);
+
+getAllAnimeSourceAndUrl:
+SELECT source_id, remote_url
+FROM anime;
+
+getSourceIdWithFavoriteCount:
+SELECT source_id, count(*)
+FROM anime
+WHERE user_favorite_at IS NOT NULL
+GROUP BY source_id;
+
+getFavoriteBySourceId:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE user_favorite_at IS NOT NULL
+AND source_id = :sourceId;
+
+getDuplicateLibraryAnime:
+WITH
+track_dupes AS (
+    SELECT DISTINCT T2.anime_id
+    FROM anime_track T1
+    INNER JOIN anime_track T2
+    ON T1.tracker_id = T2.tracker_id
+    AND T1.remote_id = T2.remote_id
+    AND T1.remote_id != 0
+    AND T1.anime_id != T2.anime_id
+    WHERE T1.anime_id = :id
+)
+SELECT
+    A.id, A.source_id, A.remote_url, A.remote_title, A.remote_author, A.remote_artist, A.remote_description,
+    A.remote_genre, A.remote_status, A.remote_cover, A.remote_update_strategy, A.remote_memo,
+    A.remote_fetch_type, A.remote_season_number, A.remote_season_source_order, A.remote_background,
+    A.user_favorite_at, A.user_notes, A.user_player_flags, A.user_episode_flags, A.user_season_flags,
+    A.user_custom_artist, A.user_custom_author, A.user_custom_description, A.user_custom_genre,
+    A.user_custom_title, A.user_custom_status, A.state_episode_last_update, A.state_episode_next_update,
+    A.state_episode_fetch_interval, A.state_cover_last_modified, A.state_initialized,
+    A.state_parent_id, A.state_background_last_modified,
+    (
+        SELECT count(*)
+        FROM episode EP
+        LEFT JOIN excluded_scanlator ES
+        ON EP.anime_id = ES.anime_id
+        AND EP.remote_scanlator = ES.scanlator
+        WHERE EP.anime_id = A.id
+        AND ES.scanlator IS NULL
+    ) AS episode_count
+FROM anime A
+WHERE A.user_favorite_at IS NOT NULL
+AND A.id != :id
+-- A blank title would match every title
+AND (
+    (trim(:remoteTitle) != '' AND lower(A.remote_title) LIKE '%' || lower(:remoteTitle) || '%')
+    OR A.id IN (SELECT anime_id FROM track_dupes)
+);
+
+getUpcomingAnime:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE state_episode_next_update >= :startOfDay
+AND user_favorite_at IS NOT NULL
+AND remote_status IN :statuses
+AND (
+    -- includedEmpty being true expresses "don't care" state and bypasses the membership filter
+    :includedEmpty
+    OR EXISTS (
+        SELECT 1 FROM anime_category
+        WHERE anime_category.anime_id = anime.id
+        AND anime_category.category_id IN :includedCategories
+    )
+    OR (0 IN :includedCategories AND NOT EXISTS (
+        SELECT 1 FROM anime_category WHERE anime_category.anime_id = anime.id)
+    )
+)
+AND (
+    -- excludedEmpty being true expresses "don't care" state and bypasses the membership filter
+    :excludedEmpty
+    OR (
+        NOT EXISTS (
+            SELECT 1 FROM anime_category
+            WHERE anime_category.anime_id = anime.id
+            AND anime_category.category_id IN :excludedCategories
+        )
+        AND (
+            0 NOT IN :excludedCategories
+            OR EXISTS (SELECT 1 FROM anime_category WHERE anime_category.anime_id = anime.id)
+        )
+    )
+)
+ORDER BY state_episode_next_update ASC;
+
+resetViewerFlags:
+UPDATE anime
+SET user_player_flags = 0
+WHERE user_player_flags != 0;
+
+-- AM -->
+removeParentIdByIds:
+UPDATE anime
+SET state_parent_id = NULL
+WHERE id IN :animeIds;
+
+getChildrenByParentId:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE state_parent_id = :parentId;
+-- <-- AM
+
+deleteNonLibraryAnimeByAnimeIds:
+DELETE FROM anime
+WHERE user_favorite_at IS NULL
+-- AM -->
+AND id IN :animeIds
+-- <-- AM
+AND (
+    :keepSeenAnime = 0
+    OR NOT EXISTS (
+        SELECT 1
+        FROM episode
+        WHERE episode.anime_id = anime.id
+        AND (user_seen = 1 OR user_last_second_seen != 0)
+    )
+);
+
+insertReturningId:
+INSERT INTO anime(
+    source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+)
+VALUES (
+    :sourceId, :remoteUrl, :remoteTitle, :remoteAuthor, :remoteArtist, :remoteDescription,
+    :remoteGenre, :remoteStatus, :remoteCover, :remoteUpdateStrategy, :remoteMemo,
+    :remoteFetchType, :remoteSeasonNumber, :remoteSeasonSourceOrder, :remoteBackground,
+    :userFavoriteAt, :userNotes, :userPlayerFlags, :userEpisodeFlags, :userSeasonFlags,
+    NULL, NULL, NULL, NULL, NULL, NULL, :stateEpisodeLastUpdate, :stateEpisodeNextUpdate,
+    :stateEpisodeFetchInterval, :stateCoverLastModified, :stateInitialized, :stateParentId,
+    :stateBackgroundLastModified
+)
+RETURNING id;
+
+update:
+UPDATE anime SET
+    -- NULL is a real value here (not in the library), which coalesce cannot write
+    user_favorite_at = CASE WHEN :userFavoriteAtSet THEN :userFavoriteAt ELSE user_favorite_at END,
+    user_notes = coalesce(:userNotes, user_notes),
+    user_player_flags = coalesce(:userPlayerFlags, user_player_flags),
+    user_episode_flags = coalesce(:userEpisodeFlags, user_episode_flags),
+    -- AM -->
+    user_season_flags = coalesce(:userSeasonFlags, user_season_flags),
+    -- <-- AM
+    state_episode_last_update = coalesce(:stateEpisodeLastUpdate, state_episode_last_update),
+    state_episode_next_update = coalesce(:stateEpisodeNextUpdate, state_episode_next_update),
+    state_episode_fetch_interval = coalesce(:stateEpisodeFetchInterval, state_episode_fetch_interval),
+    state_cover_last_modified = coalesce(:stateCoverLastModified, state_cover_last_modified),
+    -- AM -->
+    state_background_last_modified = coalesce(:stateBackgroundLastModified, state_background_last_modified)
+    -- <-- AM
+WHERE id = :id;
+
+updateFromBackup:
+UPDATE anime SET
+    remote_title = coalesce(:remoteTitle, remote_title),
+    remote_author = coalesce(:remoteAuthor, remote_author),
+    remote_artist = coalesce(:remoteArtist, remote_artist),
+    remote_description = coalesce(:remoteDescription, remote_description),
+    remote_genre = coalesce(:remoteGenre, remote_genre),
+    remote_status = coalesce(:remoteStatus, remote_status),
+    remote_cover = coalesce(:remoteCover, remote_cover),
+    remote_update_strategy = coalesce(:remoteUpdateStrategy, remote_update_strategy),
+    remote_memo = coalesce(:remoteMemo, remote_memo),
+    -- AM -->
+    remote_fetch_type = coalesce(:remoteFetchType, remote_fetch_type),
+    remote_season_number = coalesce(:remoteSeasonNumber, remote_season_number),
+    remote_season_source_order = coalesce(:remoteSeasonSourceOrder, remote_season_source_order),
+    remote_background = coalesce(:remoteBackground, remote_background),
+    -- <-- AM
+    user_favorite_at = :userFavoriteAt,
+    user_notes = coalesce(:userNotes, user_notes),
+    user_player_flags = coalesce(:userPlayerFlags, user_player_flags),
+    user_episode_flags = coalesce(:userEpisodeFlags, user_episode_flags),
+    -- AM -->
+    user_season_flags = coalesce(:userSeasonFlags, user_season_flags),
+    -- <-- AM
+    state_episode_last_update = coalesce(:stateEpisodeLastUpdate, state_episode_last_update),
+    state_cover_last_modified = coalesce(:stateCoverLastModified, state_cover_last_modified),
+    state_initialized = coalesce(:stateInitialized, state_initialized),
+    -- AM -->
+    state_parent_id = coalesce(:stateParentId, state_parent_id),
+    state_background_last_modified = coalesce(:stateBackgroundLastModified, state_background_last_modified)
+    -- <-- AM
+WHERE id = :id;
+
+updateRemote:
+UPDATE anime SET
+    remote_title = coalesce(:remoteTitle, remote_title),
+    remote_author = coalesce(:remoteAuthor, remote_author),
+    remote_artist = coalesce(:remoteArtist, remote_artist),
+    remote_description = coalesce(:remoteDescription, remote_description),
+    remote_genre = coalesce(:remoteGenre, remote_genre),
+    remote_status = :remoteStatus,
+    remote_cover = coalesce(:remoteCover, remote_cover),
+    remote_update_strategy = :remoteUpdateStrategy,
+    remote_memo = :remoteMemo,
+    -- AY -->
+    remote_season_number = coalesce(:remoteSeasonNumber, remote_season_number),
+    remote_season_source_order = coalesce(:remoteSeasonSourceOrder, remote_season_source_order),
+    remote_background = coalesce(:remoteBackground, remote_background),
+    -- <-- AY
+    state_cover_last_modified = coalesce(:stateCoverLastModified, state_cover_last_modified),
+    state_initialized = :stateInitialized,
+    -- AM -->
+    state_parent_id = coalesce(:stateParentId, state_parent_id),
+    state_background_last_modified = coalesce(:stateBackgroundLastModified, state_background_last_modified)
+    -- <-- AM
+WHERE id = :id;
+
+-- AM -->
+updateCustomInformation:
+UPDATE anime SET
+    user_custom_artist = :customArtist,
+    user_custom_author = :customAuthor,
+    user_custom_description = :customDescription,
+    user_custom_genre = :customGenre,
+    user_custom_title = :customTitle,
+    user_custom_status = :customStatus
+WHERE id = :animeId;
+-- <-- AM
+
+insertNetworkAnime {
+    -- A new entry is inserted as the source reported it. An existing one takes the fresh details
+    -- only while it is outside the library, so a library entry keeps what the user already has.
+    INSERT INTO anime(
+        source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+        remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+        remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+        user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+        user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+        user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+        state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+        state_parent_id, state_background_last_modified
+    )
+    VALUES (
+        :sourceId, :remoteUrl, :remoteTitle, :remoteAuthor, :remoteArtist, :remoteDescription,
+        :remoteGenre, :remoteStatus, :remoteCover, :remoteUpdateStrategy, :remoteMemo,
+        :remoteFetchType, :remoteSeasonNumber, :remoteSeasonSourceOrder, :remoteBackground,
+        :userFavoriteAt, '', :userPlayerFlags, :userEpisodeFlags, :userSeasonFlags,
+        NULL, NULL, NULL, NULL, NULL, NULL, :stateEpisodeLastUpdate, :stateEpisodeNextUpdate,
+        :stateEpisodeFetchInterval, :stateCoverLastModified, :stateInitialized, :stateParentId,
+        :stateBackgroundLastModified
+    )
+    ON CONFLICT(source_id, remote_url) DO UPDATE SET
+        remote_title = CASE WHEN :updateTitle THEN excluded.remote_title ELSE remote_title END,
+        remote_cover = CASE WHEN :updateCover THEN excluded.remote_cover ELSE remote_cover END,
+        remote_author = CASE WHEN :updateDetails THEN excluded.user_custom_author ELSE remote_author END,
+        remote_artist = CASE WHEN :updateDetails THEN excluded.remote_artist ELSE remote_artist END,
+        remote_description = CASE WHEN :updateDetails THEN excluded.remote_description ELSE remote_description END,
+        remote_genre = CASE WHEN :updateDetails THEN excluded.remote_genre ELSE remote_genre END,
+        remote_status = CASE WHEN :updateDetails THEN excluded.remote_status ELSE remote_status END,
+        remote_update_strategy = CASE
+            WHEN :updateDetails THEN excluded.remote_update_strategy
+            ELSE remote_update_strategy
+        END,
+        remote_memo = excluded.remote_memo,
+        -- AY -->
+        remote_season_number = CASE WHEN :updateDetails THEN excluded.remote_season_number ELSE remote_season_number END,
+        remote_season_source_order = CASE WHEN :updateDetails THEN excluded.remote_season_source_order ELSE remote_season_source_order END,
+        remote_background = CASE WHEN :updateDetails THEN excluded.remote_background ELSE remote_background END,
+        -- <-- AY
+        state_initialized = :updateDetails
+    WHERE user_favorite_at IS NULL;
+
+    SELECT
+        id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+        remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+        remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+        user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+        user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+        user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+        state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+        state_parent_id, state_background_last_modified
+    FROM anime
+    WHERE source_id = :sourceId
+    AND remote_url = :remoteUrl;
+}

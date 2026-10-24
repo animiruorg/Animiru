@@ -1,6 +1,7 @@
 package tachiyomi.domain.library.model
 
 import tachiyomi.domain.anime.model.Anime
+import kotlin.time.Instant
 
 data class LibraryAnime(
     val anime: Anime,
@@ -11,9 +12,9 @@ data class LibraryAnime(
     // AY -->
     val fillermarkCount: Long,
     // <-- AY
-    val latestUpload: Long,
-    val episodeFetchedAt: Long,
-    val lastSeen: Long,
+    val latestUpload: Instant?,
+    val episodeFetchedAt: Instant?,
+    val lastSeen: Instant?,
 ) {
     val id: Long = anime.id
 

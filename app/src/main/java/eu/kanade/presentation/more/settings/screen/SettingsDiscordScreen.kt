@@ -32,7 +32,7 @@ import kotlinx.coroutines.runBlocking
 import mihon.app.di.appGraph
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Help
-import mihon.icons.materialsymbols.rounded.Cancel
+import mihon.icons.materialsymbols.roundedfilled.Cancel
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.TextButton
@@ -99,7 +99,7 @@ object SettingsDiscordScreen : SearchableSettings {
                             0 to stringResource(AMMR.strings.pref_discord_idle),
                             1 to stringResource(AMMR.strings.pref_discord_online),
                         ),
-                        enabled = enableDRPC,
+                        visible = enableDRPC,
                         onValueChanged = {
                             context.toast(MR.strings.requires_app_restart)
                             true
@@ -180,7 +180,7 @@ object SettingsDiscordScreen : SearchableSettings {
                     stringResource(AMMR.strings.pref_discord_incognito_categories_details),
                 ),
             ),
-            enabled = enabled,
+            visible = enabled,
         )
     }
 
@@ -219,7 +219,7 @@ object SettingsDiscordScreen : SearchableSettings {
                             modifier = Modifier.fillMaxWidth(),
                             trailingIcon = {
                                 IconButton(onClick = { tempCustomMessage = "" }) {
-                                    Icon(imageVector = MaterialSymbols.Rounded.Cancel, contentDescription = null)
+                                    Icon(imageVector = MaterialSymbols.RoundedFilled.Cancel, contentDescription = null)
                                 }
                             },
                             singleLine = true,
@@ -251,7 +251,7 @@ object SettingsDiscordScreen : SearchableSettings {
 
         return Preference.PreferenceGroup(
             title = stringResource(AMMR.strings.pref_category_discord_customization),
-            enabled = enabled,
+            visible = enabled,
             preferenceItems = listOf(
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(AMMR.strings.pref_discord_custom_message),
@@ -267,7 +267,7 @@ object SettingsDiscordScreen : SearchableSettings {
                     preference = showEpisodeTitlePref,
                     title = stringResource(AMMR.strings.pref_discord_show_episode_title),
                     subtitle = stringResource(AMMR.strings.pref_discord_show_episode_title_summary),
-                    enabled = showProgress,
+                    visible = showProgress,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = showTimestampPref,
@@ -283,13 +283,13 @@ object SettingsDiscordScreen : SearchableSettings {
                     preference = showDownloadButtonPref,
                     title = stringResource(AMMR.strings.pref_discord_show_download_button),
                     subtitle = stringResource(AMMR.strings.pref_discord_show_download_button_summary),
-                    enabled = showButtons,
+                    visible = showButtons,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = showDiscordButtonPref,
                     title = stringResource(AMMR.strings.pref_discord_show_discord_button),
                     subtitle = stringResource(AMMR.strings.pref_discord_show_discord_button_summary),
-                    enabled = showButtons,
+                    visible = showButtons,
                 ),
             ),
         )

@@ -21,23 +21,23 @@ import eu.kanade.domain.connection.service.ConnectionPreferences
 import eu.kanade.domain.extension.interactor.TrustExtension
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.track.interactor.AddTracks
-import eu.kanade.domain.track.service.DelayedTrackingUpdateJob
+import eu.kanade.domain.track.service.DelayedTrackingUpdateWorker
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.tachiyomi.App
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
-import eu.kanade.tachiyomi.data.backup.create.BackupCreateJob
-import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob
+import eu.kanade.tachiyomi.data.backup.create.BackupCreateWorker
+import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreWorker
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.connection.ConnectionManager
 import eu.kanade.tachiyomi.data.connection.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.download.DownloadCache
-import eu.kanade.tachiyomi.data.download.DownloadJob
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadProvider
-import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
-import eu.kanade.tachiyomi.data.library.MetadataUpdateJob
+import eu.kanade.tachiyomi.data.download.DownloadWorker
+import eu.kanade.tachiyomi.data.library.LibraryUpdateWorker
+import eu.kanade.tachiyomi.data.library.MetadataUpdateWorker
 import eu.kanade.tachiyomi.data.notification.NotificationReceiver
 import eu.kanade.tachiyomi.data.player.service.HttpServerService
 import eu.kanade.tachiyomi.data.torrent.service.TorrentServerService
@@ -60,6 +60,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.protobuf.ProtoBuf
 import mihon.core.metro.IsDebugBuild
 import mihon.domain.extension.interactor.GetExtensionStoreCountAsFlow
+import mihon.domain.extension.repository.ExtensionStoreRepository
 import nl.adaptivity.xmlutil.serialization.XML
 import tachiyomi.core.common.storage.AndroidStorageFolderProvider
 import tachiyomi.domain.anime.interactor.GetAnime
@@ -73,7 +74,7 @@ import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.domain.storage.service.StoragePreferences
-import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.interactor.UpsertTrack
 
 @DependencyGraph(
     scope = AppScope::class,
@@ -85,12 +86,12 @@ interface AppGraph : ViewModelGraph {
     fun inject(playerActivity: PlayerActivity)
     fun inject(webViewActivity: WebViewActivity)
     fun inject(baseOAuthLoginActivity: BaseOAuthLoginActivity)
-    fun inject(libraryUpdateJob: LibraryUpdateJob)
-    fun inject(metadataUpdateJob: MetadataUpdateJob)
-    fun inject(backupRestoreJob: BackupRestoreJob)
-    fun inject(backupCreateJob: BackupCreateJob)
-    fun inject(delayedTrackingUpdateJob: DelayedTrackingUpdateJob)
-    fun inject(downloadJob: DownloadJob)
+    fun inject(libraryUpdateWorker: LibraryUpdateWorker)
+    fun inject(metadataUpdateWorker: MetadataUpdateWorker)
+    fun inject(backupRestoreWorker: BackupRestoreWorker)
+    fun inject(backupCreateWorker: BackupCreateWorker)
+    fun inject(delayedTrackingUpdateWorker: DelayedTrackingUpdateWorker)
+    fun inject(downloadWorker: DownloadWorker)
     fun inject(notificationReceiver: NotificationReceiver)
     fun inject(notificationReceiver: SecureActivityDelegateImpl)
     fun inject(extensionInstallActivity: ExtensionInstallActivity)
@@ -135,6 +136,7 @@ interface AppGraph : ViewModelGraph {
     val updateChecker: AppUpdateChecker
 
     val trustExtension: TrustExtension
+    val extensionStoreRepository: ExtensionStoreRepository
 
     val sourceManager: SourceManager
     val trackerManager: TrackerManager
@@ -158,7 +160,7 @@ interface AppGraph : ViewModelGraph {
     val resetViewerFlags: ResetViewerFlags
     val resetCategoryFlags: ResetCategoryFlags
     val addTracks: AddTracks
-    val insertTrack: InsertTrack
+    val upsertTrack: UpsertTrack
 
     val getExtensionStoreCountAsFlow: GetExtensionStoreCountAsFlow
 

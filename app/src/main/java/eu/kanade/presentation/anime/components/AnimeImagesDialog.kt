@@ -47,6 +47,8 @@ import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.tachiyomi.data.coil.useBackground
 import eu.kanade.tachiyomi.util.ReaderPageImageView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.Close
 import mihon.icons.materialsymbols.rounded.Edit
@@ -54,13 +56,13 @@ import mihon.icons.materialsymbols.rounded.KeyboardArrowLeft
 import mihon.icons.materialsymbols.rounded.KeyboardArrowRight
 import mihon.icons.materialsymbols.rounded.Save
 import mihon.icons.materialsymbols.rounded.Share
-import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.clickableNoIndication
+import tachiyomi.source.local.isLocal
 
 @Composable
 fun AnimeImagesDialog(
@@ -95,7 +97,7 @@ fun AnimeImagesDialog(
     }
 
     val onImageSwitchClicked: () -> Unit = {
-        scope.launchUI {
+        scope.launch(Dispatchers.Main) {
             pagerState.animateScrollToPage(1 - pagerState.currentPage)
         }
     }
@@ -155,12 +157,16 @@ fun AnimeImagesDialog(
                                 var expanded by remember { mutableStateOf(false) }
                                 IconButton(
                                     onClick = {
-                                        // AY -->
-                                        if ((isCover && isCustomCover) || (!isCover && isCustomBackground)) {
-                                            // <-- AY
-                                            expanded = true
-                                        } else {
-                                            onEditClick(EditCoverAction.EDIT)
+                                        when {
+                                            !anime.favorite && !anime.isLocal() -> {
+                                                onEditClick(EditCoverAction.ADD_TO_LIBRARY)
+                                            }
+                                            // AM -->
+                                            (isCover && isCustomCover) || (!isCover && isCustomBackground) -> {
+                                                // <-- AM
+                                                expanded = true
+                                            }
+                                            else -> onEditClick(EditCoverAction.EDIT)
                                         }
                                     },
                                 ) {

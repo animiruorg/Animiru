@@ -20,7 +20,7 @@ class SyncRelatedAnimeWithSource(
     suspend fun await(anime: Anime, forceRefresh: Boolean = false) {
         val source = sourceManager.get(anime.source)?.takeIf { it.supportsRelatedAnime } ?: return
 
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = Clock.System.now()
         if (!forceRefresh) {
             val lastFetchedAt = relationRepository.getLastFetchedAt(anime.id)
             if (lastFetchedAt != null && now - lastFetchedAt < TTL) return
@@ -40,7 +40,7 @@ class SyncRelatedAnimeWithSource(
     }
 
     companion object {
-        private val TTL = 7.days.inWholeMilliseconds
+        private val TTL = 7.days
         private const val MAX_PER_GROUP = 10
     }
 }

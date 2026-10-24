@@ -51,13 +51,13 @@ import eu.kanade.tachiyomi.animesource.model.FetchType
 import mihon.feature.migration.list.models.MigratingAnime
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.ArrowForward
+import mihon.icons.materialsymbols.rounded.Check
 import mihon.icons.materialsymbols.rounded.Close
 import mihon.icons.materialsymbols.rounded.ContentCopy
 import mihon.icons.materialsymbols.rounded.CopyAll
-import mihon.icons.materialsymbols.rounded.Done
 import mihon.icons.materialsymbols.rounded.DoneAll
 import mihon.icons.materialsymbols.rounded.MoreVert
-import mihon.icons.materialsymbols.rounded.Warning
+import mihon.icons.materialsymbols.roundedfilled.Warning
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
@@ -114,7 +114,7 @@ fun MigrationListScreenContent(
                                 icon = if (items.size ==
                                     1
                                 ) {
-                                    MaterialSymbols.Rounded.Done
+                                    MaterialSymbols.Rounded.Check
                                 } else {
                                     MaterialSymbols.Rounded.DoneAll
                                 },
@@ -256,7 +256,7 @@ fun MigrationMismatchListItem(
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Icon(
-                    imageVector = MaterialSymbols.Rounded.Warning,
+                    imageVector = MaterialSymbols.RoundedFilled.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.error,

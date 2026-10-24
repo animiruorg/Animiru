@@ -1,0 +1,19 @@
+query ShikimoriGetLibAnime(
+  $remote_id: String!,
+) {
+  animes(
+    ids: $remote_id,
+    limit: 1,
+  ) {
+    id
+    url
+    name
+    episodes
+    userRate {
+      id
+      episodes
+      status
+      score
+    }
+  }
+}

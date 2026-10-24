@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.backup.restore
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
@@ -13,6 +14,7 @@ import eu.kanade.tachiyomi.data.backup.models.BackupCustomButtons
 import eu.kanade.tachiyomi.data.backup.models.BackupExtension
 import eu.kanade.tachiyomi.data.backup.models.BackupExtensionStore
 import eu.kanade.tachiyomi.data.backup.models.BackupPreference
+import eu.kanade.tachiyomi.data.backup.models.BackupSource
 import eu.kanade.tachiyomi.data.backup.models.BackupSourcePreferences
 import eu.kanade.tachiyomi.data.backup.restore.restorers.AnimeRestorer
 import eu.kanade.tachiyomi.data.backup.restore.restorers.CategoriesRestorer
@@ -25,15 +27,23 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.chunked
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.withIndex
 import kotlinx.coroutines.launch
 import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.system.createFileInCacheDir
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.backup.repository.RestoreRepository
+import tachiyomi.domain.source.repository.StubSourceRepository
+import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.BitSet
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
@@ -54,9 +64,12 @@ class BackupRestorer(
     private val extensionStoreRestorer: ExtensionStoreRestorer,
     private val animeRestorer: AnimeRestorer,
     private val backupDecoder: BackupDecoder,
+    private val sourceManager: SourceManager,
+    private val stubSourceRepository: StubSourceRepository,
     // AY -->
     private val customButtonRestorer: CustomButtonRestorer,
     private val extensionsRestorer: ExtensionsRestorer,
+    private val restoreRepository: RestoreRepository,
     // <-- AY
 ) {
 
@@ -102,14 +115,15 @@ class BackupRestorer(
     }
 
     private suspend fun restoreFromFile(uri: Uri, options: RestoreOptions) {
-        val backup = backupDecoder.decode(uri)
+        val (entryCount, backup, allIds) = backupDecoder.decodeMetadata(uri)
 
         // Store source mapping for error messages
         val backupMaps = backup.backupSources
         sourceMapping = backupMaps.associate { it.sourceId to it.name }
 
         if (options.libraryEntries) {
-            restoreAmount += backup.backupAnime.size
+            restoreSourceNames(backupMaps)
+            restoreAmount += entryCount
         }
         if (options.categories) {
             restoreAmount += 1
@@ -150,8 +164,11 @@ class BackupRestorer(
             }
             if (options.libraryEntries) {
                 restoreAnime(
-                    backup.backupAnime,
+                    uri,
                     if (options.categories) backup.backupCategories else emptyList(),
+                    // AM -->
+                    allIds,
+                    // <-- AM
                     restoreCategoriesJob,
                 )
             }
@@ -171,6 +188,16 @@ class BackupRestorer(
         }
     }
 
+    // Without a stub, a source that isn't installed has no name for the next backup to write
+    private suspend fun restoreSourceNames(backupSources: List<BackupSource>) {
+        backupSources
+            .filter { it.name.isNotBlank() }
+            .filter {
+                sourceManager.get(it.sourceId) == null && stubSourceRepository.getStubSource(it.sourceId) == null
+            }
+            .forEach { stubSourceRepository.upsertStubSource(it.sourceId, lang = "", name = it.name) }
+    }
+
     private fun CoroutineScope.restoreCategories(backupCategories: List<BackupCategory>) = launch {
         ensureActive()
         categoriesRestorer(backupCategories)
@@ -185,24 +212,98 @@ class BackupRestorer(
     }
 
     private fun CoroutineScope.restoreAnime(
-        backupAnimes: List<BackupAnime>,
+        uri: Uri,
         backupCategories: List<BackupCategory>,
+        // AM -->
+        ids: HashMap<Long, Pair<Long, String>>,
+        // <-- AM
         categoriesRestoreJob: Job?,
     ) = launch {
         categoriesRestoreJob?.join()
         // AM -->
-        val ids = backupAnimes.mapNotNull { it.id }.toHashSet()
+        val urlsBySource = restoreRepository.getAnimeUrlsBySourceId()
+        val isExisting: (BackupAnime) -> Boolean = { it.url in urlsBySource[it.source].orEmpty() }
+
+        val backupAnimes = flow {
+            val emittedIndices = BitSet()
+            var currentParentIds = mutableSetOf<Long>()
+
+            // Seasons are unlikely to run very deep, so checking 2 levels should be enough for most entries which means
+            // it's probably fine to collect the rest in memory.
+            val maxDepth = 2
+
+            for (depth in 0..2) {
+                val nextParentIds = mutableSetOf<Long>()
+                val levelExistingIndices = BitSet()
+
+                // New anime
+                backupDecoder.decodeEntries(uri)
+                    .withIndex()
+                    .collect { (index, anime) ->
+                        if (emittedIndices.get(index)) return@collect
+
+                        val isMatch = if (depth == 0) anime.parentId == null else anime.parentId in currentParentIds
+                        if (isMatch) {
+                            if (isExisting(anime)) {
+                                levelExistingIndices.set(index)
+                            } else {
+                                emit(anime)
+                                emittedIndices.set(index)
+                                anime.id?.let {
+                                    nextParentIds.add(it)
+                                }
+                            }
+                        }
+                    }
+
+                // Existing
+                if (!levelExistingIndices.isEmpty) {
+                    backupDecoder.decodeEntries(uri, levelExistingIndices::get)
+                        .collect { anime ->
+                            emit(anime)
+                            anime.id?.let {
+                                nextParentIds.add(it)
+                            }
+                        }
+                }
+
+                if (nextParentIds.isEmpty()) break // No seasons exists
+
+                currentParentIds = nextParentIds
+            }
+
+            val remainingExistingIndices = BitSet()
+            backupDecoder.decodeEntries(uri)
+                .withIndex()
+                .collect { (index, anime) ->
+                    if (emittedIndices.get(index)) return@collect
+                    if (isExisting(anime)) {
+                        remainingExistingIndices.set(index)
+                    } else {
+                        emit(anime)
+                        emittedIndices.set(index)
+                    }
+                }
+
+            if (!remainingExistingIndices.isEmpty) {
+                backupDecoder.decodeEntries(uri, remainingExistingIndices::get)
+                    .collect { emit(it) }
+            }
+        }
         // <-- AM
-        animeRestorer.sortByNew(backupAnimes)
+
+        backupAnimes
+            .onEach {
+                Log.i("SOMETHING-restore", "${it.title} - ${it.episodes.joinToString(", ") { it.name }}")
+            }
             .chunked(100)
-            .forEach { chunk ->
+            .collect { chunk ->
                 val restoredAsBatch = try {
                     ensureActive()
                     animeRestorer.restore(
                         chunk,
                         backupCategories,
                         // AM -->
-                        backupAnimes,
                         ids,
                         // <-- AM
                     )
@@ -219,7 +320,7 @@ class BackupRestorer(
                     chunk.forEach {
                         ensureActive()
                         try {
-                            animeRestorer.restore(listOf(it), backupCategories, backupAnimes, ids)
+                            animeRestorer.restore(listOf(it), backupCategories, ids)
                         } catch (e: Exception) {
                             ensureActive()
                             val sourceName = sourceMapping[it.source] ?: it.source.toString()

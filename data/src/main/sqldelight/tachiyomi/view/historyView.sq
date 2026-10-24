@@ -1,32 +1,31 @@
 CREATE VIEW historyView AS
 SELECT
-    history._id AS id,
-    animes._id AS animeId,
-    episodes._id AS episodeId,
+    history.id AS id,
+    anime.id AS animeId,
+    episode.id AS episodeId,
     -- AM -->
-    animes.custom_title,
+    anime.user_custom_title AS custom_title,
     -- <-- AM
-    animes.title,
-    animes.thumbnail_url AS thumbnailUrl,
-    animes.source,
-    animes.favorite_at IS NOT NULL AS favorite,
-    animes.cover_last_modified,
-    episodes.episode_number AS episodeNumber,
-    history.last_seen AS seenAt,
-    max_last_seen.last_seen AS maxSeenAt,
-    max_last_seen.episode_id AS maxSeenAtEpisodeId
-FROM animes
-JOIN episodes
-ON animes._id = episodes.anime_id
+    anime.remote_title AS title,
+    anime.remote_cover AS thumbnailUrl,
+    anime.source_id AS sourceId,
+    anime.user_favorite_at IS NOT NULL AS favorite,
+    anime.state_cover_last_modified AS coverLastModified,
+    episode.remote_episode_number AS episodeNumber,
+    history.seen_at AS seenAt,
+    max_seen.seen_at AS maxSeenAt,
+    max_seen.episode_id AS maxSeenAtEpisodeId
+FROM anime
+JOIN episode
+ON anime.id = episode.anime_id
 JOIN history
-ON episodes._id = history.episode_id
+ON episode.id = history.episode_id
 JOIN (
-    SELECT episodes.anime_id,episodes._id AS episode_id, MAX(history.last_seen) AS last_seen
-    FROM episodes JOIN history
-    ON episodes._id = history.episode_id
-    GROUP BY episodes.anime_id
-) AS max_last_seen
-ON episodes.anime_id = max_last_seen.anime_id;
+    SELECT anime_id, episode_id, MAX(seen_at) AS seen_at
+    FROM history
+    GROUP BY anime_id
+) AS max_seen
+ON episode.anime_id = max_seen.anime_id;
 
 history:
 SELECT
@@ -36,31 +35,36 @@ episodeId,
 custom_title,
 title,
 thumbnailUrl,
-source,
+sourceId,
 favorite,
-cover_last_modified,
+coverLastModified,
 episodeNumber,
 seenAt
 FROM historyView
-WHERE historyView.seenAt > 0
+WHERE historyView.seenAt IS NOT NULL
 AND maxSeenAtEpisodeId = historyView.episodeId
 AND lower(historyView.title) LIKE ('%' || :query || '%')
 ORDER BY seenAt DESC;
 
 getLatestHistory:
 SELECT
-id,
-animeId,
-episodeId,
-custom_title,
-title,
-thumbnailUrl,
-source,
-favorite,
-cover_last_modified,
-episodeNumber,
-seenAt
-FROM historyView
-WHERE historyView.seenAt > 0
-ORDER BY seenAt DESC
+history.id AS id,
+anime.id AS animeId,
+episode.id AS episodeId,
+anime.user_custom_title AS customTitle,
+anime.remote_title AS title,
+anime.remote_cover AS thumbnailUrl,
+anime.source_id AS sourceId,
+anime.user_favorite_at IS NOT NULL AS favorite,
+anime.state_cover_last_modified AS coverLastModified,
+episode.remote_episode_number AS episodeNumber,
+history.seen_at AS seenAt
+FROM history
+JOIN anime
+ON anime.id = history.anime_id
+JOIN episode
+ON episode.id = history.episode_id
+WHERE history.seen_at IS NOT NULL
+ORDER BY history.seen_at DESC
+
 LIMIT 1;
