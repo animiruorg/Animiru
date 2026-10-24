@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.util.formatEpisodeNumber
 import eu.kanade.tachiyomi.ui.player.components.EpisodeListItem
@@ -34,10 +35,11 @@ fun EpisodeListDialog(
     onDismissRequest: () -> Unit,
 ) {
     val context = LocalContext.current
+    val locale = LocalLocale.current
 
     val itemScrollIndex = (episodeList.size - currentEpisodeIndex) - 1
     val episodeListState = rememberLazyListState(initialFirstVisibleItemIndex = itemScrollIndex)
-    val dateFormatter = remember(dateFormat) { UiPreferences.dateFormat(dateFormat) }
+    val dateFormatter = remember(dateFormat) { UiPreferences.dateFormat(dateFormat, locale.platformLocale) }
 
     PlayerDialog(
         title = stringResource(AYMR.strings.episodes),

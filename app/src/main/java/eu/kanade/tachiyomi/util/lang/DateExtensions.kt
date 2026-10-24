@@ -14,21 +14,17 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import kotlin.math.absoluteValue
 import kotlin.time.Clock
 import kotlin.time.Instant
 
 fun LocalDateTime.toDateTimestampString(dateTimeFormatter: DateTimeFormatter): String {
     val javaLocalDateTime = this.toJavaLocalDateTime()
-    val date = dateTimeFormatter.format(javaLocalDateTime)
-    val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).format(javaLocalDateTime)
-    return "$date $time"
+    return dateTimeFormatter.format(javaLocalDateTime)
 }
 
-fun Instant.toTimestampString(): String {
-    return DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-        .format(toLocalDateTime(TimeZone.currentSystemDefault()).toJavaLocalDateTime())
+fun Instant.toTimestampString(timeFormatter: DateTimeFormatter): String {
+    return timeFormatter.format(toLocalDateTime(TimeZone.currentSystemDefault()).toJavaLocalDateTime())
 }
 
 fun Long.convertEpochMillisZone(
@@ -56,7 +52,7 @@ fun Instant.toJavaLocalDate(): java.time.LocalDate {
 fun LocalDate.toRelativeString(
     context: Context,
     relative: Boolean = true,
-    dateFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT),
+    dateFormat: DateTimeFormatter,
 ): String {
     if (!relative) {
         return dateFormat.format(this.toJavaLocalDate())
@@ -85,7 +81,7 @@ fun LocalDate.toRelativeString(
 fun LocalDateTime.toRelativeString(
     context: Context,
     relative: Boolean = true,
-    dateFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT),
+    dateFormat: DateTimeFormatter,
 ): String {
     if (!relative) {
         return dateFormat.format(this.toJavaLocalDateTime())
