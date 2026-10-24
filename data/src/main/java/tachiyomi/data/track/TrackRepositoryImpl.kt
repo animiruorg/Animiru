@@ -27,6 +27,13 @@ class TrackRepositoryImpl(
         return database.anime_trackQueries.getTracksByAnimeId(animeId, TrackMapper::mapTrack).awaitAsList()
     }
 
+    override suspend fun getTracksByAnimeIds(animeIds: List<Long>): Map<Long, List<Track>> {
+        return database.anime_trackQueries
+            .getTracksByAnimeIds(animeIds, TrackMapper::mapTrack)
+            .awaitAsList()
+            .groupBy { it.animeId }
+    }
+
     override suspend fun getTracks(): List<Track> {
         return database.anime_trackQueries
             .getTracks(TrackMapper::mapTrack)

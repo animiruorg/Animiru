@@ -40,6 +40,15 @@ class CategoryRepositoryImpl(
         return database.categoryQueries.getCategoriesByAnimeId(animeId, ::mapCategory).subscribeToList()
     }
 
+    override suspend fun getCategoriesByAnimeIds(animeIds: List<Long>): Map<Long, List<Category>> {
+        return database.categoryQueries
+            .getCategoriesByAnimeIds(animeIds) { animeId, id, name, order, flags, hidden ->
+                animeId to mapCategory(id, name, order, flags, hidden)
+            }
+            .awaitAsList()
+            .groupBy({ it.first }, { it.second })
+    }
+
     // AY -->
     override suspend fun getAllVisible(): List<Category> {
         return database.categoryQueries.getVisibleCategories(::mapCategory).awaitAsList()

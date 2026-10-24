@@ -20,6 +20,8 @@ interface EpisodeRepository {
 
     suspend fun getEpisodeByAnimeId(animeId: Long, applyScanlatorFilter: Boolean = false): List<Episode>
 
+    suspend fun getEpisodesByAnimeIds(animeIds: List<Long>): Map<Long, List<Episode>>
+
     suspend fun getEpisodeSummaryByAnimeId(animeId: Long): EpisodeSummary
 
     suspend fun getScanlatorsByAnimeId(animeId: Long): List<String>

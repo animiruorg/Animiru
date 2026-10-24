@@ -139,6 +139,13 @@ class AnimeRepositoryImpl(
             .toSet()
     }
 
+    override suspend fun getExcludedScanlatorsByAnimeIds(animeIds: List<Long>): Map<Long, List<String>> {
+        return database.excluded_scanlatorQueries
+            .getExcludedScanlatorsByAnimeIds(animeIds)
+            .awaitAsList()
+            .groupBy({ it.anime_id }, { it.scanlator })
+    }
+
     override fun getExcludedScanlatorsAsFlow(animeId: Long): Flow<Set<String>> {
         return database.excluded_scanlatorQueries
             .getExcludedScanlatorsByAnimeId(animeId)

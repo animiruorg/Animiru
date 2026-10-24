@@ -2,6 +2,7 @@ package tachiyomi.data.backup
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -247,6 +248,7 @@ class RestoreRepositoryImpl(
                 // <-- AM
                 remoteMemo = episode.memo,
             )
+                .awaitAsOneOrNull()
         }
         existingEpisodes.forEach { episode ->
             database.episodeQueries.updateFromBackup(

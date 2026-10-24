@@ -136,6 +136,13 @@ class EpisodeRepositoryImpl(
         ).awaitAsList()
     }
 
+    override suspend fun getEpisodesByAnimeIds(animeIds: List<Long>): Map<Long, List<Episode>> {
+         return database.episodeQueries
+             .getEpisodesByAnimeIds(animeIds, ::mapEpisode)
+             .awaitAsList()
+             .groupBy { it.animeId }
+    }
+
     override suspend fun getEpisodeSummaryByAnimeId(animeId: Long): EpisodeSummary {
         return database.episodeQueries
             .getEpisodeSummaryByAnimeId(animeId) { total, latestEpisodeNumber ->

@@ -19,6 +19,12 @@ SELECT id, episode_id, seen_at
 FROM history
 WHERE anime_id = :animeId;
 
+getHistoryByAnimeIds:
+SELECT anime_id, id, episode_id, seen_at
+FROM history
+WHERE anime_id IN :animeIds
+ORDER BY anime_id, id;
+
 resetHistoryById:
 UPDATE history
 SET seen_at = NULL

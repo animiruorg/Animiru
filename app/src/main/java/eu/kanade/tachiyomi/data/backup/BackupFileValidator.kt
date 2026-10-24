@@ -4,6 +4,7 @@ import android.net.Uri
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import tachiyomi.domain.source.service.SourceManager
+import kotlin.coroutines.cancellation.CancellationException
 
 @Inject
 class BackupFileValidator(
@@ -18,8 +19,14 @@ class BackupFileValidator(
      * @return List of missing sources or missing trackers.
      */
     suspend fun validate(uri: Uri): Results {
+        val trackerIds = mutableSetOf<Int>()
         val backup = try {
-            backupDecoder.decode(uri)
+            backupDecoder.decodeEntries(uri).collect { anime ->
+                anime.tracking.mapTo(trackerIds) { it.syncId }
+            }
+            backupDecoder.decodeMetadata(uri).backup
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw IllegalStateException(e)
         }
@@ -38,11 +45,7 @@ class BackupFileValidator(
             .distinct()
             .sorted()
 
-        val trackers = backup.backupAnime
-            .flatMap { it.tracking }
-            .map { it.syncId }
-            .distinct()
-        val missingTrackers = trackers
+        val missingTrackers = trackerIds
             .mapNotNull { trackerManager.get(it.toLong()) }
             .filter { !it.isLoggedIn }
             .map { it.name }

@@ -11,11 +11,8 @@ class SourcesBackupCreator(
     private val sourceManager: SourceManager,
 ) {
 
-    suspend operator fun invoke(animes: List<BackupAnime>): List<BackupSource> {
-        return animes
-            .map(BackupAnime::source)
-            .distinct()
-            .map { sourceManager.getOrStub(it).toBackupSource() }
+    suspend operator fun invoke(sourceIds: Set<Long>): List<BackupSource> {
+        return sourceIds.map { sourceManager.getOrStub(it).toBackupSource() }
     }
 }
 

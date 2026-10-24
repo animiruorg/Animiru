@@ -55,6 +55,14 @@ WHERE AC.anime_id = :animeId AND C.hidden = 0
 ORDER BY C.`order`;
 -- <-- AY
 
+getCategoriesByAnimeIds:
+SELECT AC.anime_id, C.id, C.name, C.`order`, C.flags, C.hidden
+FROM category C
+JOIN anime_category AC
+ON C.id = AC.category_id
+WHERE AC.anime_id IN :animeIds
+ORDER BY AC.anime_id, C.`order`;
+
 insert:
 -- The position is taken inside the insert, so two categories created at once cannot claim the same one
 INSERT INTO category(name, `order`, flags)

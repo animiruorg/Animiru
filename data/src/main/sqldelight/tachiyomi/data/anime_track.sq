@@ -48,6 +48,14 @@ SELECT
 FROM anime_track
 WHERE anime_id = :animeId;
 
+getTracksByAnimeIds:
+SELECT
+    id, anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,
+    total_episodes, status, score, start_date, finish_date, private
+FROM anime_track
+WHERE anime_id IN :animeIds
+ORDER BY anime_id, tracker_id;
+
 upsert:
 INSERT INTO anime_track(
     anime_id, tracker_id, remote_id, remote_url, library_id, title, last_episode_seen,

@@ -46,6 +46,8 @@ interface AnimeRepository {
 
     suspend fun getExcludedScanlators(animeId: Long): Set<String>
 
+    suspend fun getExcludedScanlatorsByAnimeIds(animeIds: List<Long>): Map<Long, List<String>>
+
     fun getExcludedScanlatorsAsFlow(animeId: Long): Flow<Set<String>>
 
     suspend fun setExcludedScanlators(animeId: Long, excludedScanlators: Set<String>)

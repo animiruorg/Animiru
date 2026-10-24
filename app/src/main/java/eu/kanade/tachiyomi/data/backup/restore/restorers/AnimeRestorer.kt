@@ -66,8 +66,7 @@ class AnimeRestorer(
         backupAnimes: List<BackupAnime>,
         backupCategories: List<BackupCategory>,
         // AM -->
-        allBackupAnimes: List<BackupAnime>,
-        ids: HashSet<Long>,
+        ids: HashMap<Long, Pair<Long, String>>,
         // <-- AM
     ) {
         val dbCategoriesByName = getCategories.await().associateBy { it.name }
@@ -81,8 +80,8 @@ class AnimeRestorer(
                 },
             )
 
-            val parentAnime = allBackupAnimes.find { it.id == backupAnime.parentId }?.let {
-                ParentAnime(url = it.url, sourceId = it.source)
+            val parentAnime = ids.get(backupAnime.parentId)?.let {
+                ParentAnime(sourceId = it.first, url = it.second)
             }
             // <-- AM
 
