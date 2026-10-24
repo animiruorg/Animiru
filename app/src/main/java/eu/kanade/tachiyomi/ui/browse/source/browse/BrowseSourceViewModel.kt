@@ -256,19 +256,11 @@ class BrowseSourceViewModel(
     fun changeAnimeFavorite(anime: Anime) {
         appScope.launch {
             val update = if (anime.favorite) {
-                val coverLastModified = anime.removeCovers(coverCache).coverLastModified
+                anime.removeCovers(coverCache)
                 // AM -->
-                val backgroundLastModified = anime.removeBackgrounds(backgroundCache).backgroundLastModified
+                anime.removeBackgrounds(backgroundCache)
                 // <-- AM
-                AnimeUpdate(anime.id) {
-                    favoriteAt = null
-                    if (coverLastModified != anime.coverLastModified) this.coverLastModified = coverLastModified
-                    // AM -->
-                    if (backgroundLastModified != anime.backgroundLastModified) {
-                        this.backgroundLastModified = backgroundLastModified
-                    }
-                    // <-- AM
-                }
+                AnimeUpdate(anime.id) { favoriteAt = null }
             } else {
                 setAnimeDefaultEpisodeFlags.await(anime)
                 addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source))

@@ -16,34 +16,22 @@ import tachiyomi.source.local.isLocal
 import java.io.InputStream
 import kotlin.time.Clock
 
-fun Anime.removeCovers(coverCache: CoverCache): Anime {
-    if (isLocal()) return this
-    return if (coverCache.deleteFromCache(this, true) > 0) {
-        copy(coverLastModified = Clock.System.now())
-    } else {
-        this
-    }
+fun Anime.removeCovers(coverCache: CoverCache) {
+    if (isLocal()) return
+    coverCache.deleteFromCache(this, true)
 }
 
 // AY -->
-fun Anime.removeBackgrounds(backgroundCache: BackgroundCache): Anime {
-    if (isLocal()) return this
-    return if (backgroundCache.deleteFromCache(this, true) > 0) {
-        copy(backgroundLastModified = Clock.System.now())
-    } else {
-        this
-    }
+fun Anime.removeBackgrounds(backgroundCache: BackgroundCache) {
+    if (isLocal()) return
+    backgroundCache.deleteFromCache(this, true)
 }
 // <-- AY
 
 // AM -->
-fun Episode.removeThumbnail(thumbnailCache: ThumbnailCache, isLocal: Boolean): Episode {
-    if (isLocal || this.previewUrl.isNullOrEmpty()) return this
-    return if (thumbnailCache.deleteFromCache(this.previewUrl!!) > 0) {
-        copy(thumbnailLastModifiedAt = Clock.System.now())
-    } else {
-        this
-    }
+fun Episode.removeThumbnail(thumbnailCache: ThumbnailCache, isLocal: Boolean) {
+    if (isLocal || this.previewUrl.isNullOrEmpty()) return
+    thumbnailCache.deleteFromCache(this.previewUrl!!)
 }
 // <-- AM
 
