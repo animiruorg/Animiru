@@ -293,9 +293,6 @@ class BackupRestorer(
         // <-- AM
 
         backupAnimes
-            .onEach {
-                Log.i("SOMETHING-restore", "${it.title} - ${it.episodes.joinToString(", ") { it.name }}")
-            }
             .chunked(100)
             .collect { chunk ->
                 val restoredAsBatch = try {

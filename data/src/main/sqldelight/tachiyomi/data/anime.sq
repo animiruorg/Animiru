@@ -115,6 +115,26 @@ AND EXISTS (
     AND (user_seen = 1 OR user_last_second_seen != 0)
 );
 
+-- AM -->
+getFavoriteSeasonAnime:
+SELECT
+    id, source_id, remote_url, remote_title, remote_author, remote_artist, remote_description,
+    remote_genre, remote_status, remote_cover, remote_update_strategy, remote_memo,
+    remote_fetch_type, remote_season_number, remote_season_source_order, remote_background,
+    user_favorite_at, user_notes, user_player_flags, user_episode_flags, user_season_flags,
+    user_custom_artist, user_custom_author, user_custom_description, user_custom_genre,
+    user_custom_title, user_custom_status, state_episode_last_update, state_episode_next_update,
+    state_episode_fetch_interval, state_cover_last_modified, state_initialized,
+    state_parent_id, state_background_last_modified
+FROM anime
+WHERE user_favorite_at IS NULL
+AND state_parent_id IN (
+    SELECT id
+    FROM anime
+    WHERE user_favorite_at IS NOT NULL
+);
+-- <-- AM
+
 getAllAnimeSourceAndUrl:
 SELECT source_id, remote_url
 FROM anime;
@@ -299,6 +319,7 @@ UPDATE anime SET
     state_episode_fetch_interval = coalesce(:stateEpisodeFetchInterval, state_episode_fetch_interval),
     state_cover_last_modified = coalesce(:stateCoverLastModified, state_cover_last_modified),
     -- AM -->
+    state_parent_id = CASE WHEN :stateParentIdSet THEN :stateParentId ELSE state_parent_id END,
     state_background_last_modified = coalesce(:stateBackgroundLastModified, state_background_last_modified)
     -- <-- AM
 WHERE id = :id;

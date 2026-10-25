@@ -95,7 +95,8 @@ class BackupCreator(
             }
 
             val nonFavoriteAnime = if (options.seenEntries) animeRepository.getSeenAnimeNotInLibrary() else emptyList()
-            val backupAnime = backupAnimes(getFavorites.await() + nonFavoriteAnime, options)
+            val anime = getFavorites.await() + nonFavoriteAnime + animeRepository.getFavoriteSeasonAnime()
+            val backupAnime = backupAnimes(anime.distinctBy { it.id }, options)
 
             file.openOutputStream()
                 .also {
@@ -106,7 +107,6 @@ class BackupCreator(
                     val writer = BackupWriter(it, parser)
                     val sourceIds = mutableSetOf<Long>()
                     backupAnime.collect { anime ->
-                        Log.i("SOMETHING-create", "${anime.title} - ${anime.episodes.joinToString(", ") { it.name }}")
                         writer.writeEntry(anime)
                         sourceIds += anime.source
                     }

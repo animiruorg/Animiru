@@ -69,6 +69,12 @@ class AnimeRepositoryImpl(
         return database.animeQueries.getSeenAnimeNotInLibrary(AnimeMapper::mapAnime).awaitAsList()
     }
 
+    // AM -->
+    override suspend fun getFavoriteSeasonAnime(): List<Anime> {
+        return database.animeQueries.getFavoriteSeasonAnime(AnimeMapper::mapAnime).awaitAsList()
+    }
+    // <-- AM
+
     override suspend fun getLibraryAnime(): List<LibraryAnime> {
         return database.libraryViewQueries.library(AnimeMapper::mapLibraryAnime).awaitAsList()
     }
@@ -384,6 +390,8 @@ class AnimeRepositoryImpl(
                         userNotes = notes,
                         // AM -->
                         userSeasonFlags = seasonFlags,
+                        stateParentIdSet = isSet(::parentId),
+                        stateParentId = parentId,
                         stateBackgroundLastModified = backgroundLastModified,
                         // <-- AM
                         id = id,
