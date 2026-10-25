@@ -48,11 +48,12 @@ class SyncSeasonsWithSource(
                     sAnime.toDomainAnime(source.id)
                         .copy(parentId = anime.id, seasonSourceOrder = i.toLong()),
                 )
-                    .copy(seasonSourceOrder = i.toLong())
+                    .copy(parentId = anime.id, seasonSourceOrder = i.toLong())
             }
 
         val dbSeasons = animeRepository.getAnimeSeasonsById(anime.id)
-        val dbSeasonsByUrl = dbSeasons.associateBy { it.anime.url }
+        val sourceAnime = animeRepository.getAnimeBySource(anime.source)
+        val dbSeasonsByUrl = sourceAnime.associateBy { it.url }
 
         val newSeasons = mutableListOf<Anime>()
         val updatedSeasons = mutableListOf<AnimeRemoteUpdate>()
@@ -71,7 +72,7 @@ class SyncSeasonsWithSource(
             )
             season = season.copy(seasonNumber = seasonNumber)
 
-            val dbSeason = dbSeasonsByUrl[season.url]?.anime
+            val dbSeason = dbSeasonsByUrl[season.url]
             if (dbSeason == null) {
                 newSeasons.add(season)
             } else {

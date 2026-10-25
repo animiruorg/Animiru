@@ -30,7 +30,7 @@ SELECT
     memo, favorite_at, custom_artist, custom_author, custom_description, custom_genre, custom_title, custom_status
 FROM animes NOT INDEXED;
 DROP TABLE animes;
-ALTER TABLE animes_copy RENAME TO mangas;
+ALTER TABLE animes_copy RENAME TO animes;
 
 CREATE TABLE episodes_copy AS
 SELECT
@@ -632,9 +632,6 @@ CREATE TABLE anime_relation(
     ON DELETE CASCADE
 );
 
-DROP INDEX anime_relations_anime_id_index;
-DROP INDEX anime_relations_related_anime_id_index;
-
 INSERT INTO anime_relation(anime_id, related_anime_id, name, sort_order, last_fetched_at)
 SELECT anime_id, related_anime_id, name, sort_order, last_fetched_at
 FROM anime_relations;
@@ -676,7 +673,6 @@ LEFT JOIN excluded_scanlator
     ON episode.anime_id = excluded_scanlator.anime_id
     AND episode.remote_scanlator = excluded_scanlator.scanlator
 WHERE excluded_scanlator.scanlator IS NULL
-AND episode.anime_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL)
 GROUP BY episode.anime_id;
 
 CREATE VIEW animeseasonstatsView AS
@@ -735,8 +731,7 @@ LEFT JOIN historystatsView AS HS
 ON A.id = HS.anime_id
 LEFT JOIN animeseasonstatsView AS ASS
 ON A.id = ASS.state_parent_id
-WHERE A.state_parent_id IS NOT NULL
-AND A.state_parent_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL);
+WHERE A.state_parent_id IS NOT NULL;
 
 CREATE VIEW historyView AS
 SELECT
@@ -855,4 +850,3 @@ AND episode.remote_scanlator = excluded_scanlator.scanlator
 WHERE user_favorite_at IS NOT NULL
 AND state_date_fetch > user_favorite_at
 ORDER BY state_date_fetch DESC;
-

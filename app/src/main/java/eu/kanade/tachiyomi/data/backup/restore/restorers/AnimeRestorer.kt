@@ -111,6 +111,9 @@ class AnimeRestorer(
                 anime.nextUpdate
                     ?.takeIf { it >= currentFetchWindow.start }
                     ?.let { nextUpdate = it }
+                // AM -->
+                parentId = anime.parentId
+                // <-- AM
             }
         }
     }

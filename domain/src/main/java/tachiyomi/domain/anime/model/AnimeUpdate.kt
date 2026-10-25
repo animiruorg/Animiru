@@ -16,6 +16,7 @@ class AnimeUpdate(val id: Long, block: AnimeUpdate.() -> Unit) : PartialUpdate()
     // AM -->
     var backgroundLastModified: Instant? by field(null)
     var seasonFlags: Long? by field(null)
+    var parentId: Long? by field(null)
     // <-- AM
 
     init {

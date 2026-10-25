@@ -203,8 +203,8 @@ private const val WIRE_TYPE_FIXED64 = 1
 private const val WIRE_TYPE_LENGTH_DELIMITED = 2
 private const val WIRE_TYPE_FIXED32 = 5
 
-// Backup.backupAnime is field 1, and each entry is length-delimited
-private const val ENTRY_TAG = 1L shl 3 or WIRE_TYPE_LENGTH_DELIMITED.toLong()
+// Backup.backupAnime is field 501, and each entry is length-delimited
+private const val ENTRY_TAG = 501L shl 3 or WIRE_TYPE_LENGTH_DELIMITED.toLong()
 
 // AM -->
 private const val SOURCE_TAG = 1L shl 3 or WIRE_TYPE_VARINT.toLong()

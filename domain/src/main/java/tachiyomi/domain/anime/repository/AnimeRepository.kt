@@ -24,6 +24,12 @@ interface AnimeRepository {
 
     suspend fun getSeenAnimeNotInLibrary(): List<Anime>
 
+    // AM -->
+    suspend fun getAnimeBySource(sourceId: Long): List<Anime>
+
+    suspend fun getFavoriteSeasonAnime(): List<Anime>
+    // <-- AM
+
     suspend fun getLibraryAnime(): List<LibraryAnime>
 
     fun getLibraryAnimeAsFlow(): Flow<List<LibraryAnime>>
