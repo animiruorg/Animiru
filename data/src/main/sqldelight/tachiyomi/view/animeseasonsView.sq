@@ -52,8 +52,7 @@ LEFT JOIN episodestatsView AS ES
 ON A.id = ES.anime_id
 LEFT JOIN animeseasonstatsView AS ASS
 ON A.id = ASS.state_parent_id
-WHERE A.state_parent_id IS NOT NULL
-AND A.state_parent_id IN (SELECT id FROM anime WHERE user_favorite_at IS NOT NULL);
+WHERE A.state_parent_id IS NOT NULL;
 
 getAnimeSeasonsById:
 SELECT
