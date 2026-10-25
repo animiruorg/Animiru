@@ -70,6 +70,10 @@ class AnimeRepositoryImpl(
     }
 
     // AM -->
+    override suspend fun getAnimeBySource(sourceId: Long): List<Anime> {
+        return database.animeQueries.getAnimeBySource(sourceId, AnimeMapper::mapAnime).awaitAsList()
+    }
+
     override suspend fun getFavoriteSeasonAnime(): List<Anime> {
         return database.animeQueries.getFavoriteSeasonAnime(AnimeMapper::mapAnime).awaitAsList()
     }
