@@ -3111,19 +3111,19 @@ class PlayerViewModel(
      */
     private fun updateEpisodeProgress(episode: Episode) {
         val stateData = stateData.value
-        val position = playbackData.value.position * 1000
-        val duration = playbackData.value.duration * 1000
+        val position = (playbackData.value.position * 1000).takeIf { it > 0 } ?: episode.lastSecondSeen
+        val duration = (playbackData.value.duration * 1000).takeIf { it > 0 } ?: episode.totalSeconds
         if (stateData.incognitoMode) return
 
         if (pendingProgressEpisode != episode) saveEpisodeProgress()
         val updatedEpisode = stateData.currentEpisode?.copy(
-            lastSecondSeen = position.takeIf { it > 0 } ?: episode.lastSecondSeen,
-            totalSeconds = duration.takeIf { it > 0 } ?: episode.totalSeconds,
+            lastSecondSeen = position,
+            totalSeconds = duration,
             seen = episode.seen,
         )
         updateStateData { it.copy(currentEpisode = updatedEpisode) }
 
-        if (episode.lastSecondSeen >= episode.totalSeconds * progress) {
+        if (position >= duration * progress) {
             pendingProgressEpisode = null
             writeEpisodeProgress(episode, onComplete = true)
         } else {
@@ -3156,7 +3156,7 @@ class PlayerViewModel(
                 if (onComplete) updateEpisodeProgressOnComplete(episode)
                 updateEpisode.await(
                     EpisodeUpdate(episode.id) {
-                        seen = episode.seen
+                        seen = onComplete
                         lastSecondSeen = episode.lastSecondSeen
                         totalSeconds = episode.totalSeconds
                     },
