@@ -370,7 +370,7 @@ class VideoDownloader(
                 val url = trackResult.url
                 if (url.startsWith("file")) {
                     progress.report(1f)
-                    return "-i \"$url\""
+                    return "-allowed_extensions ALL -i \"$url\""
                 }
 
                 val type = getType(url, headers)
@@ -541,7 +541,7 @@ class VideoDownloader(
 
         val logCallback = LogCallback { log ->
             if (log.level <= Level.AV_LOG_WARNING) {
-                log.message?.let {
+                log.message.let {
                     logcat(LogPriority.ERROR) { it }
                 }
             }
@@ -558,14 +558,14 @@ class VideoDownloader(
             val session = FFmpegKit.executeWithArgumentsAsync(
                 ffmpegOptions,
                 {
-                    if (it.returnCode.isValueSuccess) {
+                    if (it.getReturnCode()?.isValueSuccess() == true) {
                         downloadDir.delete()
                         videoFile.renameTo("$filename.mkv")
                         continuation.resume(it)
                     } else {
                         continuation.resumeWithException(
                             Exception(
-                                "ffprobe failed code=${it.returnCode} output=${it.output} logs=${it.allLogsAsString} fail=${it.failStackTrace}",
+                                "ffprobe failed code=${it.getReturnCode()} output=${it.getOutput()} logs=${it.getAllLogsAsString()} fail=${it.getFailStackTrace()}",
                             ),
                         )
                     }
@@ -635,7 +635,7 @@ class VideoDownloader(
 
         val ffprobeCommand = FFmpegKitConfig.parseArguments(
             listOf(
-                "-v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1",
+                "-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1",
                 "-o \"$durationFilePath\"",
                 ffmpegInput,
             ).joinToString(" "),
@@ -645,12 +645,12 @@ class VideoDownloader(
             val session = FFprobeKit.executeWithArgumentsAsync(
                 ffprobeCommand,
                 {
-                    if (it.returnCode.isValueSuccess) {
+                    if (it.getReturnCode()?.isValueSuccess() == true) {
                         continuation.resume(it)
                     } else {
                         continuation.resumeWithException(
                             Exception(
-                                "ffprobe failed code=${it.returnCode} output=${it.output} logs=${it.allLogsAsString} fail=${it.failStackTrace}",
+                                "ffprobe failed code=${it.getReturnCode()} output=${it.getOutput()} logs=${it.getAllLogsAsString()} fail=${it.getFailStackTrace()}",
                             ),
                         )
                     }

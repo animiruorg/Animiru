@@ -691,7 +691,7 @@ class Downloader(
             val session = FFmpegKit.executeWithArgumentsAsync(
                 ffmpegOptions,
                 {
-                    if (it.returnCode.isValueSuccess) {
+                    if (it.getReturnCode()?.isValueSuccess() == true) {
                         tmpDir.findFile("$filename.tmp")?.apply {
                             renameTo("$filename.mkv")
                         }
@@ -813,10 +813,10 @@ class Downloader(
 
         suspendCancellableCoroutine { continuation ->
             val session = FFprobeKit.executeWithArgumentsAsync(ffprobeCommand) {
-                if (it.returnCode.isValueSuccess) {
+                if (it.getReturnCode()?.isValueSuccess() == true) {
                     continuation.resume(it)
                 } else {
-                    continuation.resumeWithException(Exception(it.output))
+                    continuation.resumeWithException(Exception(it.getOutput()))
                 }
             }
             continuation.invokeOnCancellation { session.cancel() }
