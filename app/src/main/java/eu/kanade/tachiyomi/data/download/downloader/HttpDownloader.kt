@@ -203,6 +203,7 @@ class HttpDownloader {
         progress.report(1f)
 
         return listOf(
+            "-extension_picky 0",
             "-allowed_extensions ALL",
             "-f",
             ffmpegType,
