@@ -391,7 +391,7 @@ class LocalSource(
         val ffProbe = FFprobeKit.execute(
             "-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"${episodeFilename()}\"",
         )
-        val duration = ffProbe.allLogsAsString.trim().toFloat()
+        val duration = ffProbe.getAllLogsAsString().trim().toFloat()
         val second = duration.toInt() / 2
 
         FFmpegKit.execute(

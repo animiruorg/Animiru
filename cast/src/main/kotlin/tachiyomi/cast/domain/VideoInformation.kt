@@ -116,10 +116,10 @@ class VideoInformation(
 
         suspendCancellableCoroutine { continuation ->
             val session = FFprobeKit.executeWithArgumentsAsync(ffprobeCommand) {
-                if (it.returnCode.isValueSuccess) {
+                if (it.getReturnCode()?.isValueSuccess() == true) {
                     continuation.resume(it)
                 } else {
-                    continuation.resumeWithException(Exception(it.output))
+                    continuation.resumeWithException(Exception(it.getOutput()))
                 }
             }
             continuation.invokeOnCancellation { session.cancel() }

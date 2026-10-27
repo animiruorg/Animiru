@@ -1,8 +1,8 @@
 [versions]
-mpv-lib = "0.1.14"
+mpv-lib = "0.1.15"
 arthenica-smartexceptions = "0.2.1"
 constraint-layout = "1.1.0"
-ffmpeg-kit = "1.18"
+ffmpeg-kit = "1.0.0"
 gms-cast = "22.3.1"
 localbroadcastmanager = "1.1.0"
 media = "1.7.0"
@@ -13,10 +13,10 @@ torrserver = "0.1.1"
 truetypeparser = "2.1.4"
 
 [libraries]
-mpv-lib = { module = "io.github.secozzi:mpv-android-lib", version.ref = "mpv-lib" }
+mpv-lib = { module = "io.github.animiruorg:mpv-android-lib", version.ref = "mpv-lib" }
 arthenica-smartexceptions = { module = "com.arthenica:smart-exception-java", version.ref = "arthenica-smartexceptions" }
 compose-constraintlayout = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraint-layout" }
-ffmpeg-kit = { module = "com.github.jmir1:ffmpeg-kit", version.ref = "ffmpeg-kit" }
+ffmpeg-kit = { module = "io.github.animiruorg:ffmpeg-kit-next", version.ref = "ffmpeg-kit" }
 localbroadcastmanager = { module = "androidx.localbroadcastmanager:localbroadcastmanager", version.ref = "localbroadcastmanager" }
 mediasession = { module = "androidx.media:media", version.ref = "media" }
 nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
