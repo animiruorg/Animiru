@@ -12,15 +12,19 @@ import com.hippo.unifile.UniFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import eu.kanade.tachiyomi.animesource.model.TimeStamp
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.get
 import eu.kanade.tachiyomi.network.head
+import eu.kanade.tachiyomi.ui.player.controls.components.IndexedSegment
+import eu.kanade.tachiyomi.ui.player.utils.ChapterUtils
 import eu.kanade.tachiyomi.util.lang.Hash.md5
 import eu.kanade.tachiyomi.util.storage.toFFmpegString
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -34,6 +38,7 @@ import tachiyomi.domain.download.service.DownloadPreferences
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.roundToLong
 
 enum class DownloadType {
     Hls,
@@ -526,14 +531,39 @@ class VideoDownloader(
         destDir.findFile("$filename.tmp")?.delete()
         val videoFile = destDir.createFile("$filename.tmp")!!
 
-        val duration = getDuration(downloadDir, videoInput)
         download.progress = 0
+
+        val information = getInformation(downloadDir, videoInput)
+        val duration = information.format.duration?.toDoubleOrNull()
+
+        val hasTimeStamps = download.video?.timestamps?.isNotEmpty() ?: false
+        val chapterInput = if (hasTimeStamps) {
+            val chapterFile = getChapterMetadata(
+                destDir = downloadDir,
+                chapters = information.chapters,
+                timestamps = download.video?.timestamps.orEmpty(),
+                duration = duration?.toFloat(),
+            )
+            "-f ffmetadata -i \"${chapterFile}\""
+        } else {
+            ""
+        }
+        val chapterMetadata = if (hasTimeStamps) {
+            listOf(
+                "-map_metadata 0",
+                "-map_chapters ${audioTracks.size + subtitleTracks.size + 1}",
+            ).joinToString(" ")
+        } else {
+            ""
+        }
 
         val ffmpegFilename = videoFile.uri.toFFmpegString(context)
         val ffmpegOptions = getFfmpegOptions(
             videoInput = videoInput,
             subtitleTracks = subtitleTracks,
             audioTracks = audioTracks,
+            chapterInput = chapterInput,
+            chapterMetadata = chapterMetadata,
             ffmpegStreamArgs = video.ffmpegStreamArgs,
             ffmpegVideoArgs = video.ffmpegVideoArgs,
             ffmpegFilename = ffmpegFilename,
@@ -541,15 +571,13 @@ class VideoDownloader(
 
         val logCallback = LogCallback { log ->
             if (log.level <= Level.AV_LOG_WARNING) {
-                log.message.let {
-                    logcat(LogPriority.ERROR) { it }
-                }
+                logcat(LogPriority.ERROR) { log.message }
             }
         }
 
         val statCallback = StatisticsCallback { s ->
             val outTime = (s.time / 1000.0).toLong()
-            if (duration != null && duration != 0f && outTime > 0) {
+            if (duration != null && duration != 0.0 && outTime > 0) {
                 download.progress = (100 * outTime / duration).toInt()
             }
         }
@@ -585,6 +613,8 @@ class VideoDownloader(
         videoInput: String,
         subtitleTracks: List<DownloadTrack>,
         audioTracks: List<DownloadTrack>,
+        chapterInput: String,
+        chapterMetadata: String,
         ffmpegStreamArgs: List<Pair<String, String>>,
         ffmpegVideoArgs: List<Pair<String, String>>,
         ffmpegFilename: String,
@@ -607,10 +637,10 @@ class VideoDownloader(
         val videoInput = "$sourceStreamOptions $videoInput"
 
         val command = listOf(
-            videoInput, subtitleInputs, audioInputs,
+            videoInput, subtitleInputs, audioInputs, chapterInput,
             "-map 0:v", audioMaps, "-map 0:a?", subtitleMaps, "-map 0:s? -map 0:t?",
             "-f matroska -c:a copy -c:v copy -c:s copy",
-            subtitleMetadata, audioMetadata, sourceVideoOptions,
+            subtitleMetadata, audioMetadata, chapterMetadata, sourceVideoOptions,
             "\"$ffmpegFilename\" -y",
         )
             .filter(String::isNotBlank)
@@ -629,17 +659,78 @@ class VideoDownloader(
         "-metadata:s:$type:$i \"title=${track.name}\""
     }.joinToString(" ")
 
-    private suspend fun getDuration(destDir: UniFile, ffmpegInput: String): Float? {
+    private fun getChapterMetadata(
+        destDir: UniFile,
+        chapters: List<VideoInformation.Chapter>,
+        timestamps: List<TimeStamp>,
+        duration: Float?,
+    ): String {
+        val segments = chapters.mapNotNull {
+            IndexedSegment(it.tags?.title.orEmpty(), it.startTime?.toFloatOrNull() ?: return@mapNotNull null)
+        }
+        val merged = ChapterUtils.mergeChapters(segments, timestamps, duration?.toInt())
+        val end = if (duration == null) {
+            if (merged.isEmpty()) {
+                IndexedSegment("", 0f) // Get's thrown away in zipWithNext()
+            } else {
+                IndexedSegment("", merged.last().start)
+            }
+        } else {
+            IndexedSegment("", duration)
+        }
+        val zipped = (merged + end).zipWithNext()
+        val content = buildString {
+            appendLine(";FFMETADATA1")
+            zipped.forEach { (start, end) ->
+                appendLine()
+                appendLine("[CHAPTER]")
+                appendLine("TIMEBASE=1/1000")
+                appendLine("START=${(start.start * 1000).roundToLong()}")
+                appendLine("END=${(end.start * 1000).roundToLong()}")
+                appendLine("title=${escapeMetadata(start.name.orEmpty())}")
+            }
+        }
+
+        destDir.findFile("chapters.ffmeta")?.delete()
+        val file = destDir.createFile("chapters.ffmeta")!!
+        file.openOutputStream().bufferedWriter().use {
+            it.write(content)
+        }
+        return file.filePath!!
+    }
+
+    private fun escapeMetadata(value: String): String =
+        buildString {
+            for (char in value) {
+                when (char) {
+                    '\\', '=', ';', '#' -> {
+                        append('\\')
+                        append(char)
+                    }
+                    '\n' -> append("\\\n")
+                    '\r' -> append("\\\r")
+                    else -> append(char)
+                }
+            }
+        }
+
+    private suspend fun getInformation(destDir: UniFile, ffmpegInput: String): VideoInformation {
         val durationFile = destDir.createFile("ffprobe_duration.txt")!!
         val durationFilePath = durationFile.toFFmpegString(context)
 
         val ffprobeCommand = FFmpegKitConfig.parseArguments(
             listOf(
-                "-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1",
-                "-o \"$durationFilePath\"",
+                "-v error",
+                "-show_entries format=duration",
+                "-show_entries chapter=start_time,end_time:chapter_tags=title",
+                "-of json -o \"$durationFilePath\"",
                 ffmpegInput,
             ).joinToString(" "),
         )
+
+        val logCallback = LogCallback { log ->
+            logcat(LogPriority.ERROR) { log.message }
+        }
 
         suspendCancellableCoroutine { continuation ->
             val session = FFprobeKit.executeWithArgumentsAsync(
@@ -655,14 +746,38 @@ class VideoDownloader(
                         )
                     }
                 },
+                logCallback,
             )
             continuation.invokeOnCancellation { session.cancel() }
         }
 
         return durationFile.openInputStream().use {
-            it.readBytes().toString(Charsets.UTF_8)
-                .trim()
-                .toFloatOrNull()
+            json.decodeFromStream<VideoInformation>(it)
+        }
+    }
+
+    @Serializable
+    private data class VideoInformation(
+        val format: VideoFormat,
+        val chapters: List<Chapter>,
+    ) {
+        @Serializable
+        data class VideoFormat(
+            val duration: String? = null,
+        )
+
+        @Serializable
+        data class Chapter(
+            @SerialName("start_time")
+            val startTime: String? = null,
+            @SerialName("end_time")
+            val endTime: String? = null,
+            val tags: ChapterTags? = null,
+        ) {
+            @Serializable
+            data class ChapterTags(
+                val title: String? = null,
+            )
         }
     }
 
