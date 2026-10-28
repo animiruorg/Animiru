@@ -3112,7 +3112,7 @@ class PlayerViewModel(
     private fun updateEpisodeProgress(episode: Episode) {
         val stateData = stateData.value
         val position = (playbackData.value.position * 1000).takeIf { it > 0 } ?: episode.lastSecondSeen
-        val duration = (playbackData.value.duration * 1000).takeIf { it > 0 } ?: episode.totalSeconds
+        val duration = (playbackData.value.duration * 1000).takeIf { it > 0 } ?: return
         if (stateData.incognitoMode) return
 
         if (pendingProgressEpisode != episode) saveEpisodeProgress()
@@ -3156,12 +3156,19 @@ class PlayerViewModel(
                 if (onComplete) updateEpisodeProgressOnComplete(episode)
                 updateEpisode.await(
                     EpisodeUpdate(episode.id) {
-                        seen = onComplete
+                        if (onComplete) seen = true
                         lastSecondSeen = episode.lastSecondSeen
                         totalSeconds = episode.totalSeconds
                     },
                 )
             }
+        }
+        updateEpisode(episode.id) {
+            it.copy(
+                seen = it.seen || onComplete,
+                lastSecondSeen = episode.lastSecondSeen,
+                totalSeconds = episode.totalSeconds,
+            )
         }
     }
 
@@ -3186,6 +3193,9 @@ class PlayerViewModel(
                 }
             }
         updateEpisode.awaitAll(duplicateUnseenEpisodes)
+        updateEpisodes(duplicateUnseenEpisodes.map { it.id }) {
+            it.copy(seen = true)
+        }
     }
 
     /**
@@ -3213,6 +3223,9 @@ class PlayerViewModel(
                     bookmark = bookmarked
                 },
             )
+            updateEpisode(episodeId) {
+                it.copy(bookmark = bookmarked)
+            }
         }
     }
 
@@ -3226,6 +3239,25 @@ class PlayerViewModel(
                 EpisodeUpdate(episodeId!!) {
                     fillermark = fillermarked
                 },
+            )
+            updateEpisode(episodeId) {
+                it.copy(fillermark = fillermarked)
+            }
+        }
+    }
+
+    // TODO: subscribe to the episode list in database instead
+    private fun updateEpisode(episodeId: Long, transform: (Episode) -> Episode) {
+        updateEpisodes(listOf(episodeId), transform)
+    }
+
+    private fun updateEpisodes(episodeIds: List<Long>, transform: (Episode) -> Episode) {
+        fun List<Episode>.transformed() = map { if (it.id in episodeIds) transform(it) else it }
+
+        updateStateData {
+            it.copy(
+                unfilteredEpisodeList = it.unfilteredEpisodeList.transformed(),
+                currentPlaylist = it.currentPlaylist.transformed(),
             )
         }
     }
