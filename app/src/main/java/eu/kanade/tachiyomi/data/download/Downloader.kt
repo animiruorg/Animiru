@@ -939,7 +939,7 @@ class Downloader(
         download: Download,
         tmpDir: UniFile,
     ): Boolean {
-        val downloadedVideo = tmpDir.listFiles().orEmpty().filterNot { it.extension == ".tmp" }
+        val downloadedVideo = tmpDir.listFiles().orEmpty().filterNot { it.extension == "tmp" }
         return downloadedVideo.size == 1
     }
     // <-- AY
