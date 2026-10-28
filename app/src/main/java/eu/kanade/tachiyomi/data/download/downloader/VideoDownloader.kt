@@ -86,12 +86,6 @@ sealed interface PlaylistResult {
     ) : PlaylistResult
 }
 
-@Serializable
-data class Journal(
-    val threadCount: Int,
-    val videoTitle: String,
-)
-
 @Inject
 @SingleIn(AppScope::class)
 class VideoDownloader(
@@ -101,6 +95,7 @@ class VideoDownloader(
     private val dashDownloader: DashDownloader,
     private val directDownloader: DirectDownloader,
     private val downloadPreferences: DownloadPreferences,
+    private val journalFactory: DownloadJournal.Factory,
     private val json: Json,
 ) {
     private val client = network.client
@@ -124,28 +119,21 @@ class VideoDownloader(
         }
 
         var downloadDir = getDownloadCacheDir(download)
-
-        val journal = downloadDir.findFile("journal")
-        if (journal != null) {
-            val journalData = journal.openInputStream().use {
-                json.decodeFromStream<Journal>(it)
-            }
-
-            if (journalData.videoTitle != video.videoTitle) {
+        val existing = DownloadJournal.read(downloadDir, json)
+        val initial = when {
+            existing == null -> Journal(threadCount, video.videoTitle)
+            existing.videoTitle != video.videoTitle -> {
                 downloadDir.delete()
                 downloadDir = getDownloadCacheDir(download)
-            } else {
-                // Direct downloader can't change thread count, read what was used before
-                threadCount = journalData.threadCount
+                Journal(threadCount, video.videoTitle)
+            }
+            else -> {
+                threadCount = existing.threadCount
+                existing
             }
         }
-        journal?.delete()
-        val journalData = json.encodeToString(
-            Journal(threadCount, video.videoTitle),
-        )
-        downloadDir.createFile("journal")!!
-            .openOutputStream()
-            .use { it.write(journalData.toByteArray()) }
+        val journal = journalFactory.create(downloadDir, initial)
+        journal.write()
 
         val progress = ProgressAggregator { percent ->
             download.progress = percent
@@ -169,17 +157,25 @@ class VideoDownloader(
 
         val subtitleDownloadTracks = subtitleTracks.mapIndexedNotNull { i, track ->
             try {
-                val input = downloadItem(
-                    trackResult = track,
-                    headers = videoHeaders,
-                    client = client,
-                    progress = subtitleProgress[i],
-                    throttler = throttler,
-                    threadCount = threadCount,
-                    destDir = downloadDir,
-                    name = "sub$i",
-                    forceSingle = true,
-                )
+                val downloaded = journal.getSubtitleInput(i)
+                val input = if (downloaded == null) {
+                    downloadItem(
+                        trackResult = track,
+                        headers = videoHeaders,
+                        client = client,
+                        progress = subtitleProgress[i],
+                        throttler = throttler,
+                        threadCount = threadCount,
+                        destDir = downloadDir,
+                        name = "sub$i",
+                        forceSingle = true,
+                    )
+                        .also { journal.updateSubtitle(i, it) }
+                } else {
+                    downloaded
+                        .also { subtitleProgress[i].report(1f) }
+                }
+
                 DownloadTrack(
                     name = track.name,
                     ffmpegInput = input,
@@ -192,16 +188,23 @@ class VideoDownloader(
 
         val audioDownloadTracks = audioTracks.mapIndexedNotNull { i, track ->
             try {
-                val input = downloadItem(
-                    trackResult = track,
-                    headers = videoHeaders,
-                    client = client,
-                    progress = audioProgress[i],
-                    throttler = throttler,
-                    threadCount = threadCount,
-                    destDir = downloadDir,
-                    name = "aud$i",
-                )
+                val downloaded = journal.getAudioInput(i)
+                val input = if (downloaded == null) {
+                    downloadItem(
+                        trackResult = track,
+                        headers = videoHeaders,
+                        client = client,
+                        progress = audioProgress[i],
+                        throttler = throttler,
+                        threadCount = threadCount,
+                        destDir = downloadDir,
+                        name = "aud$i",
+                    )
+                        .also { journal.updateAudio(i, it) }
+                } else {
+                    downloaded
+                        .also { audioProgress[i].report(1f) }
+                }
                 DownloadTrack(
                     name = track.name,
                     ffmpegInput = input,
@@ -212,17 +215,24 @@ class VideoDownloader(
             }
         }
 
-        val videoInput = downloadPlaylist(
-            playlistResult = playlistResult,
-            headers = videoHeaders,
-            client = client,
-            progress = videoProgress,
-            throttler = throttler,
-            threadCount = threadCount,
-            destDir = downloadDir,
-            name = "vid",
-            forceSingle = isTorrent,
-        )
+        val downloadedVideo = journal.getVideoInput()
+        val videoInput = if (downloadedVideo == null) {
+            downloadPlaylist(
+                playlistResult = playlistResult,
+                headers = videoHeaders,
+                client = client,
+                progress = videoProgress,
+                throttler = throttler,
+                threadCount = threadCount,
+                destDir = downloadDir,
+                name = "vid",
+                forceSingle = isTorrent,
+            )
+                .also { journal.updateVideo(it) }
+        } else {
+            downloadedVideo
+                .also { videoProgress.report(1f) }
+        }
 
         return merge(
             download = download,
@@ -682,11 +692,22 @@ class VideoDownloader(
         val content = buildString {
             appendLine(";FFMETADATA1")
             zipped.forEach { (start, end) ->
+                if (duration != null) {
+                    if (start.start > duration) return@forEach
+                }
+
+                val end = if (duration == null) {
+                    (end.start * 1000).roundToLong()
+                } else {
+                    (end.start * 1000).roundToLong()
+                        .coerceAtMost((duration * 1000).roundToLong())
+                }
+
                 appendLine()
                 appendLine("[CHAPTER]")
                 appendLine("TIMEBASE=1/1000")
                 appendLine("START=${(start.start * 1000).roundToLong()}")
-                appendLine("END=${(end.start * 1000).roundToLong()}")
+                appendLine("END=$end")
                 appendLine("title=${escapeMetadata(start.name.orEmpty())}")
             }
         }
