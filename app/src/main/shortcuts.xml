@@ -27,11 +27,11 @@
         android:enabled="true"
         android:icon="@drawable/sc_history_48dp"
         android:shortcutDisabledMessage="@string/app_not_available"
-        android:shortcutId="show_recently_read"
+        android:shortcutId="show_recently_seen"
         android:shortcutLongLabel="@string/label_recent_manga"
         android:shortcutShortLabel="@string/label_recent_manga">
         <intent
-            android:action="eu.kanade.tachiyomi.SHOW_RECENTLY_READ"
+            android:action="eu.kanade.tachiyomi.SHOW_RECENTLY_SEEN"
             android:targetClass="eu.kanade.tachiyomi.ui.main.MainActivity"
             android:targetPackage="${applicationId}" />
     </shortcut>

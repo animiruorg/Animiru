@@ -44,9 +44,7 @@ Surround the new code with:
 - **AM (DISCORD_RPC)** --> Original library from dead8309/Kizzy, refactored code by 最高 man/Shivam. Thank you, both of you!
 - **AM (CUSTOM_INFORMATION)** --> Copied from SY, Thank you jobobby4/syer!
 - **AM (GROUPING)** --> Copied from SY, Thank you jobobby4/syer!
-- **AM (RECENTS)** --> Idea inspired from J2K, Thank you Jays2Kings!
 - **AM (STORAGE_SCREEN)** --> Taken from Aniyomi and refactored to fit Animiru's codebase!
-- **AM (RECENTS_FILTER_CHIP)** --> Thank you Quickdesh!
 
 ## Linting
 

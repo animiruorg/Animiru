@@ -512,10 +512,8 @@ class MainActivity : BaseActivity() {
                 navigator.popUntilRoot()
                 HomeScreen.Tab.Library(idToOpen)
             }
-            // AM (RECENTS) -->
-            Constants.SHORTCUT_UPDATES -> HomeScreen.Tab.Recents(toHistory = false)
-            Constants.SHORTCUT_HISTORY -> HomeScreen.Tab.Recents(toHistory = true)
-            // <-- AM (RECENTS)
+            Constants.SHORTCUT_UPDATES -> HomeScreen.Tab.Updates
+            Constants.SHORTCUT_HISTORY -> HomeScreen.Tab.History
             Constants.SHORTCUT_SOURCES -> HomeScreen.Tab.Browse(false)
             Constants.SHORTCUT_EXTENSIONS -> HomeScreen.Tab.Browse(true)
             Constants.SHORTCUT_DOWNLOADS -> {

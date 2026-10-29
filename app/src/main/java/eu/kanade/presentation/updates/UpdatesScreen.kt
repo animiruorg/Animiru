@@ -1,12 +1,14 @@
 package eu.kanade.presentation.updates
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,75 +41,122 @@ import mihon.icons.materialsymbols.rounded.SelectAll
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.FastScrollLazyColumn
 import tachiyomi.presentation.core.components.material.PullRefresh
+import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.screens.EmptyScreen
 import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.presentation.core.theme.active
 import kotlin.time.Duration.Companion.seconds
 
-// AM (RECENTS_FILTER_CHIP) -->
 @Composable
 fun UpdateScreen(
     state: UpdatesViewModel.State,
+    snackbarHostState: SnackbarHostState,
     lastUpdated: Long,
     onClickCover: (UpdatesItem) -> Unit,
+    onSelectAll: (Boolean) -> Unit,
+    onInvertSelection: () -> Unit,
+    onCalendarClicked: () -> Unit,
     onUpdateLibrary: suspend () -> Boolean,
     onDownloadEpisode: (List<UpdatesItem>, EpisodeDownloadAction) -> Unit,
+    onMultiBookmarkClicked: (List<UpdatesItem>, bookmark: Boolean) -> Unit,
+    // AM -->
+    onMultiFillermarkClicked: (List<UpdatesItem>, fillermark: Boolean) -> Unit,
+    // <-- AM
+    onMultiMarkAsSeenClicked: (List<UpdatesItem>, seen: Boolean) -> Unit,
+    onMultiDeleteClicked: (List<UpdatesItem>) -> Unit,
     onUpdateSelected: (UpdatesItem, Boolean, Boolean) -> Unit,
     onOpenEpisode: (UpdatesItem, altPlayer: Boolean) -> Unit,
-    contentPadding: PaddingValues,
+    onFilterClicked: () -> Unit,
     hasActiveFilters: Boolean,
 ) {
-    when {
-        state.isLoading -> LoadingScreen(Modifier.padding(contentPadding))
-        else -> {
-            val scope = rememberCoroutineScope()
-            var isRefreshing by remember { mutableStateOf(false) }
+    BackHandler(enabled = state.selectionMode) {
+        onSelectAll(false)
+    }
 
-            PullRefresh(
-                refreshing = isRefreshing,
-                onRefresh = {
-                    scope.launch {
-                        if (!onUpdateLibrary()) return@launch
-                        // Fake refresh status but hide it after a second as it's a long running task
-                        isRefreshing = true
-                        delay(1.seconds)
-                        isRefreshing = false
-                    }
-                },
-                enabled = !state.selectionMode,
-                indicatorPadding = contentPadding,
-            ) {
-                if (state.items.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .padding(contentPadding)
-                            .fillMaxSize(),
-                    ) {
-                        UpdatesLastUpdatedHeader(lastUpdated = lastUpdated)
-                        EmptyScreen(
-                            stringRes = if (hasActiveFilters) {
-                                MR.strings.error_no_match
-                            } else {
-                                MR.strings.information_no_recent
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                } else {
-                    FastScrollLazyColumn(
-                        contentPadding = contentPadding,
-                    ) {
-                        updatesLastUpdatedItem(lastUpdated)
+    val scope = rememberCoroutineScope()
 
-                        updatesUiItems(
-                            uiModels = state.getUiModel(),
-                            selectionMode = state.selectionMode,
-                            onUpdateSelected = onUpdateSelected,
-                            onClickCover = onClickCover,
-                            onClickUpdate = onOpenEpisode,
-                            onDownloadEpisode = onDownloadEpisode,
-                        )
+    Scaffold(
+        topBar = { scrollBehavior ->
+            UpdatesAppBar(
+                onCalendarClicked = { onCalendarClicked() },
+                onUpdateLibrary = { scope.launch { onUpdateLibrary() } },
+                onFilterClicked = { onFilterClicked() },
+                hasFilters = hasActiveFilters,
+                actionModeCounter = state.selected.size,
+                onSelectAll = { onSelectAll(true) },
+                onInvertSelection = { onInvertSelection() },
+                onCancelActionMode = { onSelectAll(false) },
+                scrollBehavior = scrollBehavior,
+            )
+        },
+        bottomBar = {
+            UpdatesBottomBar(
+                selected = state.selected,
+                onDownloadEpisode = onDownloadEpisode,
+                onMultiBookmarkClicked = onMultiBookmarkClicked,
+                // AM -->
+                onMultiFillermarkClicked = onMultiFillermarkClicked,
+                // <-- AM
+                onMultiMarkAsSeenClicked = onMultiMarkAsSeenClicked,
+                onMultiDeleteClicked = onMultiDeleteClicked,
+                // AM -->
+                onOpenEpisode = onOpenEpisode,
+                // <-- AM
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { contentPadding ->
+        when {
+            state.isLoading -> LoadingScreen(Modifier.padding(contentPadding))
+            else -> {
+                var isRefreshing by remember { mutableStateOf(false) }
+
+                PullRefresh(
+                    refreshing = isRefreshing,
+                    onRefresh = {
+                        scope.launch {
+                            if (!onUpdateLibrary()) return@launch
+                            // Fake refresh status but hide it after a second as it's a long running task
+                            isRefreshing = true
+                            delay(1.seconds)
+                            isRefreshing = false
+                        }
+                    },
+                    enabled = !state.selectionMode,
+                    indicatorPadding = contentPadding,
+                ) {
+                    if (state.items.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .padding(contentPadding)
+                                .fillMaxSize(),
+                        ) {
+                            UpdatesLastUpdatedHeader(lastUpdated = lastUpdated)
+                            EmptyScreen(
+                                stringRes = if (hasActiveFilters) {
+                                    MR.strings.error_no_match
+                                } else {
+                                    MR.strings.information_no_recent
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    } else {
+                        FastScrollLazyColumn(
+                            contentPadding = contentPadding,
+                        ) {
+                            updatesLastUpdatedItem(lastUpdated)
+
+                            updatesUiItems(
+                                uiModels = state.getUiModel(),
+                                selectionMode = state.selectionMode,
+                                onUpdateSelected = onUpdateSelected,
+                                onClickCover = onClickCover,
+                                onClickUpdate = onOpenEpisode,
+                                onDownloadEpisode = onDownloadEpisode,
+                            )
+                        }
                     }
                 }
             }
@@ -116,9 +165,9 @@ fun UpdateScreen(
 }
 
 @Composable
-fun UpdatesTopBar(
+fun UpdatesAppBar(
     onCalendarClicked: () -> Unit,
-    onUpdateLibrary: suspend () -> Unit,
+    onUpdateLibrary: () -> Unit,
     onFilterClicked: () -> Unit,
     hasFilters: Boolean,
     // For action mode
@@ -129,8 +178,6 @@ fun UpdatesTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
 ) {
-    val scope = rememberCoroutineScope()
-
     AppBar(
         modifier = modifier,
         title = stringResource(MR.strings.label_recent_updates),
@@ -151,7 +198,7 @@ fun UpdatesTopBar(
                     AppBar.Action(
                         title = stringResource(MR.strings.action_update_library),
                         icon = MaterialSymbols.Rounded.Refresh,
-                        onClick = { scope.launch { onUpdateLibrary() } },
+                        onClick = onUpdateLibrary,
                     ),
                 ),
             )
@@ -177,7 +224,6 @@ fun UpdatesTopBar(
         scrollBehavior = scrollBehavior,
     )
 }
-// <-- AM (RECENTS_FILTER_CHIP)
 
 @Composable
 fun UpdatesBottomBar(

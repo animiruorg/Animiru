@@ -7,12 +7,9 @@ import tachiyomi.i18n.MR
 
 enum class StartScreen(val titleRes: StringResource, val tab: HomeScreen.Tab) {
     ANIME(MR.strings.label_library, HomeScreen.Tab.Library()),
+    UPDATES(MR.strings.label_recent_updates, HomeScreen.Tab.Updates),
+    HISTORY(MR.strings.label_recent_manga, HomeScreen.Tab.History),
 
-    // AM (RECENTS) -->
-    UPDATES(MR.strings.label_recent_updates, HomeScreen.Tab.Recents(toHistory = false)),
-    HISTORY(MR.strings.label_recent_manga, HomeScreen.Tab.Recents(toHistory = true)),
-
-    // <-- AM (RECENTS)
     // AM (BROWSE) -->
     BROWSE(MR.strings.browse, HomeScreen.Tab.Browse(toExtensions = false)),
     // <-- AM (BROWSE)
