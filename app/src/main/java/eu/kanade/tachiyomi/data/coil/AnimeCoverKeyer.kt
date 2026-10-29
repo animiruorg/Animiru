@@ -15,7 +15,8 @@ class AnimeKeyer : Keyer<DomainAnime> {
             options.useBackground &&
                 data.favorite &&
                 data.hasCustomBackground() -> "anime;${data.id};${data.backgroundLastModified}"
-            options.useBackground -> "anime;${data.backgroundUrl};${data.backgroundLastModified}"
+            options.useBackground &&
+                !data.backgroundUrl.isNullOrBlank() -> "anime;${data.backgroundUrl};${data.backgroundLastModified}"
             data.favorite && data.hasCustomCover() -> "anime;${data.id};${data.coverLastModified}"
             else -> "anime;${data.thumbnailUrl};${data.coverLastModified}"
         }

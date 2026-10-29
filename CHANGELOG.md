@@ -34,6 +34,7 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Fixed being unable to use external player ([@Secozzi](https://github.com/Secozzi)) ([#232](https://github.com/animiruorg/Animiru/pull/232))
 - Fix download notifications and downloads from local http servers ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
 - Fix custom titles not being updated in library ([@Secozzi](https://github.com/Secozzi)) ([#241](https://github.com/animiruorg/Animiru/pull/241))
+- Fix cover not being used as background if background_url is missing ([@Secozzi](https://github.com/Secozzi)) ([#255](https://github.com/animiruorg/Animiru/pull/255))
 
 ### Other
 - Merged from mihon ([@Secozzi](https://github.com/Secozzi)) ([#239](https://github.com/animiruorg/Animiru/pull/239), [#245](https://github.com/animiruorg/Animiru/pull/245))
