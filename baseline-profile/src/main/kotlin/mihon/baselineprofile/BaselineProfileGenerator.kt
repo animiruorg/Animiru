@@ -24,20 +24,13 @@ class BaselineProfileGenerator {
             pressHome()
             startActivityAndWait()
 
-            device.waitAndClick(By.res("tab_Recents"))
+            device.waitAndClick(By.res("tab_Updates"))
             device.waitForIdle()
 
-            device.waitAndClick(By.text("History"))
+            device.waitAndClick(By.res("tab_History"))
             device.waitForIdle()
 
             device.waitAndClick(By.res("tab_Browse"))
-            device.waitForIdle()
-
-            device.waitAndClick(By.desc("Install"))
-            device.wait(Until.hasObject(By.desc("Install")), 5000)
-            device.waitForIdle()
-
-            device.pressBack()
             device.waitForIdle()
 
             device.waitAndClick(By.res("tab_More"))

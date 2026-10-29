@@ -164,7 +164,6 @@ enum class DiscordScreen(val text: StringResource, val details: StringResource, 
     LIBRARY(MR.strings.label_library, AMMR.strings.browsing, LIBRARY_IMAGE_URL),
     UPDATES(MR.strings.label_recent_updates, AMMR.strings.scrolling, UPDATES_IMAGE_URL),
     HISTORY(MR.strings.label_recent_manga, AMMR.strings.scrolling, HISTORY_IMAGE_URL),
-    RECENTS(AMMR.strings.label_recent_recents, AMMR.strings.scrolling, RECENTS_IMAGE_URL),
     BROWSE(MR.strings.label_sources, AMMR.strings.browsing, BROWSE_IMAGE_URL),
     MORE(MR.strings.label_settings, AMMR.strings.messing, MORE_IMAGE_URL),
     WEBVIEW(MR.strings.action_web_view, AMMR.strings.browsing, WEBVIEW_IMAGE_URL),
@@ -176,7 +175,6 @@ private const val ANIMIRU_IMAGE_URL = "emojis/1247521756898398269.webp?quality=l
 private const val LIBRARY_IMAGE_URL = "emojis/1247521758966317158.webp?quality=lossless"
 private const val UPDATES_IMAGE_URL = "emojis/1247521763571794030.webp?quality=lossless"
 private const val HISTORY_IMAGE_URL = "emojis/1247521754264506378.webp?quality=lossless"
-private const val RECENTS_IMAGE_URL = "emojis/1247787737705353291.webp?quality=lossless"
 private const val BROWSE_IMAGE_URL = "emojis/1247521751575826493.webp?quality=lossless"
 private const val MORE_IMAGE_URL = "emojis/1247521761025851472.webp?quality=lossless"
 private const val WEBVIEW_IMAGE_URL = "emojis/1247521768533524573.webp?quality=lossless"

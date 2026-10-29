@@ -41,9 +41,10 @@ import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.ui.anime.AnimeScreen
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
 import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
+import eu.kanade.tachiyomi.ui.history.HistoryTab
 import eu.kanade.tachiyomi.ui.library.LibraryTab
 import eu.kanade.tachiyomi.ui.more.MoreTab
-import eu.kanade.tachiyomi.ui.recents.RecentsTab
+import eu.kanade.tachiyomi.ui.updates.UpdatesTab
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -69,12 +70,9 @@ object HomeScreen : Screen() {
 
     private val TABS = listOf(
         LibraryTab,
-        // AM (RECENTS) -->
-        RecentsTab,
-        // <-- AM (RECENTS)
-        // AM (BROWSE) -->
+        UpdatesTab,
+        HistoryTab,
         BrowseTab,
-        // <-- AM (BROWSE)
         MoreTab,
     )
 
@@ -89,9 +87,9 @@ object HomeScreen : Screen() {
             // Provide usable navigator to content screen
             CompositionLocalProvider(LocalNavigator provides navigator) {
                 val currentTabIndex by remember {
-                    // AM (RECENTS_FILTER_CHIP) -->
+                    // AM -->
                     derivedStateOf { TABS.indexOfFirst { it::class == tabNavigator.current::class } }
-                    // <-- AM (RECENTS_FILTER_CHIP)
+                    // <-- AM
                 }
 
                 var oldIndex by remember { mutableIntStateOf(currentTabIndex) }
@@ -177,17 +175,14 @@ object HomeScreen : Screen() {
                     openTabEvent.receiveAsFlow().collectLatest {
                         tabNavigator.current = when (it) {
                             is Tab.Library -> LibraryTab
-                            // AM (RECENTS) -->
-                            is Tab.Recents -> {
-                                if (it.toHistory) {
-                                    RecentsTab.showHistory()
+                            Tab.Updates -> UpdatesTab
+                            Tab.History -> HistoryTab
+                            is Tab.Browse -> {
+                                if (it.toExtensions) {
+                                    BrowseTab.showExtension()
                                 }
-                                RecentsTab
+                                BrowseTab
                             }
-                            // <-- AM (RECENTS)
-                            // AM (BROWSE) -->
-                            is Tab.Browse -> BrowseTab
-                            // <-- AM (BROWSE)
                             is Tab.More -> MoreTab
                         }
 
@@ -246,7 +241,7 @@ object HomeScreen : Screen() {
         val count by produceState(initialValue = 0, tab) {
             val graph = context.appGraph
             when (tab) {
-                is RecentsTab -> {
+                is UpdatesTab -> {
                     combine(
                         graph.libraryPreferences.newShowUpdatesCount.changes(),
                         graph.libraryPreferences.newUpdatesCount.changes(),
@@ -268,7 +263,7 @@ object HomeScreen : Screen() {
         return {
             Badge {
                 val desc = when (tab) {
-                    is RecentsTab -> pluralStringResource(
+                    is UpdatesTab -> pluralStringResource(
                         MR.plurals.notification_chapters_generic,
                         count = count,
                         count,
@@ -306,11 +301,8 @@ object HomeScreen : Screen() {
 
     sealed interface Tab {
         data class Library(val animeIdToOpen: Long? = null) : Tab
-
-        // AM (RECENTS) -->
-        data class Recents(val toHistory: Boolean) : Tab
-
-        // <-- AM (RECENTS)
+        data object Updates : Tab
+        data object History : Tab
         data class Browse(val toExtensions: Boolean = false) : Tab
         data class More(val toDownloads: Boolean) : Tab
     }

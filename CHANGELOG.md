@@ -16,6 +16,9 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Added new downloader ([@Secozzi](https://github.com/Secozzi)) ([#236](https://github.com/animiruorg/Animiru/pull/236))
 - Added curl support in mpv ([@Secozzi](https://github.com/Secozzi)) ([#248](https://github.com/animiruorg/Animiru/pull/248))
 
+### Changed
+- Split updates and history into separate tabs ([@Secozzi](https://github.com/Secozzi)) ([#254](https://github.com/animiruorg/Animiru/pull/254))
+
 ### Improved
 - Long press on go back in anime screen now goes to parent anime ([@Secozzi](https://github.com/Secozzi)) ([#220](https://github.com/animiruorg/Animiru/pull/220))
 - Make the scrollbar in an anime entry less buggy when scrolling and dragging the thumb ([@Secozzi](https://github.com/Secozzi)) ([#229](https://github.com/animiruorg/Animiru/pull/229))

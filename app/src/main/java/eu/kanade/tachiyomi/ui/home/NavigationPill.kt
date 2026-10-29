@@ -64,7 +64,7 @@ import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
 import eu.kanade.tachiyomi.ui.library.LibraryTab
-import eu.kanade.tachiyomi.ui.recents.RecentsTab
+import eu.kanade.tachiyomi.ui.updates.UpdatesTab
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
@@ -87,9 +87,7 @@ fun NavigationPill(
     val pillItemHeight = 48.dp
 
     val currentTabIndex by remember {
-        // AM (RECENTS_FILTER_CHIP) -->
         derivedStateOf { tabs.indexOfFirst { it::class == tabNavigator.current::class } }
-        // <-- AM (RECENTS_FILTER_CHIP)
     }
     val indexedTabs = tabs.mapIndexed { index, tab -> index to tab }
     var oldIndex by remember { mutableIntStateOf(currentTabIndex) }
@@ -251,9 +249,7 @@ private fun NavigationIconItem(tab: Tab) {
     BadgedBox(
         badge = {
             when {
-                // AM (RECENTS) -->
-                RecentsTab::class.isInstance(tab) -> {
-                    // <-- AM (RECENTS)
+                UpdatesTab::class.isInstance(tab) -> {
                     val count by produceState(initialValue = 0) {
                         val pref = context.appGraph.libraryPreferences
                         pref.newUpdatesCount.changes()
