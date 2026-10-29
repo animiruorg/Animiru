@@ -561,9 +561,7 @@ class MainActivity : BaseActivity() {
                 }
                 null
             }
-            // AM -->
-            else -> uiPreferences.startScreen.get().tab
-            // <-- AM
+            else -> return false
         }
 
         if (tabToOpen != null) {
