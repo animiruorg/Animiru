@@ -5,7 +5,7 @@
 </a>
 
 # Animiru [App](#)
-Animiru is a fork of [Aniyomi](https://github.com/aniyomiorg/aniyomi)
+Animiru is a fork of [Mihon](https://github.com/mihonapp/mihon) and [Aniyomi](https://github.com/aniyomiorg/aniyomi)
 
 ### Full-featured video player
 Discover and watch anime, donghua, series, and more – easier than ever on your Android device.
@@ -20,6 +20,7 @@ Discover and watch anime, donghua, series, and more – easier than ever on your
 ## Download
 
 [![Animiru](https://img.shields.io/github/release/animiruorg/Animiru.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b69)](https://github.com/animiruorg/Animiru/releases/latest)
+[![Animiru preview](https://img.shields.io/github/release/animiruorg/animiru-preview.svg?maxAge=3600&label=Preview&labelColor=2c2c47&color=1c1c39)](https://github.com/animiruorg/animiru-preview/releases/latest)
 
 *Requires Android 8.0 or higher.*
 
@@ -50,8 +51,8 @@ Before reporting a new issue, take a look at the [FAQ](https://aniyomi.org/docs/
 
 ### Repositories
 
-[![Secozzi/mpv-android - GitHub](https://github-stats-extended.vercel.app/api/pin?username=Secozzi&repo=mpv-android&bg_color=161B22&text_color=c9d1d9&title_color=0877d2&icon_color=0877d2&border_radius=8&hide_border=true&description_lines_count=2)](https://github.com/Secozzi/mpv-android/)
-[![jmir1/ffmpeg-kit - GitHub](https://github-stats-extended.vercel.app/api/pin?username=jmir1&repo=ffmpeg-kit&bg_color=161B22&text_color=c9d1d9&title_color=0877d2&icon_color=0877d2&border_radius=8&hide_border=true&description_lines_count=2)](https://github.com/jmir1/ffmpeg-kit/)
+[![animiruorg/mpv-android - GitHub](https://github-stats-extended.vercel.app/api/pin?username=animiruorg&repo=mpv-android&bg_color=161B22&text_color=c9d1d9&title_color=0877d2&icon_color=0877d2&border_radius=8&hide_border=true&description_lines_count=2)](https://github.com/animiruorg/mpv-android/)
+[![animiruorg/ffmpeg-kit-next - GitHub](https://github-stats-extended.vercel.app/api/pin?username=animiruorg&repo=ffmpeg-kit-next&bg_color=161B22&text_color=c9d1d9&title_color=0877d2&icon_color=0877d2&border_radius=8&hide_border=true&description_lines_count=2)](https://github.com/animiruorg/ffmpeg-kit-next/)
 
 ### Credits
 
@@ -71,6 +72,7 @@ The developer(s) of this application does not have any affiliation with the cont
 Copyright © 2015 Javier Tomás
 Copyright © 2024 Mihon Open Source Project
 Copyright © 2024 Aniyomi Open Source Project
+Copyright © 2026 Animiru Open Source Project
 
 Animiru
 Copyright (C) 2026  Animiruorg
