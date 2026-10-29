@@ -543,15 +543,19 @@ class VideoDownloader(
 
         download.progress = 0
 
+        val sourceStreamOptions = video.ffmpegStreamArgs.joinToString(" ") { (key, value) ->
+            "-$key \"$value\""
+        }
+        val videoInput = "$sourceStreamOptions $videoInput"
         val information = getInformation(downloadDir, videoInput)
         val duration = information.format.duration?.toDoubleOrNull()
 
-        val hasTimeStamps = download.video?.timestamps?.isNotEmpty() ?: false
+        val hasTimeStamps = video.timestamps.isNotEmpty()
         val chapterInput = if (hasTimeStamps) {
             val chapterFile = getChapterMetadata(
                 destDir = downloadDir,
                 chapters = information.chapters,
-                timestamps = download.video?.timestamps.orEmpty(),
+                timestamps = video.timestamps,
                 duration = duration?.toFloat(),
             )
             "-f ffmetadata -i \"${chapterFile}\""
@@ -637,14 +641,9 @@ class VideoDownloader(
         val audioMaps = formatMaps(audioTracks, "a", subtitleTracks.size)
         val audioMetadata = formatMetadata(audioTracks, "a")
 
-        val sourceStreamOptions = ffmpegStreamArgs.joinToString(" ") { (key, value) ->
-            "-$key \"$value\""
-        }
         val sourceVideoOptions = ffmpegVideoArgs.joinToString(" ") { (key, value) ->
             "-$key \"$value\""
         }
-
-        val videoInput = "$sourceStreamOptions $videoInput"
 
         val command = listOf(
             videoInput, subtitleInputs, audioInputs, chapterInput,
