@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.backup
 
 import eu.kanade.tachiyomi.data.backup.models.Backup
 import eu.kanade.tachiyomi.data.backup.models.BackupAnime
+import eu.kanade.tachiyomi.data.backup.models.LegacyBackup
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.protobuf.ProtoBuf
@@ -50,6 +51,7 @@ class BackupReader(
 ) {
     private val metadata = Buffer()
     private var entryLength = NO_ENTRY
+    private var legacy = true
 
     /**
      * Moves to the next entry, which [readEntry] or [skipEntry] then consumes.
@@ -64,7 +66,13 @@ class BackupReader(
             val wireType = (tag and 0x7).toInt()
             if (fieldNumber == 0L) throw IOException("Invalid field number 0")
 
+            // AM -->
             if (tag == ENTRY_TAG) {
+                legacy = false
+            }
+            // <-- AM
+
+            if (tag == ENTRY_TAG || tag == LEGACY_ENTRY_TAG) {
                 entryLength = source.readLength()
                 return true
             }
@@ -156,7 +164,11 @@ class BackupReader(
     fun readMetadata(): Backup {
         if (entryLength != NO_ENTRY) skipEntry()
         while (nextEntry()) skipEntry()
-        return decode(Backup.serializer(), metadata.readByteArray())
+        return if (legacy) {
+            decode(LegacyBackup.serializer(), metadata.readByteArray()).toBackup()
+        } else {
+            decode(Backup.serializer(), metadata.readByteArray())
+        }
     }
 
     private fun takeEntryLength(): Long {
@@ -205,6 +217,9 @@ private const val WIRE_TYPE_FIXED32 = 5
 
 // Backup.backupAnime is field 501, and each entry is length-delimited
 private const val ENTRY_TAG = 501L shl 3 or WIRE_TYPE_LENGTH_DELIMITED.toLong()
+
+// LegacyBackup.backupAnime is field 3, and each entry is length-delimited
+private const val LEGACY_ENTRY_TAG = 3L shl 3 or WIRE_TYPE_LENGTH_DELIMITED.toLong()
 
 // AM -->
 private const val SOURCE_TAG = 1L shl 3 or WIRE_TYPE_VARINT.toLong()
