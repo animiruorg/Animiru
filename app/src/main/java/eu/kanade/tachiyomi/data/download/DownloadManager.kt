@@ -215,7 +215,13 @@ class DownloadManager(
      * @param anime the anime of the episodes.
      */
     fun getDownloadedEpisodeIds(episodes: List<Episode>, anime: Anime): Set<Long> {
-        return cache.getDownloadedEpisodeIds(episodes, anime.title, anime.source)
+        return cache.getDownloadedEpisodeIds(
+            episodes,
+            // AM -->
+            anime.ogTitle,
+            // <-- AM
+            anime.source,
+        )
     }
 
     /**
