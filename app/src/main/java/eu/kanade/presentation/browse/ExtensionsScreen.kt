@@ -134,8 +134,12 @@ fun ExtensionScreen(
             )
         },
     ) { contentPadding ->
-        BackHandler(enabled = state.searchQuery != null) {
-            onChangeSearchQuery(null)
+        BackHandler {
+            if (state.searchQuery != null) {
+                onChangeSearchQuery(null)
+            } else {
+                toSourcesScreen()
+            }
         }
 
         // <-- AM (BROWSE)
@@ -356,9 +360,7 @@ private fun ExtensionItem(
         is Extension.Available -> extension.store
         is Extension.Installed -> extension.store
     }
-    // AM (BROWSE) -->
-    if (extension is Extension.Loaded && !extension.hasUpdate) return
-    // <-- AM (BROWSE)
+
     BaseBrowseItem(
         modifier = modifier,
         onClickItem = { onClickItem(extension) },

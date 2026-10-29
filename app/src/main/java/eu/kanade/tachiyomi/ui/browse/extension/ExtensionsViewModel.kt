@@ -80,11 +80,14 @@ class ExtensionsViewModel(
             }
 
             val notLoaded = _notLoaded.filter(predicate).map(extensionMapper(downloads))
-            // AM (BROWSE) -->
             if (notLoaded.isNotEmpty()) {
                 put(ExtensionUiModel.Header.Resource(MR.strings.ext_not_loaded), notLoaded)
             }
-            // <-- AM (BROWSE)
+
+            val loaded = _loaded.filter(predicate).map(extensionMapper(downloads))
+            if (loaded.isNotEmpty()) {
+                put(ExtensionUiModel.Header.Resource(MR.strings.ext_installed), loaded)
+            }
 
             val languagesWithExtensions = _available
                 .filter(predicate)
