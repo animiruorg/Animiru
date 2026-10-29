@@ -193,7 +193,7 @@ private fun SearchResult(
     // AY -->
     val context = LocalContext.current
 
-    val index = if (isPlayer) getPlayerIndex() else getIndex() + getPlayerIndex()
+    val index = if (isPlayer) getPlayerIndex() else getIndex()
     val playerSettingsLabel = remember { AYMR.strings.label_player_settings.getString(context) }
     // <-- AY
     // The query is read here rather than in composition, so typing doesn't rebuild the index on every key
@@ -266,15 +266,8 @@ private fun search(
                 route = settingsData.route,
                 title = title,
                 breadcrumbs = getLocalizedBreadcrumb(
-                    // AM -->
-                    nodes = buildList {
-                        if (!isPlayer && settingsData.playerSettings) {
-                            add(playerSettingsLabel)
-                        }
-                        add(settingsData.title)
-                        if (categoryTitle != null) add(categoryTitle)
-                    },
-                    // <-- AM
+                    path = settingsData.title,
+                    node = categoryTitle,
                     isLtr = isLtr,
                 ),
                 highlightKey = title,
@@ -326,6 +319,20 @@ private fun getIndex() = settingScreens
         )
     }
 
+private fun getLocalizedBreadcrumb(path: String, node: String?, isLtr: Boolean): String {
+    return if (node == null) {
+        path
+    } else {
+        if (isLtr) {
+            // This locale reads left to right.
+            "$path > $node"
+        } else {
+            // This locale reads right to left.
+            "$node < $path"
+        }
+    }
+}
+
 // AY -->
 @Composable
 @NonRestartableComposable
@@ -335,19 +342,8 @@ private fun getPlayerIndex() = playerSettingScreens
             title = stringResource(screen.getTitleRes()),
             route = screen,
             contents = screen.getPreferences(),
-            playerSettings = true,
         )
     }
-
-private fun getLocalizedBreadcrumb(nodes: List<String>, isLtr: Boolean): String {
-    return if (isLtr) {
-        // This locale reads left to right.
-        nodes.joinToString(" > ")
-    } else {
-        // This locale reads right to left.
-        nodes.reversed().joinToString(" < ")
-    }
-}
 
 private val playerSettingScreens = listOf(
     PlayerSettingsPlayerScreen,
@@ -378,9 +374,6 @@ private data class SettingsData(
     val title: String,
     val route: VoyagerScreen,
     val contents: List<Preference>,
-    // AY -->
-    val playerSettings: Boolean = false,
-    // <-- AY
 )
 
 private data class SearchResultItem(
