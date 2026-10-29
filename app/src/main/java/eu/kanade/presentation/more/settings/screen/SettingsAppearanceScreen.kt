@@ -12,7 +12,6 @@ import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
-import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.domain.ui.model.TimeFormat
@@ -29,7 +28,6 @@ import kotlinx.datetime.toLocalDateTime
 import mihon.app.di.appGraph
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
-import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import kotlin.time.Clock
@@ -134,18 +132,6 @@ object SettingsAppearanceScreen : SearchableSettings {
                         true
                     },
                 ),
-                // AY -->
-                Preference.PreferenceItem.ListPreference(
-                    preference = uiPreferences.startScreen,
-                    entries = StartScreen.entries
-                        .associateWith { stringResource(it.titleRes) },
-                    title = stringResource(AYMR.strings.pref_start_screen),
-                    onValueChanged = {
-                        context.toast(MR.strings.requires_app_restart)
-                        true
-                    },
-                ),
-                // <-- AY
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.dateFormat,
                     entries = DateFormats

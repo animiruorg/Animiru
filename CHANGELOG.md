@@ -26,6 +26,8 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 
 ### Removed
 - Removed sync from connections ([@Secozzi](https://github.com/Secozzi)) ([#240](https://github.com/animiruorg/Animiru/pull/240))
+- Removed player settings item from main settings screen ([#256](https://github.com/animiruorg/Animiru/pull/256))
+- Removed start screen option ([#256](https://github.com/animiruorg/Animiru/pull/256))
 
 ### Fixed
 - Fix episode thumbnails not being fetched with source headers ([@Secozzi](https://github.com/Secozzi)) ([#225](https://github.com/animiruorg/Animiru/pull/225))
