@@ -6,7 +6,8 @@ import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
@@ -15,7 +16,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -39,7 +39,7 @@ data class Journal(
 class DownloadJournal(
     @Assisted private val destDir: UniFile,
     @Assisted private val initial: Journal,
-    @AppCoroutineScope private val scope: CoroutineScope,
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val json: Json,
 ) {
     @AssistedFactory
@@ -52,6 +52,8 @@ class DownloadJournal(
     private val writes = Channel<Unit>(Channel.CONFLATED)
     private val writeMutex = Mutex()
 
+    private val scope = CoroutineScope(SupervisorJob(appScope.coroutineContext[Job]) + Dispatchers.Default)
+
     init {
         scope.launch {
             writes.receiveAsFlow()
@@ -63,7 +65,7 @@ class DownloadJournal(
     }
 
     private suspend fun writeJournal(journal: Journal) {
-        withContext(NonCancellable + Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             writeMutex.withLock {
                 try {
                     val file = destDir.findFile(JOURNAL_NAME)
@@ -78,7 +80,7 @@ class DownloadJournal(
                     logcat(LogPriority.ERROR, e) { "Failed to write journal" }
                 }
             }
-        }
+        }.join()
     }
 
     suspend fun write() {
