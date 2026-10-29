@@ -310,7 +310,7 @@ class AnimeImageFetcher(
 
         override fun create(data: Anime, options: Options, imageLoader: ImageLoader): Fetcher {
             // AY -->
-            val isBackground = options.useBackground
+            val isBackground = options.useBackground && !data.backgroundUrl.isNullOrBlank()
             val url = if (isBackground) data.backgroundUrl else data.thumbnailUrl
 
             val coverCacheLazy = if (isBackground) {
