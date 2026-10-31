@@ -129,6 +129,9 @@ class UpdatesRepositoryImpl(
         totalSeconds = totalSeconds,
         // <-- AY
         sourceId = sourceId,
+        // AM -->
+        dateUpload = dateUpload,
+        // <-- AM
         dateFetch = dateFetch,
         coverData = AnimeCover(
             animeId = animeId,

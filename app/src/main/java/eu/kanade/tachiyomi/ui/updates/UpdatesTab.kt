@@ -33,7 +33,9 @@ import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.updates.UpdatesViewModel.Event
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
 import mihon.feature.upcoming.UpcomingScreen
@@ -42,6 +44,10 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
 data object UpdatesTab : Tab {
+
+    // AM -->
+    private val openFirstUnseenEvent = Channel<Unit>()
+    // <-- AM
 
     override val options: TabOptions
         @Composable
@@ -58,6 +64,12 @@ data object UpdatesTab : Tab {
     override suspend fun onReselect(navigator: Navigator) {
         navigator.push(DownloadQueueScreen)
     }
+
+    // AM -->
+    override suspend fun onReselectHold(navigator: Navigator) {
+        openFirstUnseenEvent.send(Unit)
+    }
+    // <-- AM
 
     @Composable
     override fun Content() {
@@ -163,6 +175,16 @@ data object UpdatesTab : Tab {
             }
             // <-- AM (DISCORD_RPC)
         }
+
+        // AM -->
+        LaunchedEffect(Unit) {
+            openFirstUnseenEvent.receiveAsFlow().collectLatest {
+                viewModel.getFirstUnseen()?.let {
+                    openEpisode(context, it)
+                }
+            }
+        }
+        // <-- AM
 
         DisposableEffect(Unit) {
             viewModel.resetNewUpdatesCount()

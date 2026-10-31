@@ -282,6 +282,14 @@ class UpdatesViewModel(
         return started
     }
 
+    // AM -->
+    fun getFirstUnseen(): UpdatesItem? {
+        return updateItems.value.orEmpty()
+            .filterNot { it.update.seen }
+            .minByOrNull { it.update.dateUpload ?: it.update.dateFetch }
+    }
+    // <-- AM
+
     fun downloadEpisodes(items: List<UpdatesItem>, action: EpisodeDownloadAction) {
         if (items.isEmpty()) return
         viewModelScope.launch {
