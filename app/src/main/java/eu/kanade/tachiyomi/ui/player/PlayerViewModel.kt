@@ -3279,7 +3279,7 @@ class PlayerViewModel(
             episodeLoader.isDownload(currentEpisode, anime, source) &&
                 episodeLoader.isDownload(nextEpisode, anime, source)
 
-        viewModelScope.launch(Dispatchers.IO) {
+        appScope.launch {
             if (!episodesAreDownloaded) {
                 return@launch
             }

@@ -62,6 +62,7 @@ import eu.kanade.tachiyomi.ui.player.components.getChangedAt
 import eu.kanade.tachiyomi.ui.player.loader.EpisodeLoader
 import eu.kanade.tachiyomi.ui.player.loader.HosterLoader
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -70,6 +71,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import mihon.core.metro.AppCoroutineScope
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.OpenInNew
 import mihon.icons.materialsymbols.rounded.ChevronRight
@@ -141,6 +143,7 @@ class EpisodeOptionsDialogViewModel(
     @Assisted episodeId: Long,
     @Assisted animeId: Long,
     @Assisted sourceId: Long,
+    @AppCoroutineScope private val appScope: CoroutineScope,
     private val episodeLoader: EpisodeLoader,
     private val hosterLoader: HosterLoader,
     private val sourceManager: SourceManager,
@@ -405,7 +408,7 @@ class EpisodeOptionsDialogViewModel(
         val anime = anime.value ?: return
         val episode = episode.value ?: return
         val currentVideo = currentVideo.value ?: return
-        viewModelScope.launch(Dispatchers.IO) {
+        appScope.launch {
             downloadManager.downloadEpisodes(
                 anime,
                 listOf(episode),
