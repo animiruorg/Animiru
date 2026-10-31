@@ -22,6 +22,13 @@
 -keep,allowoptimization class com.arthenica.** { public protected *; }
 # <-- AY
 
+# AM -->
+-keep,allowoptimization class eu.kanade.tachiyomi.torrentutils.TorrentUtils { public protected *; }
+-keep,allowoptimization class eu.kanade.tachiyomi.torrentutils.model.TorrentFile { public protected *; }
+-keep,allowoptimization class eu.kanade.tachiyomi.torrentutils.model.TorrentInfo { public protected *; }
+-keep,allowoptimization class eu.kanade.tachiyomi.torrentutils.model.DeadTorrentException { public protected *; }
+# <-- AM
+
 -keepclassmembers class * implements java.io.Serializable {
     java.lang.Object writeReplace();
     java.lang.Object readResolve();

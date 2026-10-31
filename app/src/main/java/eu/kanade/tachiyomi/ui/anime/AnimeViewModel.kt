@@ -544,8 +544,6 @@ class AnimeViewModel(
         val source = sourceManager.getOrStub(anime.source)
 
         // AY -->
-        startTorrentServer(source)
-
         if (fetchDetails) {
             syncRelatedAnime(forceRefresh = true)
         }
@@ -920,14 +918,6 @@ class AnimeViewModel(
 
     fun isTorrentEnabled(): Boolean {
         return torrentPreferences.torrServerEnable.get()
-    }
-
-    private suspend fun startTorrentServer(source: AnimeSource?) {
-        if (isTorrentEnabled() && source.isSourceForTorrents()) {
-            TorrentServerService.start(context)
-            TorrentServerService.wait(context, 10)
-            torrentServerUtils.setTrackersList()
-        }
     }
 
     /**
