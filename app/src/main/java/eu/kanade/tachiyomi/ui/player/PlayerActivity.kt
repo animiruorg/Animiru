@@ -324,6 +324,7 @@ class PlayerActivity : BaseActivity() {
             return
         }
 
+        viewModel.saveHistory()
         viewModel.setPlayerExiting(true)
         if (isFinishing) {
             viewModel.deletePendingEpisodes()

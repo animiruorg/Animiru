@@ -338,6 +338,7 @@ class PlayerViewModel(
 
     // Serializes the progress writes, which outlive the player, so they are applied in order
     private val progressWrites = Mutex()
+    private val historyWrites = Mutex()
 
     // Set on Main, flushed from the episode load too
     @Volatile
@@ -3133,6 +3134,12 @@ class PlayerViewModel(
             if (now - lastUpdateTime > PROGRESS_SAVE_DELAY) {
                 lastUpdateTime = now
                 saveEpisodeProgress()
+
+                appScope.launch(Dispatchers.Main.immediate) {
+                    historyWrites.withLock {
+                        updateHistory(updatedEpisode!!)
+                    }
+                }
             }
         }
     }
@@ -3150,6 +3157,13 @@ class PlayerViewModel(
      * Writes the progress of [episode] on the app scope, so it's saved even when the player is closing.
      */
     private fun writeEpisodeProgress(episode: Episode, onComplete: Boolean) {
+        updateEpisode(episode.id) {
+            it.copy(
+                seen = it.seen || onComplete,
+                lastSecondSeen = episode.lastSecondSeen,
+                totalSeconds = episode.totalSeconds,
+            )
+        }
         // Immediate and through the mutex, which is fair, so the writes land in the order they were made
         appScope.launch(Dispatchers.Main.immediate) {
             progressWrites.withLock {
@@ -3162,13 +3176,6 @@ class PlayerViewModel(
                     },
                 )
             }
-        }
-        updateEpisode(episode.id) {
-            it.copy(
-                seen = it.seen || onComplete,
-                lastSecondSeen = episode.lastSecondSeen,
-                totalSeconds = episode.totalSeconds,
-            )
         }
     }
 
@@ -3199,9 +3206,21 @@ class PlayerViewModel(
     }
 
     /**
+     * Saves the chapter last read history on the app scope, so it's written even when the reader is closing.
+     */
+    fun saveHistory() {
+        // Immediate so the read time is taken when the reader pauses
+        appScope.launch(Dispatchers.Main.immediate) {
+            stateData.value.currentEpisode?.let {
+                updateHistory(it)
+            }
+        }
+    }
+
+    /**
      * Saves this [episode] last seen history if incognito mode isn't on.
      */
-    private suspend fun saveEpisodeHistory(episode: Episode) {
+    private suspend fun updateHistory(episode: Episode) {
         saveEpisodeProgress()
         if (!stateData.value.incognitoMode) {
             val episodeId = episode.id
