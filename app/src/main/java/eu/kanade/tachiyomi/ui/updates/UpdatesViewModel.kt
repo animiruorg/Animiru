@@ -24,6 +24,7 @@ import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.library.LibraryUpdateWorker
 import eu.kanade.tachiyomi.util.lang.toLocalDate
+import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -276,7 +277,7 @@ class UpdatesViewModel(
     }
 
     suspend fun updateLibrary(): Boolean {
-        val started = LibraryUpdateWorker.startNow(context)
+        val started = LibraryUpdateWorker.startNow(context.workManager)
         _events.send(Event.LibraryUpdateTriggered(started))
         return started
     }
