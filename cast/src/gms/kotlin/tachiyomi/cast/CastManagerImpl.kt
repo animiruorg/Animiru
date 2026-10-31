@@ -24,6 +24,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import eu.kanade.tachiyomi.animesource.model.Video
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -88,7 +89,7 @@ class CastManagerImpl(
     }
 
     override fun disconnect() {
-        scope.launch {
+        scope.launch(Dispatchers.Main) {
             try {
                 castContext.sessionManager.endCurrentSession(true)
             } catch (e: Exception) {
@@ -110,7 +111,7 @@ class CastManagerImpl(
         playbackRate: Double,
     ) {
         startJob?.cancel()
-        startJob = scope.launch {
+        startJob = scope.launch(Dispatchers.Main) {
             val client = remoteMediaClient
             if (client == null) {
                 _castEvent.emit(CastEvent.PlaybackError(CastNotConnectedException()))
@@ -210,7 +211,7 @@ class CastManagerImpl(
     }
 
     override fun seekTo(position: Long) {
-        scope.launch {
+        scope.launch(Dispatchers.Main) {
             val client = remoteMediaClient
             if (client == null) {
                 _castEvent.emit(CastEvent.PlaybackError(CastNotConnectedException()))
@@ -227,7 +228,7 @@ class CastManagerImpl(
     }
 
     override fun seekBy(delta: Long) {
-        scope.launch {
+        scope.launch(Dispatchers.Main) {
             val client = remoteMediaClient
             if (client == null) {
                 _castEvent.emit(CastEvent.PlaybackError(CastNotConnectedException()))
@@ -245,7 +246,7 @@ class CastManagerImpl(
     }
 
     override fun setSpeed(speed: Double) {
-        scope.launch {
+        scope.launch(Dispatchers.Main) {
             val client = remoteMediaClient
             if (client == null) {
                 _castEvent.emit(CastEvent.PlaybackError(CastNotConnectedException()))
@@ -257,7 +258,7 @@ class CastManagerImpl(
     }
 
     override fun loadTrack(trackId: Long, isAudio: Boolean) {
-        scope.launch {
+        scope.launch(Dispatchers.Main) {
             val client = remoteMediaClient
             if (client == null) {
                 _castEvent.emit(CastEvent.PlaybackError(CastNotConnectedException()))
@@ -320,7 +321,7 @@ class CastManagerImpl(
 
     private fun setVolume(volume: Double) {
         volumeDebounceJob?.cancel()
-        volumeDebounceJob = scope.launch {
+        volumeDebounceJob = scope.launch(Dispatchers.Main) {
             delay(300.milliseconds)
             try {
                 castSession?.volume = volume.coerceIn(0.0, 1.0)

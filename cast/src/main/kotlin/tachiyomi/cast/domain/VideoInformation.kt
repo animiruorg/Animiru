@@ -110,7 +110,7 @@ class VideoInformation(
                 headerOptions,
                 "-v quiet -print_format json -show_format -show_streams -show_chapters",
                 "-o \"$informationFilePath\"",
-                "\"$videoUrl\"",
+                "-tls_verify 0", "\"$videoUrl\"",
             ).joinToString(" "),
         )
 
@@ -119,7 +119,11 @@ class VideoInformation(
                 if (it.getReturnCode()?.isValueSuccess() == true) {
                     continuation.resume(it)
                 } else {
-                    continuation.resumeWithException(Exception(it.getOutput()))
+                    continuation.resumeWithException(
+                        Exception(
+                            "ffprobe failed code=${it.getReturnCode()} output=${it.getOutput()} logs=${it.getAllLogsAsString()} fail=${it.getFailStackTrace()}",
+                        ),
+                    )
                 }
             }
             continuation.invokeOnCancellation { session.cancel() }

@@ -1110,7 +1110,7 @@ class PlayerViewModel(
                         videoUrl = videoUrl,
                     )
                 }
-            } else if (stateData.value.isEpisodeOnline && castProxy) {
+            } else if ((stateData.value.isEpisodeOnline && castProxy) || !stateData.value.isEpisodeOnline) {
                 context.startService(
                     Intent(context, CastProxyServerService::class.java)
                         .putExtra(CastProxyServerService.EXTRA_ADDRESS, address),
