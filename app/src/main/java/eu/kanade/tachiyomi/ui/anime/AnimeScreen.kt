@@ -148,10 +148,10 @@ class AnimeScreen(
             onEpisodeClicked = { episode, /* AY --> */ alt /* <-- AY */ ->
                 // AY -->
                 scope.launch(Dispatchers.IO) {
-                    if (viewModel.isTorrentEnabled() && successState.source.isSourceForTorrents()) {
+                    val extPlayer = viewModel.alwaysUseExternalPlayer != alt
+                    if (extPlayer && viewModel.isTorrentEnabled() && successState.source.isSourceForTorrents()) {
                         TorrentServerService.start(context)
                     }
-                    val extPlayer = viewModel.alwaysUseExternalPlayer != alt
                     openEpisode(context, episode, extPlayer)
                 }
                 // <-- AY

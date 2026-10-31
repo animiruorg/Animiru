@@ -1,5 +1,6 @@
 package animiru.domain.torrent.service
 
+import android.content.Context
 import aniyomi.core.common.torrent.DisabledTorrServerException
 import aniyomi.core.common.torrent.TorrentHelpers
 import aniyomi.core.common.torrent.TorrentServerApi
@@ -7,6 +8,7 @@ import aniyomi.core.common.torrent.model.Torrent
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import eu.kanade.tachiyomi.data.torrent.service.TorrentServerService
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.get
 import eu.kanade.tachiyomi.torrentutils.model.DeadTorrentException
@@ -17,6 +19,7 @@ import java.net.SocketTimeoutException
 @Inject
 @SingleIn(AppScope::class)
 class TorrentUtilsImpl(
+    private val context: Context,
     private val torrentServerApi: TorrentServerApi,
     private val network: NetworkHelper,
 ) {
@@ -26,6 +29,10 @@ class TorrentUtilsImpl(
         title: String,
     ): TorrentInfo {
         val torrent: Torrent = if (url.startsWith("magnet")) {
+            if (!TorrentServerService.isRunning()) {
+                TorrentServerService.start(context)
+                TorrentServerService.wait(context, 5)
+            }
             // Magnet links need to be added to the torrent server to retrieve their
             // information
             try {

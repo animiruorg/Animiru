@@ -2,7 +2,6 @@ package aniyomi.core.common.torrent
 
 import aniyomi.core.common.torrent.model.Torrent
 import dev.zacsweers.metro.Inject
-import xyz.secozzi.torrserver.TorrServer
 import java.io.File
 import java.net.URLEncoder
 
@@ -14,10 +13,6 @@ class TorrentServerUtils(
     private val animeTrackers = preferences.torrServerTrackers.get()
         .split("\n")
         .joinToString(",\n")
-
-    fun setTrackersList() {
-        TorrServer.addTrackers(animeTrackers)
-    }
 
     fun getTorrentPlayLink(torr: Torrent, index: Int): String {
         val file = torr.fileStats?.firstOrNull {

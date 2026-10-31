@@ -23,6 +23,9 @@ data class UpdatesWithRelations(
     val totalSeconds: Int,
     // <-- AY
     val sourceId: Long,
+    // AM -->
+    val dateUpload: Instant?,
+    // <-- AM
     val dateFetch: Instant,
     val coverData: AnimeCover,
 ) {

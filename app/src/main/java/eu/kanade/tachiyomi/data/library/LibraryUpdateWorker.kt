@@ -9,10 +9,13 @@ import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.ForegroundInfo
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import androidx.work.WorkQuery
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
@@ -598,15 +601,14 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
         }
 
         suspend fun startNow(
-            context: Context,
+            workManager: WorkManager,
             category: Category? = null,
             // AM (GROUPING) -->
             group: Int = LibraryGroup.BY_DEFAULT,
             groupExtra: String? = null,
             // <-- AM (GROUPING)
         ): Boolean {
-            val wm = context.workManager
-            if (wm.isRunning(TAG)) {
+            if (workManager.isRunning(TAG)) {
                 // Already running either as a scheduled or manual job
                 return false
             }
@@ -618,6 +620,12 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                 KEY_GROUP_EXTRA to groupExtra,
                 // <-- AM (GROUPING)
             )
+            val request = OneTimeWorkRequestBuilder<LibraryUpdateWorker>()
+                .addTag(TAG)
+                .addTag(WORK_NAME_MANUAL)
+                .setInputData(inputData)
+                .build()
+            workManager.enqueueUniqueWork(WORK_NAME_MANUAL, ExistingWorkPolicy.KEEP, request)
 
             return true
         }

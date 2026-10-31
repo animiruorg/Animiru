@@ -23,6 +23,7 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Long press on go back in anime screen now goes to parent anime ([@Secozzi](https://github.com/Secozzi)) ([#220](https://github.com/animiruorg/Animiru/pull/220))
 - Make the scrollbar in an anime entry less buggy when scrolling and dragging the thumb ([@Secozzi](https://github.com/Secozzi)) ([#229](https://github.com/animiruorg/Animiru/pull/229))
 - Use extension client for downloading ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
+- Torrent server is started only when needed ([@Secozzi](https://github.com/Secozzi)) ([#258](https://github.com/animiruorg/Animiru/pull/258))
 
 ### Removed
 - Removed sync from connections ([@Secozzi](https://github.com/Secozzi)) ([#240](https://github.com/animiruorg/Animiru/pull/240))
@@ -37,6 +38,7 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - Fix download notifications and downloads from local http servers ([@Secozzi](https://github.com/Secozzi)) ([#237](https://github.com/animiruorg/Animiru/pull/237))
 - Fix custom titles not being updated in library ([@Secozzi](https://github.com/Secozzi)) ([#241](https://github.com/animiruorg/Animiru/pull/241))
 - Fix cover not being used as background if background_url is missing ([@Secozzi](https://github.com/Secozzi)) ([#255](https://github.com/animiruorg/Animiru/pull/255))
+- Fix crash when disabling torrent server if server isn't running ([@Secozzi](https://github.com/Secozzi)) ([#258](https://github.com/animiruorg/Animiru/pull/258))
 
 ### Other
 - Merged from mihon ([@Secozzi](https://github.com/Secozzi)) ([#239](https://github.com/animiruorg/Animiru/pull/239), [#245](https://github.com/animiruorg/Animiru/pull/245))

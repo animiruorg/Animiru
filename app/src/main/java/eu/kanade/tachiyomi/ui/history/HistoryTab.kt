@@ -48,6 +48,10 @@ data object HistoryTab : Tab {
 
     private val resumeLastEpisodeSeenEvent = Channel<Unit>()
 
+    // AM -->
+    private val openLastSeenEvent = Channel<Unit>()
+    // <-- AM
+
     override val options: TabOptions
         @Composable
         get() {
@@ -63,6 +67,12 @@ data object HistoryTab : Tab {
     override suspend fun onReselect(navigator: Navigator) {
         resumeLastEpisodeSeenEvent.send(Unit)
     }
+
+    // AM -->
+    override suspend fun onReselectHold(navigator: Navigator) {
+        openLastSeenEvent.send(Unit)
+    }
+    // <-- AM
 
     @Composable
     override fun Content() {
@@ -158,6 +168,16 @@ data object HistoryTab : Tab {
                 openEpisode(context, viewModel.getNextEpisode(), snackbarHostState)
             }
         }
+
+        // AM -->
+        LaunchedEffect(Unit) {
+            openLastSeenEvent.receiveAsFlow().collectLatest {
+                viewModel.getNextEpisode()?.animeId?.let {
+                    navigator.push(AnimeScreen(it))
+                }
+            }
+        }
+        // <-- AM
 
         LaunchedEffect(Unit) {
             // AM (DISCORD_RPC) -->

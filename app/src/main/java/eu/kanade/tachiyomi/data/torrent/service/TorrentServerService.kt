@@ -30,6 +30,8 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import xyz.secozzi.torrserver.TorrServer
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration.Companion.seconds
 import mihon.icons.materialsymbols.R as MaterialSymbolsR
@@ -72,9 +74,17 @@ class TorrentServerService : Service() {
 
     private fun startServer() {
         serviceScope.launch {
-            if (api.echo() == "") {
+            if (api.echo() == "" && isRunning.compareAndSet(false, true)) {
                 if (networkPreferences.verboseLogging.get()) {
                     TorrServer.registerLogCallback()
+                }
+
+                val trackersFile = File(filesDir, "trackers.txt")
+                trackersFile.outputStream().use {
+                    it.channel.truncate(0)
+
+                    val fileContent = torrentPreferences.torrServerTrackers.get()
+                    it.write(fileContent.toByteArray(Charsets.UTF_8))
                 }
 
                 val proxyMode = torrentPreferences.torrServerProxyMode.get()
@@ -87,7 +97,8 @@ class TorrentServerService : Service() {
                 if (port != -1) {
                     api.setPort(port)
                     wait(applicationContext, 10)
-                    torrentServerUtils.setTrackersList()
+                } else {
+                    isRunning.set(false)
                 }
             }
         }
@@ -95,7 +106,9 @@ class TorrentServerService : Service() {
 
     private fun stopServer() {
         serviceScope.launch {
-            TorrServer.stopServer()
+            if (isRunning.compareAndSet(true, false)) {
+                TorrServer.stopServer()
+            }
             applicationContext.cancelNotification(Notifications.ID_TORRENT_SERVER)
             stopSelf()
         }
@@ -151,6 +164,12 @@ class TorrentServerService : Service() {
     companion object {
         const val ACTION_START = "start_torrent_server"
         const val ACTION_STOP = "stop_torrent_server"
+
+        private val isRunning = AtomicBoolean(false)
+
+        fun isRunning(): Boolean {
+            return isRunning.get()
+        }
 
         suspend fun start(context: Context) {
             try {
