@@ -6,6 +6,7 @@ import androidx.core.net.toUri
 import animiru.domain.player.model.VideoTrack
 import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
+import com.arthenica.ffmpegkit.LogCallback
 import dev.zacsweers.metro.Inject
 import eu.kanade.tachiyomi.util.storage.toFFmpegString
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -14,9 +15,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import logcat.LogPriority
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import tachiyomi.core.common.util.system.createFileInCacheDir
+import tachiyomi.core.common.util.system.logcat
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -105,24 +108,17 @@ class VideoInformation(
             videoUrl
         }
 
-        val ffprobeCommand = FFmpegKitConfig.parseArguments(
-            listOf(
-                headerOptions,
-                "-v quiet -print_format json -show_format -show_streams -show_chapters",
-                "-o \"$informationFilePath\"",
-                "\"$videoUrl\"",
-            ).joinToString(" "),
-        )
-
-        suspendCancellableCoroutine { continuation ->
-            val session = FFprobeKit.executeWithArgumentsAsync(ffprobeCommand) {
-                if (it.getReturnCode()?.isValueSuccess() == true) {
-                    continuation.resume(it)
-                } else {
-                    continuation.resumeWithException(Exception(it.getOutput()))
-                }
-            }
-            continuation.invokeOnCancellation { session.cancel() }
+        if (videoUrl.startsWith("content")) {
+            val videoInput = videoUrl.toUri().toFFmpegString(context)
+            executeFFprobe(
+                videoInput = videoInput,
+                infoFilePath = informationFilePath,
+            )
+        } else {
+            executeFFprobe(
+                videoInput = videoUrl,
+                infoFilePath = informationFilePath,
+            )
         }
 
         val resultDto = informationFile.inputStream().use {
@@ -168,6 +164,45 @@ class VideoInformation(
             chapters = chapters,
             duration = resultDto.format.duration?.toDoubleOrNull(),
         )
+    }
+
+    private suspend fun executeFFprobe(headerOptions: String = "", videoInput: String, infoFilePath: String) {
+        val ffprobeCommand = FFmpegKitConfig.parseArguments(
+            listOf(
+                headerOptions,
+                "-v error -print_format json -show_format -show_streams -show_chapters",
+                "-o \"$infoFilePath\"",
+                "-extension_picky 0",
+                "-allowed_extensions ALL",
+                "-tls_verify 0",
+                "\"$videoInput\"",
+            )
+                .filter(String::isNotEmpty)
+                .joinToString(" "),
+        )
+
+        val callback = LogCallback { log ->
+            logcat(LogPriority.ERROR) { log.message }
+        }
+
+        suspendCancellableCoroutine { continuation ->
+            val session = FFprobeKit.executeWithArgumentsAsync(
+                ffprobeCommand,
+                {
+                    if (it.getReturnCode()?.isValueSuccess() == true) {
+                        continuation.resume(it)
+                    } else {
+                        continuation.resumeWithException(
+                            Exception(
+                                "ffprobe failed code=${it.getReturnCode()} output=${it.getOutput()} logs=${it.getAllLogsAsString()} fail=${it.getFailStackTrace()}",
+                            ),
+                        )
+                    }
+                },
+                callback,
+            )
+            continuation.invokeOnCancellation { session.cancel() }
+        }
     }
 
     private fun getContainerMimeType(formatName: String, tracks: List<StreamDto>): String {

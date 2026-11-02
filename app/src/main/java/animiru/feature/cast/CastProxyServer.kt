@@ -40,12 +40,11 @@ class CastProxyServer(
                 override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) = Unit
             }
 
-        val insecureSocketFactory = SSLContext.getInstance("TLSv1.2").apply {
-            val trustAllCerts = arrayOf<TrustManager>(naiveTrustManager)
-            init(null, trustAllCerts, SecureRandom())
-        }.socketFactory
+        val sslContext = SSLContext.getInstance("TLS").apply {
+            init(null, arrayOf<TrustManager>(naiveTrustManager), SecureRandom())
+        }
 
-        sslSocketFactory(insecureSocketFactory, naiveTrustManager)
+        sslSocketFactory(sslContext.socketFactory, naiveTrustManager)
         hostnameVerifier { _, _ -> true }
         return this
     }

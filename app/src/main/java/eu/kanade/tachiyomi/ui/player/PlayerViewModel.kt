@@ -1111,7 +1111,7 @@ class PlayerViewModel(
                         videoUrl = videoUrl,
                     )
                 }
-            } else if (stateData.value.isEpisodeOnline && castProxy) {
+            } else if ((stateData.value.isEpisodeOnline && castProxy) || !stateData.value.isEpisodeOnline) {
                 context.startService(
                     Intent(context, CastProxyServerService::class.java)
                         .putExtra(CastProxyServerService.EXTRA_ADDRESS, address),
@@ -1132,13 +1132,6 @@ class PlayerViewModel(
                 ?: (source as? AnimeHttpSource)?.headers
                 ?: Headers.EMPTY
 
-            val codecInformation = withContext(Dispatchers.IO) {
-                videoInformation.getVideoInformation(
-                    videoUrl = video.videoUrl,
-                    headers = headers,
-                )
-            }
-
             val videoHeaders = video.headers ?: Headers.EMPTY
 
             val video = if (!stateData.value.isEpisodeOnline) {
@@ -1157,6 +1150,13 @@ class PlayerViewModel(
                 )
             } else {
                 video
+            }
+
+            val codecInformation = withContext(Dispatchers.IO) {
+                videoInformation.getVideoInformation(
+                    videoUrl = video.videoUrl,
+                    headers = headers,
+                )
             }
 
             val maxIndex = codecInformation.tracks.maxByOrNull { it.index }?.index?.plus(1) ?: 1
