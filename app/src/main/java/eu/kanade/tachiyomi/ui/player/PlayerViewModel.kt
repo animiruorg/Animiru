@@ -1131,13 +1131,6 @@ class PlayerViewModel(
                 ?: (source as? AnimeHttpSource)?.headers
                 ?: Headers.EMPTY
 
-            val codecInformation = withContext(Dispatchers.IO) {
-                videoInformation.getVideoInformation(
-                    videoUrl = video.videoUrl,
-                    headers = headers,
-                )
-            }
-
             val videoHeaders = video.headers ?: Headers.EMPTY
 
             val video = if (!stateData.value.isEpisodeOnline) {
@@ -1156,6 +1149,13 @@ class PlayerViewModel(
                 )
             } else {
                 video
+            }
+
+            val codecInformation = withContext(Dispatchers.IO) {
+                videoInformation.getVideoInformation(
+                    videoUrl = video.videoUrl,
+                    headers = headers,
+                )
             }
 
             val maxIndex = codecInformation.tracks.maxByOrNull { it.index }?.index?.plus(1) ?: 1
