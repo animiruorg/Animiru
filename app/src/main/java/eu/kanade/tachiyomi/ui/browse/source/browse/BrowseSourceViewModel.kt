@@ -27,6 +27,7 @@ import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.track.interactor.AddTracks
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
+import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.data.cache.BackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.util.removeBackgrounds
@@ -58,6 +59,7 @@ import tachiyomi.domain.category.interactor.SetAnimeCategories
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.episode.interactor.SetAnimeDefaultEpisodeFlags
 import tachiyomi.domain.library.service.LibraryPreferences
+import tachiyomi.domain.season.interactor.SetAnimeDefaultSeasonFlags
 import tachiyomi.domain.source.interactor.GetRemoteAnime
 import tachiyomi.domain.source.service.SourceManager
 import kotlin.time.Clock
@@ -81,6 +83,9 @@ class BrowseSourceViewModel(
     private val getCategories: GetCategories,
     private val setAnimeCategories: SetAnimeCategories,
     private val setAnimeDefaultEpisodeFlags: SetAnimeDefaultEpisodeFlags,
+    // AM -->
+    private val setAnimeDefaultSeasonFlags: SetAnimeDefaultSeasonFlags,
+    // <-- AM
     private val getAnime: GetAnime,
     private val updateAnime: UpdateAnime,
     private val addTracks: AddTracks,
@@ -262,7 +267,12 @@ class BrowseSourceViewModel(
                 // <-- AM
                 AnimeUpdate(anime.id) { favoriteAt = null }
             } else {
-                setAnimeDefaultEpisodeFlags.await(anime)
+                // AM -->
+                when (anime.fetchType) {
+                    FetchType.Seasons -> setAnimeDefaultSeasonFlags.await(anime)
+                    FetchType.Episodes -> setAnimeDefaultEpisodeFlags.await(anime)
+                }
+                // <-- AM
                 addTracks.bindEnhancedTrackers(anime, sourceManager.getOrStub(anime.source))
                 AnimeUpdate(anime.id) { favoriteAt = Clock.System.now() }
             }

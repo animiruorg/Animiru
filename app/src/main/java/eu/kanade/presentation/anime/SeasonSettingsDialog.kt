@@ -65,6 +65,7 @@ fun SeasonSettingsDialog(
 
     // Overflow action
     onSetAsDefault: (applyToExistingAnime: Boolean) -> Unit,
+    onResetToDefault: () -> Unit,
 ) {
     val context = LocalContext.current
     var showSetAsDefaultDialog by rememberSaveable { mutableStateOf(false) }
@@ -90,6 +91,13 @@ fun SeasonSettingsDialog(
                 text = { Text(stringResource(MR.strings.set_chapter_settings_as_default)) },
                 onClick = {
                     showSetAsDefaultDialog = true
+                    closeMenu()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(MR.strings.action_reset)) },
+                onClick = {
+                    onResetToDefault()
                     closeMenu()
                 },
             )

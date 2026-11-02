@@ -373,6 +373,7 @@ class AnimeScreen(
                 onOverlayContinueChanged = viewModel::setSeasonContinueOverlay,
                 onDisplayModeChanged = viewModel::setSeasonDisplayMode,
                 onSetAsDefault = viewModel::setSeasonCurrentSettingsAsDefault,
+                onResetToDefault = viewModel::resetToDefaultSettings,
             )
             // <-- AY
             AnimeViewModel.Dialog.TrackSheet -> {

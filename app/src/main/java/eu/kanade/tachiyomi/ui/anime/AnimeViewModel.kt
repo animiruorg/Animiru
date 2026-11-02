@@ -60,10 +60,8 @@ import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.model.Download
-import eu.kanade.tachiyomi.data.torrent.service.TorrentServerService
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
-import eu.kanade.tachiyomi.source.isSourceForTorrents
 import eu.kanade.tachiyomi.ui.anime.track.TrackItem
 import eu.kanade.tachiyomi.util.AniChartApi
 import eu.kanade.tachiyomi.util.episode.getNextUnseen
@@ -288,17 +286,22 @@ class AnimeViewModel(
 
     private var hasPromptedToAddBefore = false
 
-    private val defaultEpisodeFlagsJob = viewModelScope.launch {
+    private val defaultFlagsJob = viewModelScope.launch {
         val anime = getAnimeAndEpisodesAndSeasons.awaitAnime(animeId)
         if (!anime.favorite) {
-            setAnimeDefaultEpisodeFlags.await(anime)
+            // AM -->
+            when (anime.fetchType) {
+                FetchType.Seasons -> setAnimeDefaultSeasonFlags.await(anime)
+                FetchType.Episodes -> setAnimeDefaultEpisodeFlags.await(anime)
+            }
+            // <-- AM
         }
     }
 
     private val animeAndEpisodesAndSeasons = combine(
         flow {
             // So an entry outside the library isn't shown with its old episode settings first
-            defaultEpisodeFlagsJob.join()
+            defaultFlagsJob.join()
             emitAll(getAnimeAndEpisodesAndSeasons.subscribe(animeId, applyScanlatorFilter = true))
         }
             .distinctUntilChanged(),
@@ -1686,7 +1689,12 @@ class AnimeViewModel(
     fun resetToDefaultSettings() {
         val anime = successState?.anime ?: return
         viewModelScope.launch {
-            setAnimeDefaultEpisodeFlags.await(anime)
+            // AM -->
+            when (anime.fetchType) {
+                FetchType.Seasons -> setAnimeDefaultSeasonFlags.await(anime)
+                FetchType.Episodes -> setAnimeDefaultEpisodeFlags.await(anime)
+            }
+            // <-- AM
         }
     }
 
