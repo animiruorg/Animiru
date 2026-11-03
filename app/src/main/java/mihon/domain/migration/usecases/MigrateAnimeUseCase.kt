@@ -17,6 +17,9 @@ import kotlinx.coroutines.launch
 import mihon.core.metro.AppCoroutineScope
 import mihon.domain.migration.models.MigrationFlag
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
+import mihon.domain.source.interactor.models.RemoteAnimeEpisodeUpdate
+import mihon.domain.source.interactor.models.RemoteAnimeSeasonUpdate
+import tachiyomi.domain.anime.interactor.GetAnimeWithEpisodesAndSeasons
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.anime.model.AnimeUpdate
 import tachiyomi.domain.category.interactor.GetCategories
@@ -27,6 +30,7 @@ import tachiyomi.domain.episode.model.EpisodeUpdate
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
 import tachiyomi.domain.track.interactor.UpsertTrack
+import kotlin.math.abs
 import kotlin.time.Clock
 
 @Inject
@@ -38,6 +42,9 @@ class MigrateAnimeUseCase(
     private val downloadManager: DownloadManager,
     private val updateAnime: UpdateAnime,
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
+    // AM -->
+    private val getAnimeWithEpisodesAndSeasons: GetAnimeWithEpisodesAndSeasons,
+    // <-- AM
     private val updateEpisode: UpdateEpisode,
     private val getCategories: GetCategories,
     private val setAnimeCategories: SetAnimeCategories,
@@ -51,20 +58,22 @@ class MigrateAnimeUseCase(
 ) {
     private val enhancedServices by lazy { trackerManager.trackers.filterIsInstance<EnhancedTracker>() }
 
-    suspend operator fun invoke(current: Anime, target: Anime, replace: Boolean) {
+    suspend operator fun invoke(current: Anime, target: Anime, replace: Boolean, isSeason: Boolean = false) {
         val targetSource = sourceManager.get(target.source) ?: return
         val currentSource = sourceManager.get(current.source)
         val flags = sourcePreferences.migrationFlags.get()
 
         try {
-            when (target.fetchType) {
+            val fetchResult = when (target.fetchType) {
                 // AY -->
                 FetchType.Seasons -> {
                     updateAnimeFromRemote.awaitSeasonsUpdate(target, fetchSeasons = true).getOrThrow()
+                        .let { FetchResult.Seasons(it) }
                 }
                 // <-- AY
                 FetchType.Episodes -> {
                     updateAnimeFromRemote.awaitEpisodesUpdate(target, fetchEpisodes = true).getOrThrow()
+                        .let { FetchResult.Episodes(it) }
                 }
             }
 
@@ -91,6 +100,8 @@ class MigrateAnimeUseCase(
                                 bookmark = prevEpisode.bookmark
                                 // AM -->
                                 fillermark = prevEpisode.fillermark
+                                totalSeconds = prevEpisode.totalSeconds
+                                lastSecondSeen = prevEpisode.lastSecondSeen
                                 // <-- AM
                             }
                             if (maxEpisodeSeen != null && animeEpisode.episodeNumber <= maxEpisodeSeen) {
@@ -101,6 +112,19 @@ class MigrateAnimeUseCase(
 
                 updateEpisode.awaitAll(episodeUpdates)
             }
+
+            // AM -->
+            // Update seasons
+            if (MigrationFlag.SEASON in flags && target.fetchType == FetchType.Seasons) {
+                val currentSeasons = getAnimeWithEpisodesAndSeasons.awaitSeasons(current.id)
+                val targetSeasons = (fetchResult as? FetchResult.Seasons)?.update?.newSeasons.orEmpty()
+
+                currentSeasons.forEach { c ->
+                    val match = targetSeasons.find { t -> abs(c.anime.seasonNumber - t.seasonNumber) < 0.001 }
+                    match?.let { invoke(c.anime, it, replace, isSeason = true) }
+                }
+            }
+            // <-- AM
 
             // Update categories
             if (MigrationFlag.CATEGORY in flags) {
@@ -154,8 +178,19 @@ class MigrateAnimeUseCase(
             }
                 .takeIf { replace }
             val targetAnimeUpdate = AnimeUpdate(target.id) {
-                favoriteAt = current.favoriteAt?.takeIf { replace } ?: Clock.System.now()
-                episodeFlags = current.episodeFlags
+                // AM -->
+                if (isSeason) {
+                    current.favoriteAt?.takeIf { replace }?.let {
+                        favoriteAt = it
+                    }
+                } else {
+                    favoriteAt = current.favoriteAt?.takeIf { replace } ?: Clock.System.now()
+                }
+                when (current.fetchType) {
+                    FetchType.Seasons -> seasonFlags = current.seasonFlags
+                    FetchType.Episodes -> episodeFlags = current.episodeFlags
+                }
+                // <-- AM
                 viewerFlags = current.viewerFlags
                 if (MigrationFlag.NOTES in flags) notes = current.notes
             }
@@ -166,5 +201,10 @@ class MigrateAnimeUseCase(
                 throw e
             }
         }
+    }
+
+    private sealed interface FetchResult {
+        data class Seasons(val update: RemoteAnimeSeasonUpdate) : FetchResult
+        data class Episodes(val update: RemoteAnimeEpisodeUpdate) : FetchResult
     }
 }

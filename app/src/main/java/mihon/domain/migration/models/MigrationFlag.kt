@@ -2,6 +2,11 @@ package mihon.domain.migration.models
 
 enum class MigrationFlag(val flag: Int) {
     EPISODE(0b00001),
+
+    // AM -->
+    SEASON(0b10000000),
+
+    // <-- AM
     CATEGORY(0b00010),
 
     // 0b00100 was used for anime trackers

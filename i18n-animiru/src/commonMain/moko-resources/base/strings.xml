@@ -5,6 +5,7 @@
     <string name="skipped_reason_not_caught_up_anime">Skipped because there are unseen episodes</string>
     <string name="skipped_reason_not_started_anime">Skipped because no episodes are seen</string>
     <string name="action_select">Select</string>
+    <string name="seasons">Seasons</string>
 
     <!-- Changed from aniyomi/mihon -->
     <string name="am.non_library_settings">All seen entries</string>

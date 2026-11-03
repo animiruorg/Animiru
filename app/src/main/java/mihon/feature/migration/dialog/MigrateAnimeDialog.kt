@@ -213,7 +213,10 @@ class MigrateDialogViewModel(
         val applicableFlags = buildList {
             MigrationFlag.entries.forEach {
                 val applicable = when (it) {
-                    MigrationFlag.EPISODE -> true
+                    // AM -->
+                    MigrationFlag.EPISODE -> current.fetchType == FetchType.Episodes
+                    MigrationFlag.SEASON -> current.fetchType == FetchType.Seasons
+                    // <-- AM
                     MigrationFlag.CATEGORY -> true
                     MigrationFlag.CUSTOM_COVER -> current.hasCustomCover(coverCache)
                     // AY -->
