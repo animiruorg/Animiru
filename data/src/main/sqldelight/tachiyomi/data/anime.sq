@@ -311,7 +311,8 @@ VALUES (
     :remoteGenre, :remoteStatus, :remoteCover, :remoteUpdateStrategy, :remoteMemo,
     :remoteFetchType, :remoteSeasonNumber, :remoteSeasonSourceOrder, :remoteBackground,
     :userFavoriteAt, :userNotes, :userPlayerFlags, :userEpisodeFlags, :userSeasonFlags,
-    NULL, NULL, NULL, NULL, NULL, NULL, :stateEpisodeLastUpdate, :stateEpisodeNextUpdate,
+    :userCustomArtist, :userCustomAuthor, :userCustomDescription, :userCustomGenre,
+    :userCustomTitle, :userCustomStatus, :stateEpisodeLastUpdate, :stateEpisodeNextUpdate,
     :stateEpisodeFetchInterval, :stateCoverLastModified, :stateInitialized, :stateParentId,
     :stateBackgroundLastModified
 )
@@ -360,6 +361,12 @@ UPDATE anime SET
     user_episode_flags = coalesce(:userEpisodeFlags, user_episode_flags),
     -- AM -->
     user_season_flags = coalesce(:userSeasonFlags, user_season_flags),
+    user_custom_artist = coalesce(:userCustomArtist, user_custom_artist),
+    user_custom_author = coalesce(:userCustomAuthor, user_custom_author),
+    user_custom_description = coalesce(:userCustomDescription, user_custom_description),
+    user_custom_genre = coalesce(:userCustomGenre, user_custom_genre),
+    user_custom_title = coalesce(:userCustomTitle, user_custom_title),
+    user_custom_status = coalesce(:userCustomStatus, user_custom_status),
     -- <-- AM
     state_episode_last_update = coalesce(:stateEpisodeLastUpdate, state_episode_last_update),
     state_cover_last_modified = coalesce(:stateCoverLastModified, state_cover_last_modified),

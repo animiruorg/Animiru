@@ -112,6 +112,14 @@ data class BackupAnime(
             seasonNumber = this@BackupAnime.seasonNumber,
             seasonSourceOrder = this@BackupAnime.seasonSourceOrder,
             // <-- AY
+            // AM -->
+            customArtist = this@BackupAnime.customArtist,
+            customAuthor = this@BackupAnime.customAuthor,
+            customDescription = this@BackupAnime.customDescription,
+            customGenre = this@BackupAnime.customGenre,
+            customStatus = this@BackupAnime.customStatus.toLong(),
+            customTitle = this@BackupAnime.customTitle,
+            // <-- AM
             memo = this@BackupAnime.memo.toJsonObject(),
             nextUpdate = this@BackupAnime.nextUpdate.toInstantOrNull(),
         )
