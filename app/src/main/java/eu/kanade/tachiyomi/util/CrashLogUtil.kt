@@ -61,12 +61,11 @@ class CrashLogUtil(
             Device model: ${Build.MODEL}
             WebView: ${WebViewUtil.getVersion(context)}
             Current time: ${now.toLocalDateTime(tz)}${tz.offsetAt(now)}
-            MPV version: 6764488
-            Libplacebo version: v7.349.0
-            FFmpeg version: n7.1
+            MPV version: v0.41.0-dev-g77e8f9cfa
+            Libplacebo version: v7.387.0
+            FFmpeg version: n9.0.2
         """.trimIndent()
-        // TODO: Use this again (from aniyomi-mpv-lib 1.17.n onwards):
-
+        // TODO: Fix versions
         //    MPV version: ${Utils.VERSIONS.mpv}
         //    Libplacebo version: ${Utils.VERSIONS.libPlacebo}
         //    FFmpeg version: ${Utils.VERSIONS.ffmpeg}

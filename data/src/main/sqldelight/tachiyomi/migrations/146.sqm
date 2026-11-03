@@ -11,8 +11,8 @@ DROP VIEW episodestatsView;
 DROP VIEW historystatsView;
 -- <-- AM
 
-DROP TRIGGER update_last_favorited_at_animes;
-DROP INDEX library_favorite_index;
+DROP TRIGGER IF EXISTS update_last_favorited_at_animes;
+DROP INDEX IF EXISTS library_favorite_index;
 
 ALTER TABLE animes ADD COLUMN favorite_at INTEGER;
 
