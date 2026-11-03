@@ -11,6 +11,8 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - `Other` - for technical stuff.
 
 ## [Unreleased]
+
+## [v0.20.1.0] - 2026-11-03
 ### Added
 - Added option to change size of episode thumbnails ([@Secozzi](https://github.com/Secozzi)) ([#231](https://github.com/animiruorg/Animiru/pull/231))
 - Added new downloader ([@Secozzi](https://github.com/Secozzi)) ([#236](https://github.com/animiruorg/Animiru/pull/236))
@@ -237,7 +239,8 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ### Fixed
 - Fix crash when opening a new extension's settings ([@Quickdev](https://github.com/quickdesh)) ([`d90f059`](https://github.com/animiruorg/Animiru/commit/d90f059))
 
-[unreleased]: https://github.com/animiruorg/Animiru/compare/v0.20.0.1...animiru-new-main
+[unreleased]: https://github.com/animiruorg/Animiru/compare/v0.20.1.0...animiru-new-main
+[v0.20.1.0]: https://github.com/animiruorg/Animiru/compare/v0.20.0.1...v0.20.1.0
 [v0.20.0.1]: https://github.com/animiruorg/Animiru/compare/v0.20.0.0...v0.20.0.1
 [v0.20.0.0]: https://github.com/animiruorg/Animiru/compare/v0.19.8.1...v0.20.0.0
 [v0.19.8.1]: https://github.com/animiruorg/Animiru/compare/v0.19.8.0...v0.19.8.1
