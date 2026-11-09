@@ -48,6 +48,9 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mihon.app.di.appGraph
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Delete
+import mihon.icons.materialsymbols.rounded.Refresh
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
@@ -188,11 +191,13 @@ class DiscordLoginScreen : Screen() {
                             actions = {
                                 AppBarActions(
                                     persistentListOf(
-                                        AppBar.OverflowAction(
+                                        AppBar.OverflowAction.Item(
+                                            icon = MaterialSymbols.Rounded.Refresh,
                                             title = stringResource(MR.strings.action_webview_refresh),
                                             onClick = { webViewNavigator.reload() },
                                         ),
-                                        AppBar.OverflowAction(
+                                        AppBar.OverflowAction.Item(
+                                            icon = MaterialSymbols.Rounded.Delete,
                                             title = stringResource(MR.strings.pref_clear_cookies),
                                             onClick = { clearCookies(currentUrl, context) },
                                         ),

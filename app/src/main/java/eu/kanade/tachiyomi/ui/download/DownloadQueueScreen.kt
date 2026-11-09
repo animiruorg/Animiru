@@ -53,6 +53,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.Sort
+import mihon.icons.materialsymbols.rounded.Close
 import mihon.icons.materialsymbols.roundedfilled.Pause
 import mihon.icons.materialsymbols.roundedfilled.PlayArrow
 import tachiyomi.i18n.MR
@@ -190,7 +191,10 @@ object DownloadQueueScreen : Screen() {
                                         icon = MaterialSymbols.AutoMirroredRounded.Sort,
                                         onClick = { sortExpanded = true },
                                     ),
-                                    AppBar.OverflowAction(
+                                    AppBar.OverflowAction.Item(
+                                        // AM -->
+                                        icon = MaterialSymbols.Rounded.Close,
+                                        // <-- AM
                                         title = stringResource(MR.strings.action_cancel_all),
                                         onClick = { viewModel.clearQueue() },
                                     ),

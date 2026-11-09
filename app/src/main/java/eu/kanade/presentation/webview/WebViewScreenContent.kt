@@ -54,7 +54,11 @@ import logcat.LogPriority
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.ArrowBack
 import mihon.icons.materialsymbols.automirroredrounded.ArrowForward
+import mihon.icons.materialsymbols.automirroredrounded.OpenInNew
 import mihon.icons.materialsymbols.rounded.Close
+import mihon.icons.materialsymbols.rounded.Delete
+import mihon.icons.materialsymbols.rounded.Refresh
+import mihon.icons.materialsymbols.rounded.Share
 import mihon.icons.materialsymbols.rounded.TabClose
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
@@ -276,19 +280,31 @@ fun WebViewScreenContent(
                                         },
                                         enabled = navigator.canGoForward,
                                     ),
-                                    AppBar.OverflowAction(
+                                    AppBar.OverflowAction.Item(
+                                        // AM -->
+                                        icon = MaterialSymbols.Rounded.Refresh,
+                                        // <-- AM
                                         title = stringResource(MR.strings.action_webview_refresh),
                                         onClick = { navigator.reload() },
                                     ),
-                                    AppBar.OverflowAction(
+                                    AppBar.OverflowAction.Item(
+                                        // AM -->
+                                        icon = MaterialSymbols.Rounded.Share,
+                                        // <-- AM
                                         title = stringResource(MR.strings.action_share),
                                         onClick = { onShare(currentUrl) },
                                     ),
-                                    AppBar.OverflowAction(
+                                    AppBar.OverflowAction.Item(
+                                        // AM -->
+                                        icon = MaterialSymbols.AutoMirroredRounded.OpenInNew,
+                                        // <-- AM
                                         title = stringResource(MR.strings.action_open_in_browser),
                                         onClick = { onOpenInBrowser(currentUrl) },
                                     ),
-                                    AppBar.OverflowAction(
+                                    AppBar.OverflowAction.Item(
+                                        // AM -->
+                                        icon = MaterialSymbols.Rounded.Delete,
+                                        // <-- AM
                                         title = stringResource(MR.strings.pref_clear_cookies),
                                         onClick = { onClearCookies(currentUrl) },
                                     ),

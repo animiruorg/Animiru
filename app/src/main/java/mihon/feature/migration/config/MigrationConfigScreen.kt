@@ -57,8 +57,10 @@ import kotlinx.coroutines.launch
 import mihon.feature.migration.list.MigrationListScreen
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.automirroredrounded.ArrowForward
+import mihon.icons.materialsymbols.rounded.CheckBox
 import mihon.icons.materialsymbols.rounded.Deselect
 import mihon.icons.materialsymbols.rounded.DragHandle
+import mihon.icons.materialsymbols.rounded.Keep
 import mihon.icons.materialsymbols.rounded.SelectAll
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
@@ -134,11 +136,17 @@ class MigrationConfigScreen(private val animeIds: Collection<Long>) : Screen() {
                                     icon = MaterialSymbols.Rounded.Deselect,
                                     onClick = { viewModel.toggleSelection(Model.SelectionConfig.None) },
                                 ),
-                                AppBar.OverflowAction(
+                                AppBar.OverflowAction.Item(
+                                    // AM -->
+                                    icon = MaterialSymbols.Rounded.CheckBox,
+                                    // <-- AM
                                     title = stringResource(MR.strings.migrationConfigScreen_selectEnabledLabel),
                                     onClick = { viewModel.toggleSelection(Model.SelectionConfig.Enabled) },
                                 ),
-                                AppBar.OverflowAction(
+                                AppBar.OverflowAction.Item(
+                                    // AM -->
+                                    icon = MaterialSymbols.Rounded.Keep,
+                                    // <-- AM
                                     title = stringResource(MR.strings.migrationConfigScreen_selectPinnedLabel),
                                     onClick = { viewModel.toggleSelection(Model.SelectionConfig.Pinned) },
                                 ),

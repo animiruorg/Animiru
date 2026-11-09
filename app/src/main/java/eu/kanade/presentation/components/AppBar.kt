@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -16,6 +18,7 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -291,16 +294,33 @@ fun AppBarActions(
 
         DropdownMenu(
             expanded = showMenu,
+            // AM -->
+            shape = RoundedCornerShape(14.dp),
+            // <-- AM
             onDismissRequest = { showMenu = false },
         ) {
             overflowActions.map {
-                DropdownMenuItem(
-                    onClick = {
-                        it.onClick()
-                        showMenu = false
-                    },
-                    text = { Text(it.title, fontWeight = FontWeight.Normal) },
-                )
+                when (it) {
+                    // AM -->
+                    AppBar.OverflowAction.Separator -> {
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
+                    }
+                    // <-- AM
+                    is AppBar.OverflowAction.Item -> {
+                        DropdownMenuItem(
+                            leadingIcon = if (it.icon != null) {
+                                { Icon(it.icon, null) }
+                            } else {
+                                null
+                            },
+                            onClick = {
+                                it.onClick()
+                                showMenu = false
+                            },
+                            text = { Text(it.title, fontWeight = FontWeight.Normal) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -488,8 +508,16 @@ sealed interface AppBar {
         val enabled: Boolean = true,
     ) : AppBarAction
 
-    data class OverflowAction(
-        val title: String,
-        val onClick: () -> Unit,
-    ) : AppBarAction
+    // AM -->
+    sealed interface OverflowAction : AppBarAction {
+        data class Item(
+            val icon: ImageVector? = null,
+            val title: String,
+            val onClick: () -> Unit,
+        ) : OverflowAction
+
+        data object Separator : OverflowAction
+    }
+
+    // <-- AM
 }
