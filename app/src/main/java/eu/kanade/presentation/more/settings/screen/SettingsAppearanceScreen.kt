@@ -12,6 +12,7 @@ import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.RelationDisplayMode
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.domain.ui.model.TimeFormat
@@ -46,6 +47,9 @@ object SettingsAppearanceScreen : SearchableSettings {
         return listOf(
             getThemeGroup(uiPreferences = uiPreferences),
             getDisplayGroup(uiPreferences = uiPreferences),
+            // AM -->
+            getEntryGroup(uiPreferences = uiPreferences),
+            // <-- AM
         )
     }
 
@@ -163,13 +167,32 @@ object SettingsAppearanceScreen : SearchableSettings {
                         formattedDateNow,
                     ),
                 ),
+            ),
+        )
+    }
+
+    // AM -->
+    @Composable
+    private fun getEntryGroup(
+        uiPreferences: UiPreferences,
+    ): Preference.PreferenceGroup {
+        return Preference.PreferenceGroup(
+            title = stringResource(AMMR.strings.appearance_entry_header),
+            preferenceItems = listOf(
                 Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.imagesInDescription,
                     title = stringResource(AMMR.strings.am_pref_display_images_description),
                 ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.relationDisplayMode,
+                    entries = RelationDisplayMode.entries
+                        .associateWith { stringResource(it.titleRes) },
+                    title = stringResource(AMMR.strings.apperance_relation_header),
+                ),
             ),
         )
     }
+    // <-- AM
 }
 
 private val DateFormats = listOf(

@@ -16,7 +16,10 @@ import eu.kanade.presentation.components.SearchToolbar
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.ConfigurableAnimeSource
 import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.Help
 import mihon.icons.materialsymbols.automirroredroundedfilled.ViewList
+import mihon.icons.materialsymbols.rounded.Public
+import mihon.icons.materialsymbols.rounded.Settings
 import mihon.icons.materialsymbols.roundedfilled.ViewCompact
 import mihon.icons.materialsymbols.roundedfilled.ViewModule
 import tachiyomi.domain.library.model.LibraryDisplayMode
@@ -70,14 +73,20 @@ fun BrowseSourceToolbar(
                     )
                     if (isLocalSource) {
                         add(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.AutoMirroredRounded.Help,
+                                // <-- AM
                                 title = stringResource(MR.strings.label_help),
                                 onClick = onHelpClick,
                             ),
                         )
                     } else {
                         add(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.Rounded.Public,
+                                // <-- AM
                                 title = stringResource(MR.strings.action_open_in_web_view),
                                 onClick = onWebViewClick,
                             ),
@@ -85,7 +94,10 @@ fun BrowseSourceToolbar(
                     }
                     if (isConfigurableSource) {
                         add(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.Rounded.Settings,
+                                // <-- AM
                                 title = stringResource(MR.strings.action_settings),
                                 onClick = onSettingsClick,
                             ),

@@ -48,6 +48,7 @@ import eu.kanade.domain.track.interactor.RefreshTracks
 import eu.kanade.domain.track.interactor.TrackEpisode
 import eu.kanade.domain.track.model.AutoTrackState
 import eu.kanade.domain.track.service.TrackPreferences
+import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.anime.DownloadAction
 import eu.kanade.presentation.anime.components.EpisodeDownloadAction
 import eu.kanade.presentation.util.formattedMessage
@@ -160,6 +161,7 @@ class AnimeViewModel(
     internal val playerPreferences: PlayerPreferences,
     internal val gesturePreferences: GesturePreferences,
     internal val setAnimeViewerFlags: SetAnimeViewerFlags,
+    private val uiPreferences: UiPreferences,
     // <-- AY
     private val trackerManager: TrackerManager,
     private val trackEpisode: TrackEpisode,
@@ -248,6 +250,7 @@ class AnimeViewModel(
     val showNextEpisodeAirTime = trackPreferences.showNextEpisodeAiringTime.get()
     val alwaysUseExternalPlayer = playerPreferences.alwaysUseExternalPlayer.get()
     val useExternalDownloader = downloadPreferences.useExternalDownloader.get()
+    val relationDisplayMode = uiPreferences.relationDisplayMode.get()
 
     val relatedAnimeDisplayMode = sourcePreferences.sourceDisplayMode.get()
 

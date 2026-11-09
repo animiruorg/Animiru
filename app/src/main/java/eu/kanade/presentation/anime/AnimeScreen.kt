@@ -54,6 +54,7 @@ import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastMap
 import aniyomi.domain.anime.model.SeasonAnime
 import aniyomi.domain.anime.model.SeasonDisplayMode
+import eu.kanade.domain.ui.model.RelationDisplayMode
 import eu.kanade.presentation.anime.components.AnimeActionRow
 import eu.kanade.presentation.anime.components.AnimeBottomActionMenu
 import eu.kanade.presentation.anime.components.AnimeEpisodeListItem
@@ -151,6 +152,7 @@ fun AnimeScreen(
     // AY -->
     onSettingsClicked: (() -> Unit)?,
     onSkipIntroClicked: (() -> Unit)?,
+    onMoreRelatedClicked: (() -> Unit)?,
     // <-- AY
     // AM (CUSTOM_INFORMATION) -->
     onEditInfoClicked: () -> Unit,
@@ -183,6 +185,7 @@ fun AnimeScreen(
     onRelatedAnimeClicked: (Anime) -> Unit,
     onRelatedAnimeLongClicked: (Anime) -> Unit,
     relatedAnimeDisplayMode: LibraryDisplayMode,
+    relationDisplayMode: RelationDisplayMode,
     // <-- AY
 ) {
     val context = LocalContext.current
@@ -232,6 +235,7 @@ fun AnimeScreen(
             // AY -->
             onSettingsClicked = onSettingsClicked,
             onSkipIntroClicked = onSkipIntroClicked,
+            onMoreRelatedClicked = onMoreRelatedClicked,
             // <-- AY
             // AM (CUSTOM_INFORMATION) -->
             onEditInfoClicked = onEditInfoClicked,
@@ -254,6 +258,7 @@ fun AnimeScreen(
             onRelatedAnimeClicked = onRelatedAnimeClicked,
             onRelatedAnimeLongClicked = onRelatedAnimeLongClicked,
             relatedAnimeDisplayMode = relatedAnimeDisplayMode,
+            relationDisplayMode = relationDisplayMode,
             // <-- AY
         )
     } else {
@@ -296,6 +301,7 @@ fun AnimeScreen(
             // AY -->
             onSettingsClicked = onSettingsClicked,
             onSkipIntroClicked = onSkipIntroClicked,
+            onMoreRelatedClicked = onMoreRelatedClicked,
             // <-- AY
             // AM (CUSTOM_INFORMATION) -->
             onEditInfoClicked = onEditInfoClicked,
@@ -318,6 +324,7 @@ fun AnimeScreen(
             onRelatedAnimeClicked = onRelatedAnimeClicked,
             onRelatedAnimeLongClicked = onRelatedAnimeLongClicked,
             relatedAnimeDisplayMode = relatedAnimeDisplayMode,
+            relationDisplayMode = relationDisplayMode,
             // <-- AY
         )
     }
@@ -374,6 +381,7 @@ private fun AnimeScreenSmallImpl(
     // AY -->
     onSettingsClicked: (() -> Unit)?,
     onSkipIntroClicked: (() -> Unit)?,
+    onMoreRelatedClicked: (() -> Unit)?,
     // <-- AY
     // AM (CUSTOM_INFORMATION) -->
     onEditInfoClicked: () -> Unit,
@@ -406,6 +414,7 @@ private fun AnimeScreenSmallImpl(
     onRelatedAnimeClicked: (Anime) -> Unit,
     onRelatedAnimeLongClicked: (Anime) -> Unit,
     relatedAnimeDisplayMode: LibraryDisplayMode,
+    relationDisplayMode: RelationDisplayMode,
     // <-- AY
 ) {
     // AY -->
@@ -467,6 +476,7 @@ private fun AnimeScreenSmallImpl(
                     // AY -->
                     onClickSettings = onSettingsClicked,
                     onClickSkipIntro = onSkipIntroClicked,
+                    onMoreRelatedClicked = onMoreRelatedClicked,
                     // <-- AY
                     // AM (CUSTOM_INFORMATION) -->
                     onClickEditInfo = onEditInfoClicked.takeIf { state.anime.favorite },
@@ -612,6 +622,7 @@ private fun AnimeScreenSmallImpl(
                             onRelatedClick = onRelatedAnimeClicked,
                             onRelatedLongClick = onRelatedAnimeLongClicked,
                             relatedDisplayMode = relatedAnimeDisplayMode,
+                            relationDisplayMode = relationDisplayMode,
                             // <-- AY
                             // AY -->
                             modifier = Modifier.ignorePadding(offsetGridPaddingPx),
@@ -767,6 +778,7 @@ fun AnimeScreenLargeImpl(
     // AY -->
     onSettingsClicked: (() -> Unit)?,
     onSkipIntroClicked: (() -> Unit)?,
+    onMoreRelatedClicked: (() -> Unit)?,
     // <-- AY
     // AM (CUSTOM_INFORMATION) -->
     onEditInfoClicked: () -> Unit,
@@ -799,6 +811,7 @@ fun AnimeScreenLargeImpl(
     onRelatedAnimeClicked: (Anime) -> Unit,
     onRelatedAnimeLongClicked: (Anime) -> Unit,
     relatedAnimeDisplayMode: LibraryDisplayMode,
+    relationDisplayMode: RelationDisplayMode,
     // <-- AY
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -850,6 +863,7 @@ fun AnimeScreenLargeImpl(
                     // AY -->
                     onClickSettings = onSettingsClicked,
                     onClickSkipIntro = onSkipIntroClicked,
+                    onMoreRelatedClicked = onMoreRelatedClicked,
                     // <-- AY
                     // AM (CUSTOM_INFORMATION) -->
                     onClickEditInfo = onEditInfoClicked.takeIf { state.anime.favorite },
@@ -965,6 +979,7 @@ fun AnimeScreenLargeImpl(
                                 onRelatedClick = onRelatedAnimeClicked,
                                 onRelatedLongClick = onRelatedAnimeLongClicked,
                                 relatedDisplayMode = relatedAnimeDisplayMode,
+                                relationDisplayMode = relationDisplayMode,
                                 // <-- AY
                             )
                         }

@@ -55,7 +55,10 @@ import eu.kanade.tachiyomi.ui.browse.extension.details.ExtensionDetailsViewModel
 import eu.kanade.tachiyomi.util.system.LocaleHelper
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.Close
+import mihon.icons.materialsymbols.rounded.Deselect
 import mihon.icons.materialsymbols.rounded.Eyeglasses2
+import mihon.icons.materialsymbols.rounded.SelectAll
 import mihon.icons.materialsymbols.rounded.Settings
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
@@ -86,15 +89,24 @@ fun ExtensionDetailsScreen(
                 actions = {
                     AppBarActions(
                         actions = listOf(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.Rounded.SelectAll,
+                                // <-- AM
                                 title = stringResource(MR.strings.action_enable_all),
                                 onClick = onClickEnableAll,
                             ),
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.Rounded.Deselect,
+                                // <-- AM
                                 title = stringResource(MR.strings.action_disable_all),
                                 onClick = onClickDisableAll,
                             ),
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.Rounded.Close,
+                                // <-- AM
                                 title = stringResource(MR.strings.pref_clear_cookies),
                                 onClick = onClickClearCookies,
                             ),

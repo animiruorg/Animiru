@@ -17,10 +17,19 @@ import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.components.AppBarTitle
 import eu.kanade.presentation.components.DownloadDropdownMenu
 import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.automirroredrounded.Label
 import mihon.icons.materialsymbols.rounded.Download
+import mihon.icons.materialsymbols.rounded.EditDocument
 import mihon.icons.materialsymbols.rounded.FilterList
 import mihon.icons.materialsymbols.rounded.FlipToBack
+import mihon.icons.materialsymbols.rounded.Forward10
+import mihon.icons.materialsymbols.rounded.NetworkNode
+import mihon.icons.materialsymbols.rounded.Notes
+import mihon.icons.materialsymbols.rounded.Refresh
 import mihon.icons.materialsymbols.rounded.SelectAll
+import mihon.icons.materialsymbols.rounded.Settings
+import mihon.icons.materialsymbols.rounded.Share
+import mihon.icons.materialsymbols.rounded.SwapCalls
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -41,6 +50,7 @@ fun AnimeToolbar(
     // AY -->
     onClickSettings: (() -> Unit)?,
     onClickSkipIntro: (() -> Unit)?,
+    onMoreRelatedClicked: (() -> Unit)?,
     // <-- AY
     onClickEditNotes: () -> Unit,
     // AM (CUSTOM_INFORMATION) -->
@@ -125,33 +135,21 @@ fun AnimeToolbar(
                             onClick = onClickFilter,
                         ),
                     )
-                    // AY -->
-                    if (onClickSkipIntro != null) {
-                        add(
-                            AppBar.OverflowAction(
-                                title = stringResource(AYMR.strings.action_change_intro_length),
-                                onClick = onClickSkipIntro,
-                            ),
-                        )
-                    }
-                    // <-- AY
                     add(
-                        AppBar.OverflowAction(
+                        AppBar.OverflowAction.Item(
+                            // AM -->
+                            icon = MaterialSymbols.Rounded.Refresh,
+                            // <-- AM
                             title = stringResource(MR.strings.action_webview_refresh),
                             onClick = onClickRefresh,
                         ),
                     )
-                    if (onClickEditCategory != null) {
-                        add(
-                            AppBar.OverflowAction(
-                                title = stringResource(MR.strings.action_edit_categories),
-                                onClick = onClickEditCategory,
-                            ),
-                        )
-                    }
                     if (onClickMigrate != null) {
                         add(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.Rounded.SwapCalls,
+                                // <-- AM
                                 title = stringResource(MR.strings.action_migrate),
                                 onClick = onClickMigrate,
                             ),
@@ -159,16 +157,52 @@ fun AnimeToolbar(
                     }
                     if (onClickShare != null) {
                         add(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.Rounded.Share,
+                                // <-- AM
                                 title = stringResource(MR.strings.action_share),
                                 onClick = onClickShare,
+                            ),
+                        )
+                    }
+                    // AM -->
+                    if (onMoreRelatedClicked != null) {
+                        add(
+                            AppBar.OverflowAction.Item(
+                                icon = MaterialSymbols.Rounded.NetworkNode,
+                                title = stringResource(AMMR.strings.animeScreen_relation_header),
+                                onClick = onMoreRelatedClicked,
+                            ),
+                        )
+                    }
+                    add(AppBar.OverflowAction.Separator)
+                    if (onClickSkipIntro != null) {
+                        add(
+                            AppBar.OverflowAction.Item(
+                                icon = MaterialSymbols.Rounded.Forward10,
+                                title = stringResource(AYMR.strings.action_change_intro_length),
+                                onClick = onClickSkipIntro,
+                            ),
+                        )
+                    }
+                    // <-- AM
+                    if (onClickEditCategory != null) {
+                        add(
+                            AppBar.OverflowAction.Item(
+                                // AM -->
+                                icon = MaterialSymbols.AutoMirroredRounded.Label,
+                                // <-- AM
+                                title = stringResource(MR.strings.action_edit_categories),
+                                onClick = onClickEditCategory,
                             ),
                         )
                     }
                     // AM (CUSTOM_INFORMATION) -->
                     if (onClickEditInfo != null) {
                         add(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                icon = MaterialSymbols.Rounded.EditDocument,
                                 title = stringResource(AMMR.strings.action_edit_info),
                                 onClick = onClickEditInfo,
                             ),
@@ -176,21 +210,26 @@ fun AnimeToolbar(
                     }
                     // <-- AM (CUSTOM_INFORMATION)
                     add(
-                        AppBar.OverflowAction(
+                        AppBar.OverflowAction.Item(
+                            // AM -->
+                            icon = MaterialSymbols.Rounded.Notes,
+                            // <-- AM
                             title = stringResource(MR.strings.action_notes),
                             onClick = onClickEditNotes,
                         ),
                     )
-                    // AY -->
+                    // AM -->
                     if (onClickSettings != null) {
+                        add(AppBar.OverflowAction.Separator)
                         add(
-                            AppBar.OverflowAction(
+                            AppBar.OverflowAction.Item(
+                                icon = MaterialSymbols.Rounded.Settings,
                                 title = stringResource(AYMR.strings.settings),
                                 onClick = onClickSettings,
                             ),
                         )
                     }
-                    // <-- AY
+                    // <-- AM
                 },
             )
         },

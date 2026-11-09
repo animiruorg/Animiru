@@ -5,6 +5,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.RelationDisplayMode
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.domain.ui.model.TimeFormat
@@ -48,6 +49,11 @@ class UiPreferences(
     val tabletUiMode: Preference<TabletUiMode> = preferenceStore.getEnum("tablet_ui_mode", TabletUiMode.AUTOMATIC)
 
     val imagesInDescription: Preference<Boolean> = preferenceStore.getBoolean("pref_render_images_description", true)
+
+    val relationDisplayMode: Preference<RelationDisplayMode> = preferenceStore.getEnum(
+        "pref_relation_display_more",
+        RelationDisplayMode.DESCRIPTION,
+    )
 
     companion object {
         fun dateFormat(format: String, locale: Locale): DateTimeFormatter = when (format) {
