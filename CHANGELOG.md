@@ -11,6 +11,11 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - `Other` - for technical stuff.
 
 ## [Unreleased]
+### Added
+- Add new display modes for related anime ([@Secozzi](https://github.com/Secozzi)) ([#267](https://github.com/animiruorg/Animiru/pull/267))
+
+### Changed
+- Added icons to topbar overflow menus ([@Secozzi](https://github.com/Secozzi)) ([#267](https://github.com/animiruorg/Animiru/pull/267))
 
 ## [v0.20.1.1] - 2026-11-03
 ### Fixed
