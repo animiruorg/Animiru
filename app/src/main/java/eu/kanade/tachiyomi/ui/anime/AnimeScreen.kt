@@ -50,6 +50,7 @@ import eu.kanade.tachiyomi.data.torrent.service.TorrentServerService
 import eu.kanade.tachiyomi.source.isLocalOrStub
 import eu.kanade.tachiyomi.source.isSourceForTorrents
 import eu.kanade.tachiyomi.ui.anime.notes.AnimeNotesScreen
+import eu.kanade.tachiyomi.ui.anime.relation.AnimeRelationScreen
 import eu.kanade.tachiyomi.ui.anime.track.TrackInfoDialogHomeScreen
 import eu.kanade.tachiyomi.ui.browse.extension.details.SourcePreferencesScreen
 import eu.kanade.tachiyomi.ui.browse.migration.season.MigrateSeasonSelectScreen
@@ -226,6 +227,9 @@ class AnimeScreen(
                 successState.anime.favorite && successState.anime.fetchType == FetchType.Episodes
                 // <-- AY
             },
+            onMoreRelatedClicked = {
+                navigator.push(AnimeRelationScreen(successState.anime))
+            },
             // <-- AY
             // AM (CUSTOM_INFORMATION) -->
             onEditInfoClicked = viewModel::showEditAnimeInfoDialog,
@@ -261,6 +265,7 @@ class AnimeScreen(
                 navigator.push(GlobalSearchScreen(relatedAnime.title))
             },
             relatedAnimeDisplayMode = viewModel.relatedAnimeDisplayMode,
+            relationDisplayMode = viewModel.relationDisplayMode,
             // <-- AY
         )
 

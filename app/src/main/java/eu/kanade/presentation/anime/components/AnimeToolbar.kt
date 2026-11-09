@@ -41,6 +41,7 @@ fun AnimeToolbar(
     // AY -->
     onClickSettings: (() -> Unit)?,
     onClickSkipIntro: (() -> Unit)?,
+    onMoreRelatedClicked: (() -> Unit)?,
     // <-- AY
     onClickEditNotes: () -> Unit,
     // AM (CUSTOM_INFORMATION) -->
@@ -181,7 +182,15 @@ fun AnimeToolbar(
                             onClick = onClickEditNotes,
                         ),
                     )
-                    // AY -->
+                    // AM -->
+                    if (onMoreRelatedClicked != null) {
+                        add(
+                            AppBar.OverflowAction(
+                                title = stringResource(AMMR.strings.animeScreen_relation_header),
+                                onClick = onMoreRelatedClicked,
+                            ),
+                        )
+                    }
                     if (onClickSettings != null) {
                         add(
                             AppBar.OverflowAction(
@@ -190,7 +199,7 @@ fun AnimeToolbar(
                             ),
                         )
                     }
-                    // <-- AY
+                    // <-- AM
                 },
             )
         },

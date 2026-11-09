@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -145,9 +146,56 @@ fun RelatedAnimeRows(
 }
 
 @Composable
-private fun RelatedAnimeItem(
+fun RelatedAnimeSingleRow(
+    relations: List<AnimeRelationGroup>,
+    displayMode: LibraryDisplayMode,
+    onRelatedClick: (Anime) -> Unit,
+    onRelatedLongClick: (Anime) -> Unit,
+    contentPadding: PaddingValues,
+    modifier: Modifier = Modifier,
+) {
+    LazyRow(
+        modifier = modifier,
+        contentPadding = contentPadding,
+        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        relations.forEach { relation ->
+            itemsIndexed(
+                items = relation.anime,
+                key = { _, r -> r.id },
+            ) { i, r ->
+                Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall)) {
+                    if (i == 0) {
+                        Text(
+                            text = relation.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(
+                                horizontal = MaterialTheme.padding.small,
+                            ),
+                        )
+                    }
+
+                    Box(modifier = Modifier.width(RELATED_ITEM_WIDTH)) {
+                        RelatedAnimeItem(
+                            anime = r,
+                            displayMode = displayMode,
+                            maxLines = 2,
+                            onClick = { onRelatedClick(r) },
+                            onLongClick = { onRelatedLongClick(r) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun RelatedAnimeItem(
     anime: Anime,
     displayMode: LibraryDisplayMode,
+    maxLines: Int = 3,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -159,7 +207,7 @@ private fun RelatedAnimeItem(
         -> {
             AnimeComfortableGridItem(
                 title = anime.title,
-                titleMaxLines = 3,
+                titleMaxLines = maxLines,
                 coverData = anime.asAnimeCover(),
                 coverAlpha = coverAlpha,
                 coverBadgeStart = { InLibraryBadge(enabled = anime.favorite) },

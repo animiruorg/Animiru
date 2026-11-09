@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -23,6 +24,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,8 +35,10 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -41,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,6 +78,7 @@ import coil3.request.crossfade
 import com.mikepenz.markdown.model.markdownAnnotator
 import com.mikepenz.markdown.model.markdownAnnotatorConfig
 import com.mikepenz.markdown.utils.getUnescapedTextInNode
+import eu.kanade.domain.ui.model.RelationDisplayMode
 import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.animesource.AnimeSource
@@ -79,6 +86,7 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.data.coil.useBackground
 import eu.kanade.tachiyomi.source.getNameForAnimeInfo
 import eu.kanade.tachiyomi.util.system.copyToClipboard
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import mihon.app.di.appGraph
@@ -105,12 +113,15 @@ import org.intellij.markdown.ast.findChildOfType
 import tachiyomi.domain.anime.model.Anime
 import tachiyomi.domain.library.model.LibraryDisplayMode
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
+import tachiyomi.presentation.core.components.material.TabText
 import tachiyomi.presentation.core.components.material.TextButton
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
+import tachiyomi.presentation.core.screens.EmptyScreen
 import tachiyomi.presentation.core.util.clickableNoIndication
 import tachiyomi.presentation.core.util.secondaryItemAlpha
 import kotlin.math.roundToInt
@@ -279,6 +290,7 @@ fun AnimeActionRow(
     }
 }
 
+// Contains expandable description, tags, and anime relations
 @Composable
 fun ExpandableAnimeDescription(
     defaultExpandState: Boolean,
@@ -288,12 +300,13 @@ fun ExpandableAnimeDescription(
     onTagSearch: (String) -> Unit,
     onCopyTagToClipboard: (tag: String) -> Unit,
     onEditNotes: () -> Unit,
-    // AY -->
+    // AM -->
+    relationDisplayMode: RelationDisplayMode,
     relations: List<AnimeRelationGroup>,
     onRelatedClick: (Anime) -> Unit,
     onRelatedLongClick: (Anime) -> Unit,
     relatedDisplayMode: LibraryDisplayMode,
-    // <-- AY
+    // <-- AM
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -303,89 +316,239 @@ fun ExpandableAnimeDescription(
         val desc =
             description.takeIf { !it.isNullOrBlank() } ?: stringResource(MR.strings.description_placeholder)
 
-        AnimeSummary(
-            description = desc,
-            expanded = expanded,
-            notes = notes,
-            // AY -->
-            onEditNotesClicked = onEditNotes,
-            relations = relations,
-            onRelatedClick = onRelatedClick,
-            onRelatedLongClick = onRelatedLongClick,
-            relatedDisplayMode = relatedDisplayMode,
-            // <-- AY
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .padding(horizontal = 16.dp)
-                .clickableNoIndication { onExpanded(!expanded) },
-        )
         val tags = tagsProvider()
-        if (!tags.isNullOrEmpty()) {
-            Box(
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .padding(vertical = 12.dp)
-                    .animateContentSize(animationSpec = spring())
-                    .fillMaxWidth(),
-            ) {
-                var showMenu by remember { mutableStateOf(false) }
-                var tagSelected by remember { mutableStateOf("") }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(text = stringResource(MR.strings.action_search)) },
-                        onClick = {
-                            onTagSearch(tagSelected)
-                            showMenu = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(text = stringResource(MR.strings.action_copy_to_clipboard)) },
-                        onClick = {
-                            onCopyTagToClipboard(tagSelected)
-                            showMenu = false
-                        },
+        when (relationDisplayMode) {
+            RelationDisplayMode.DESCRIPTION, RelationDisplayMode.MENU -> {
+                AnimeSummary(
+                    description = desc,
+                    expanded = expanded,
+                    notes = notes,
+                    // AY -->
+                    displayRelations = relationDisplayMode == RelationDisplayMode.DESCRIPTION,
+                    onEditNotesClicked = onEditNotes,
+                    relations = relations,
+                    onRelatedClick = onRelatedClick,
+                    onRelatedLongClick = onRelatedLongClick,
+                    relatedDisplayMode = relatedDisplayMode,
+                    // <-- AY
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .padding(horizontal = 16.dp)
+                        .clickableNoIndication { onExpanded(!expanded) },
+                )
+
+                TagRow(
+                    expanded = expanded,
+                    tags = tags,
+                    onTagSearch = onTagSearch,
+                    onCopyTagToClipboard = onCopyTagToClipboard,
+                )
+            }
+            RelationDisplayMode.SEPARATE -> {
+                AnimeSummary(
+                    description = desc,
+                    expanded = expanded,
+                    notes = notes,
+                    // AY -->
+                    displayRelations = false,
+                    onEditNotesClicked = onEditNotes,
+                    relations = relations,
+                    onRelatedClick = onRelatedClick,
+                    onRelatedLongClick = onRelatedLongClick,
+                    relatedDisplayMode = relatedDisplayMode,
+                    // <-- AY
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .padding(horizontal = 16.dp)
+                        .clickableNoIndication { onExpanded(!expanded) },
+                )
+
+                TagRow(
+                    expanded = expanded,
+                    tags = tags,
+                    onTagSearch = onTagSearch,
+                    onCopyTagToClipboard = onCopyTagToClipboard,
+                )
+
+                if (relations.isNotEmpty()) {
+                    RelatedAnimeSingleRow(
+                        relations = relations,
+                        onRelatedClick = onRelatedClick,
+                        onRelatedLongClick = onRelatedLongClick,
+                        displayMode = relatedDisplayMode,
+                        contentPadding = PaddingValues(horizontal = 10.dp),
                     )
                 }
-                if (expanded) {
-                    FlowRow(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
-                    ) {
-                        tags.forEach {
-                            TagsChip(
-                                modifier = DefaultTagChipModifier,
-                                text = it,
-                                onClick = {
-                                    tagSelected = it
-                                    showMenu = true
-                                },
-                            )
-                        }
+            }
+        }
+    }
+}
+
+// AM -->
+@Composable
+private fun ColumnScope.TabbedRelationImpl(
+    expanded: Boolean,
+    onExpanded: (Boolean) -> Unit,
+    description: String,
+    notes: String,
+    onEditNotesClicked: () -> Unit,
+    displayRelations: Boolean,
+    relations: List<AnimeRelationGroup>,
+    onRelatedClick: (Anime) -> Unit,
+    onRelatedLongClick: (Anime) -> Unit,
+    relatedDisplayMode: LibraryDisplayMode,
+    modifier: Modifier = Modifier,
+    tags: List<String>?,
+    onTagSearch: (String) -> Unit,
+    onCopyTagToClipboard: (tag: String) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState { 2 }
+    val tabs = remember {
+        listOf(
+            AMMR.strings.animeScreen_desc_header,
+            AMMR.strings.animeScreen_relation_header,
+        )
+    }
+
+    Column(modifier = modifier) {
+        PrimaryTabRow(
+            selectedTabIndex = pagerState.currentPage,
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                Tab(
+                    selected = pagerState.currentPage == index,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                    text = { TabText(text = stringResource(tab)) },
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        HorizontalPager(
+            modifier = Modifier.fillMaxSize(),
+            state = pagerState,
+            verticalAlignment = Alignment.Top,
+        ) { page ->
+            when (page) {
+                0 -> {
+                    Column {
+                        AnimeSummary(
+                            description = description,
+                            expanded = expanded,
+                            notes = notes,
+                            // AY -->
+                            displayRelations = false,
+                            onEditNotesClicked = onEditNotesClicked,
+                            relations = relations,
+                            onRelatedClick = onRelatedClick,
+                            onRelatedLongClick = onRelatedLongClick,
+                            relatedDisplayMode = relatedDisplayMode,
+                            // <-- AY
+                            modifier = Modifier
+                                .clickableNoIndication { onExpanded(!expanded) },
+                        )
+
+                        TagRow(
+                            expanded = expanded,
+                            tags = tags,
+                            onTagSearch = onTagSearch,
+                            onCopyTagToClipboard = onCopyTagToClipboard,
+                        )
                     }
-                } else {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = MaterialTheme.padding.medium),
-                        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
-                    ) {
-                        items(items = tags) {
-                            TagsChip(
-                                modifier = DefaultTagChipModifier,
-                                text = it,
-                                onClick = {
-                                    tagSelected = it
-                                    showMenu = true
-                                },
-                            )
-                        }
+                }
+                1 -> {
+                    if (relations.isNotEmpty()) {
+                        RelatedAnimeRows(
+                            relations = relations,
+                            onRelatedClick = onRelatedClick,
+                            onRelatedLongClick = onRelatedLongClick,
+                            displayMode = relatedDisplayMode,
+                        )
+                    } else {
+                        EmptyScreen(
+                            message = stringResource(AMMR.strings.animeScreen_no_relations),
+                        )
                     }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun ColumnScope.TagRow(
+    expanded: Boolean,
+    tags: List<String>?,
+    onTagSearch: (String) -> Unit,
+    onCopyTagToClipboard: (tag: String) -> Unit,
+) {
+    if (!tags.isNullOrEmpty()) {
+        Box(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .padding(vertical = 12.dp)
+                .animateContentSize(animationSpec = spring())
+                .fillMaxWidth(),
+        ) {
+            var showMenu by remember { mutableStateOf(false) }
+            var tagSelected by remember { mutableStateOf("") }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(MR.strings.action_search)) },
+                    onClick = {
+                        onTagSearch(tagSelected)
+                        showMenu = false
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(MR.strings.action_copy_to_clipboard)) },
+                    onClick = {
+                        onCopyTagToClipboard(tagSelected)
+                        showMenu = false
+                    },
+                )
+            }
+            if (expanded) {
+                FlowRow(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
+                ) {
+                    tags.forEach {
+                        TagsChip(
+                            modifier = DefaultTagChipModifier,
+                            text = it,
+                            onClick = {
+                                tagSelected = it
+                                showMenu = true
+                            },
+                        )
+                    }
+                }
+            } else {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = MaterialTheme.padding.medium),
+                    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall),
+                ) {
+                    items(items = tags) {
+                        TagsChip(
+                            modifier = DefaultTagChipModifier,
+                            text = it,
+                            onClick = {
+                                tagSelected = it
+                                showMenu = true
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+// <-- AM
 
 @Composable
 private fun AnimeAndSourceTitlesLarge(
@@ -663,12 +826,13 @@ private fun AnimeSummary(
     notes: String,
     expanded: Boolean,
     onEditNotesClicked: () -> Unit,
-    // AY -->
+    // AM -->
+    displayRelations: Boolean,
     relations: List<AnimeRelationGroup>,
     onRelatedClick: (Anime) -> Unit,
     onRelatedLongClick: (Anime) -> Unit,
     relatedDisplayMode: LibraryDisplayMode,
-    // <-- AY
+    // <-- AM
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -717,7 +881,7 @@ private fun AnimeSummary(
             // AY -->
             {
                 Column {
-                    if (relations.isNotEmpty()) {
+                    if (displayRelations && relations.isNotEmpty()) {
                         RelatedAnimeRows(
                             relations = relations,
                             onRelatedClick = onRelatedClick,

@@ -55,9 +55,19 @@
 
     <!-- Anime -->
     <string name="animeScreen.thumbnailSize">Thumbnail size</string>
+    <string name="animeScreen.desc_header">Description</string>
+    <string name="animeScreen.relation_header">Relations</string>
+    <string name="animeScreen.no_relations">No relations</string>
 
     <!-- Migration -->
     <string name="migrationListScreen.mismatchedFetchType">Mismatched fetch type</string>
+
+    <!-- Display -->
+    <string name="appearance_entry_header">Entry</string>
+    <string name="apperance_relation_header">Related anime display mode</string>
+    <string name="appearance_relation_description">In description</string>
+    <string name="appearance_relation_separate">Separate</string>
+    <string name="appearance_relation_menu">Menu only</string>
 
     <!-- Entry Info Edit -->
     <string name="title_hint">Title: %1$s</string>
