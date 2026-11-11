@@ -7,14 +7,16 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import eu.kanade.tachiyomi.network.get
+import io.lindstrom.mpd.MPDParser
+import io.lindstrom.mpd.ParsingMode
+import io.lindstrom.mpd.data.AdaptationSet
+import io.lindstrom.mpd.data.BaseURL
+import io.lindstrom.mpd.data.PresentationType
+import io.lindstrom.mpd.data.Representation
+import io.lindstrom.mpd.data.SegmentTemplate
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okio.Throttler
-import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
-import java.net.URI
-import java.time.Duration
 import kotlin.math.ceil
 
 @Inject
@@ -24,14 +26,7 @@ class DashDownloader(
     private val directDownloader: DirectDownloader,
     private val downloader: HttpDownloader,
 ) {
-    enum class Kind { VIDEO, AUDIO, SUBTITLE, OTHER }
-
-    private data class Pick(
-        val kind: Kind,
-        val adaptationSet: Int,
-        val representation: Int,
-        val bandwidth: Long,
-    )
+    private enum class TrackType { VIDEO, AUDIO, SUBTITLE }
 
     suspend fun parsePlaylist(
         url: String,
@@ -48,52 +43,66 @@ class DashDownloader(
             }
             else -> throw IllegalArgumentException("Unexpected input: $url")
         }
-        val mpd = xml.asXml(url).selectFirst("MPD")
-            ?: throw Exception("No mpd root element found")
 
-        val period = mpd.kids("Period").singleOrNull()
-            ?: throw Exception("Only single-period manifests are supported")
-
-        val tracks = period.kids("AdaptationSet").mapIndexedNotNull { ai, aset ->
-            getBestRepresentation(ai, aset)
+        val mpd = MPDParser(ParsingMode.LENIENT).parse(xml)
+        if (mpd.type != PresentationType.STATIC) {
+            throw IllegalStateException("Unsupported type: ${mpd.type}")
+        }
+        val mpdBaseUrl = if (url.startsWith("http")) {
+            resolveBaseUrl(url, mpd.baseURLs)
+        } else {
+            mpd.baseURLs.firstOrNull()?.value
+                ?: throw IllegalStateException("No baseurls for playlist")
         }
 
-        fun parse(p: Pick, name: String): TrackResult? {
-            val document = xml.asXml(url).also {
-                prune(it, p)
+        val period = mpd.periods.singleOrNull()
+            ?: throw IllegalStateException("Multi-period playlists not supported")
+        val periodMs = (period.duration ?: mpd.mediaPresentationDuration)?.toMillis() ?: 0L
+        val periodBaseUrl = resolveBaseUrl(mpdBaseUrl, period.baseURLs)
+
+        val tracks = period.adaptationSets
+            .flatMap { s -> s.representations.map { s to it } }
+            .mapNotNull { (s, r) ->
+                getTrackType(s, r)?.let { Triple(it, s, r) }
             }
-            return Parser(url, name).parse(document)
-        }
-
-        fun getTracks(kind: Kind, getName: (Int) -> String): List<TrackResult> {
-            return tracks.filter { it.kind == kind }
-                .mapIndexedNotNull { index, pick ->
-                    parse(pick, getName(index))
+            .groupBy { (type, s, _) ->
+                when (type) {
+                    TrackType.VIDEO -> "video"
+                    TrackType.AUDIO -> "aud-${s.lang}"
+                    TrackType.SUBTITLE -> "sub-${s.lang}"
                 }
-        }
-
-        val video = tracks.filter { it.kind == Kind.VIDEO }
-            .maxByOrNull { it.bandwidth }
-            ?.let {
-                parse(it, name)
             }
-            ?: throw Exception("No videos found")
+            .map { it.value.maxBy { (_, _, r) -> r.bandwidth } }
 
-        val subtitleTracks = getTracks(Kind.SUBTITLE) { "sub$it" }
-        val audioTracks = getTracks(Kind.AUDIO) { "aud$it" }
+        val audioTracks = tracks
+            .filter { (type, _, _) -> type == TrackType.AUDIO }
+            .mapIndexed { i, (_, set, rep) ->
+                getSegmentList(rep, set, periodMs, mpdBaseUrl, periodBaseUrl, "aud$i")
+            }
+
+        val subtitleTracks = tracks
+            .filter { (type, _, _) -> type == TrackType.SUBTITLE }
+            .mapIndexed { i, (_, set, rep) ->
+                getSegmentList(rep, set, periodMs, mpdBaseUrl, periodBaseUrl, "aud$i")
+            }
+
+        val video = tracks.first { (type, _, _) -> type == TrackType.VIDEO }.let { (_, set, rep) ->
+            getSegmentList(rep, set, periodMs, mpdBaseUrl, periodBaseUrl, "vid")
+        }
 
         return when (video) {
-            is TrackResult.Url -> PlaylistResult.Url(
-                url = video.url,
-                subtitleTracks = subtitleTracks,
-                audioTracks = audioTracks,
-            )
+            // Can't use concat demuxer and concat prototol results in long strings
             is TrackResult.Playlist -> PlaylistResult.Content(
-                type = DownloadType.Dash,
+                type = DownloadType.Hls,
                 content = video.content,
                 fragments = video.fragments,
-                subtitleTracks = subtitleTracks,
                 audioTracks = audioTracks,
+                subtitleTracks = subtitleTracks,
+            )
+            is TrackResult.Url -> PlaylistResult.Url(
+                url = video.url,
+                audioTracks = audioTracks,
+                subtitleTracks = subtitleTracks,
             )
         }
     }
@@ -140,233 +149,156 @@ class DashDownloader(
         }
     }
 
-    // Pick based on highest bitrate
-    private fun getBestRepresentation(ai: Int, aset: Element): Pick? {
-        val reps = aset.kids("Representation")
-        val ri = reps.indices.maxByOrNull {
-            reps[it].attr("bandwidth").toLongOrNull() ?: 0L
-        } ?: return null
+    private fun getTrackType(set: AdaptationSet, representation: Representation): TrackType? {
+        val type = listOfNotNull(set.contentType, representation.mimeType, set.mimeType)
 
-        val rep = reps[ri]
-        fun inherited(name: String): String {
-            return rep.attr(name).ifEmpty { aset.attr(name) }
+        return when {
+            type.any { it.contains("video", true) } -> TrackType.VIDEO
+            type.any { it.contains("audio", true) } -> TrackType.AUDIO
+            listOf("text", "ttml", "webvtt", "3gpp").any { t ->
+                type.any { it.contains(t, true) }
+            } -> TrackType.SUBTITLE
+            else -> null
         }
-
-        val hint = listOf(
-            aset.attr("contentType"),
-            inherited("mimeType"),
-            inherited("codecs"),
-        )
-            .joinToString(" ")
-            .lowercase()
-
-        val kind = when {
-            "video" in hint -> Kind.VIDEO
-            "audio" in hint -> Kind.AUDIO
-            listOf("text", "ttml", "stpp", "wvtt").any { it in hint } -> Kind.SUBTITLE
-            else -> Kind.OTHER
-        }
-
-        return Pick(
-            kind = kind,
-            adaptationSet = ai,
-            representation = ri,
-            bandwidth = inherited("bandwidth").toLongOrNull() ?: 0L,
-        )
     }
 
-    private fun String.asXml(manifestUrl: String): Document {
-        return Jsoup.parse(this, manifestUrl, org.jsoup.parser.Parser.xmlParser())
-    }
+    private fun getSegmentList(
+        representation: Representation,
+        set: AdaptationSet,
+        periodMs: Long,
+        mpdUrl: String,
+        periodBase: String,
+        prefix: String,
+    ): TrackResult {
+        val inputList = StringBuilder()
+        inputList.appendLine("#EXTM3U")
+        inputList.appendLine("#EXT-X-PLAYLIST-TYPE:VOD")
+        inputList.appendLine("#EXT-X-VERSION:4")
+        val segmentUrls = mutableListOf<DownloadFragment>()
 
-    private fun prune(doc: Document, p: Pick) {
-        val period = doc.selectFirst("MPD")!!.kids("Period").single()
-        period.kids("AdaptationSet").filterIndexed { i, _ ->
-            i != p.adaptationSet
-        }.forEach { it.remove() }
+        val baseUrl = resolveBaseUrl(resolveBaseUrl(periodBase, set.baseURLs), representation.baseURLs)
+        val template = representation.segmentTemplate ?: set.segmentTemplate
+        val media = template?.media
+        val segmentList = representation.segmentList ?: set.segmentList
+        var i = 0
 
-        val aset = period.kids("AdaptationSet").single()
-        aset.kids("Representation").filterIndexed { i, _ ->
-            i != p.representation
-        }.forEach { it.remove() }
-    }
-}
-
-// Thanks, gpt
-private class Parser(
-    private val manifestUrl: String,
-    private val prefix: String,
-) {
-    private data class Ref(
-        val url: String,
-        val start: Long? = null,
-        val end: Long? = null,
-    )
-
-    private class SegmentInfo(
-        val levels: List<Element>,
-        val tag: String,
-    ) {
-        fun attr(name: String): String? {
-            return levels.firstNotNullOfOrNull {
-                it.kids(tag).firstOrNull()?.attr(name)?.ifEmpty { null }
+        when {
+            template != null && media != null -> {
+                template.initialization?.let {
+                    val name = "${prefix}_${i++}.m4s"
+                    val url = resolveUrl(baseUrl, substitute(it, representation, null, null))
+                    inputList.appendLine("#EXTINF:,\n$name")
+                    segmentUrls.add(DownloadFragment(name, url))
+                }
+                getSegmentTimeline(template, periodMs).forEach { (n, time) ->
+                    val name = "${prefix}_${i++}.m4s"
+                    val url = resolveUrl(baseUrl, substitute(media, representation, n, time))
+                    inputList.appendLine("#EXTINF:,\n$name")
+                    segmentUrls.add(DownloadFragment(name, url))
+                }
             }
-        }
-
-        val timeline = levels.firstNotNullOfOrNull {
-            it.kids(tag).firstOrNull()?.kids("SegmentTimeline")?.firstOrNull()
-        }
-
-        val element
-            get() = levels.firstNotNullOf { it.kids(tag).firstOrNull() }
-    }
-
-    private val fragments = LinkedHashMap<Ref, DownloadFragment>()
-    private val usedNames = HashSet<String>()
-
-    fun parse(document: Document): TrackResult? {
-        val mpd = document.selectFirst("MPD")!!
-        val period = mpd.kids("Period").single()
-        val aset = period.kids("AdaptationSet").single()
-        val rep = aset.kids("Representation").single()
-
-        val base = listOf(mpd, period, aset, rep).fold(manifestUrl) { b, el -> resolveBaseUrl(b, el) }
-        val levels = listOf(rep, aset, period)
-        val tag = listOf("SegmentTemplate", "SegmentList").firstOrNull { t -> levels.any { it.kids(t).isNotEmpty() } }
-        if (tag == null) {
-            return if (base == manifestUrl) null else TrackResult.Url(base, prefix)
-        }
-
-        val segInfo = SegmentInfo(levels, tag)
-        val (init, media) = if (tag == "SegmentTemplate") {
-            templateRefs(segInfo, base, rep.attr("id"), rep.attr("bandwidth"), periodSeconds(mpd, period))
-        } else {
-            listRefs(segInfo, base)
-        }
-
-        val stale = levels.flatMap { it.kids("SegmentTemplate") + it.kids("SegmentList") }
-        val list = rep.appendElement("SegmentList")
-        for (name in listOf("timescale", "duration", "startNumber", "presentationTimeOffset")) {
-            segInfo.attr(name)?.let { list.attr(name, it) }
-        }
-        init?.let { list.appendElement("Initialization").attr("sourceURL", register(it).name) }
-        segInfo.timeline?.let { list.appendChild(it.clone()) }
-        media.forEach { list.appendElement("SegmentURL").attr("media", register(it).name) }
-
-        document.select("BaseURL").remove()
-        stale.forEach { it.remove() }
-        return TrackResult.Playlist(
-            type = DownloadType.Dash,
-            content = document.outerHtml(),
-            fragments = fragments.values.toList(),
-            name = prefix,
-        )
-    }
-
-    private fun templateRefs(
-        s: SegmentInfo,
-        base: String,
-        id: String,
-        bw: String,
-        periodSec: Double?,
-    ): Pair<Ref?, List<Ref>> {
-        val scale = s.attr("timescale")?.toDouble() ?: 1.0
-        val first = s.attr("startNumber")?.toLong() ?: 1L
-
-        val times = mutableListOf<Long>()
-        if (s.timeline != null) {
-            var t = 0L
-            for (e in s.timeline.kids("S")) {
-                e.attr("t").toLongOrNull()?.let { t = it }
-                val d = e.attr("d").toLong()
-                val r = e.attr("r").toLongOrNull() ?: 0L
-                val repeats = if (r >= 0) {
-                    r
+            segmentList != null -> {
+                segmentList.initialization?.sourceURL?.let {
+                    val name = "${prefix}_${i++}.m4s"
+                    inputList.appendLine("#EXTINF:,\n$name")
+                    segmentUrls.add(DownloadFragment(name, resolveUrl(baseUrl, it)))
+                }
+                segmentList.segmentURLs.forEach {
+                    val mediaUrl = it.media ?: return@forEach
+                    val name = "${prefix}_${i++}.m4s"
+                    inputList.appendLine("#EXTINF:,\n$name")
+                    segmentUrls.add(
+                        DownloadFragment(
+                            name = name,
+                            url = resolveUrl(baseUrl, mediaUrl),
+                        ),
+                    )
+                }
+            }
+            else -> {
+                if (baseUrl == mpdUrl) {
+                    throw IllegalStateException("No segments found")
                 } else {
-                    ceil(
-                        ((periodSec ?: throw Exception("Negative S@r needs a known duration")) * scale - t) / d,
-                    ).toLong() -
-                        1
-                }
-                repeat((repeats + 1).toInt()) {
-                    times += t
-                    t += d
+                    return TrackResult.Url(
+                        url = baseUrl,
+                        name = set.lang ?: set.id.toString(),
+                    )
                 }
             }
-        } else {
-            val d = s.attr("duration")?.toLong() ?: throw Exception("'$id' has no duration or SegmentTimeline")
-            val count = ceil((periodSec ?: throw Exception("Unknown duration for '$id'")) * scale / d).toInt()
-            times += (0 until count).map { it * d }
         }
 
-        val media = s.attr("media") ?: throw Exception("'$id' has no media template")
-        val init = s.attr("initialization")?.let { Ref(resolveUrl(base, expand(it, id, bw, null, null))) }
-        return init to times.mapIndexed { i, t -> Ref(resolveUrl(base, expand(media, id, bw, first + i, t))) }
+        inputList.append("#EXT-X-ENDLIST")
+
+        return TrackResult.Playlist(
+            type = DownloadType.Hls,
+            content = inputList.toString(),
+            fragments = segmentUrls,
+            name = set.lang ?: set.id.toString(),
+        )
     }
 
-    private fun expand(template: String, id: String, bandwidth: String, number: Long?, time: Long?): String =
-        tokenRegex.replace(template) { m ->
-            if (m.value == "$$") return@replace "$"
-            val width = m.groupValues[2].toIntOrNull()
-            fun num(v: Long?) = (v ?: throw Exception("${m.value} not allowed here")).let {
-                if (width != null) "%0${width}d".format(it) else it.toString()
+    private fun substitute(
+        template: String,
+        representation: Representation,
+        number: Long?,
+        time: Long?,
+    ): String {
+        return templateRegex.replace(template) { m ->
+            val width = m.groupValues[3].toIntOrNull() ?: 1
+            val r = when (m.groupValues[1]) {
+                "" -> return@replace "$"
+                "RepresentationID" -> return@replace representation.id
+                "Bandwidth" -> representation.bandwidth
+                "Number" -> number
+                else -> time
             }
-            when (m.groupValues[1]) {
-                "RepresentationID" -> id
-                "Bandwidth" -> bandwidth
-                "Number" -> num(number)
-                else -> num(time)
+            r.toString().padStart(width, '0')
+        }
+    }
+
+    private fun getSegmentTimeline(
+        template: SegmentTemplate,
+        periodMs: Long,
+    ): List<Pair<Long, Long>> {
+        val timescale = template.timescale ?: 1L
+        val start = template.startNumber ?: 1L
+        val offset = template.presentationTimeOffset ?: 0L
+        val end = offset + periodMs / 1000.0 * timescale
+
+        val timeline = template.segmentTimeline
+        if (timeline == null || timeline.isEmpty()) {
+            val duration = template.duration ?: throw IllegalStateException("Duration not found")
+            val count = ceil((end - offset) / duration).toLong()
+            return (0 until count).map {
+                (start + it) to (offset + it * duration)
             }
         }
 
-    private fun listRefs(s: SegmentInfo, base: String): Pair<Ref?, List<Ref>> {
-        fun ref(el: Element, urlAttr: String, rangeAttr: String): Ref {
-            val range = rangeRegex.matchEntire(el.attr(rangeAttr).trim())
-            val url = el.attr(urlAttr).ifEmpty { null }?.let { resolveUrl(base, it) } ?: base
-            return Ref(url, range?.groupValues?.get(1)?.toLong(), range?.groupValues?.get(2)?.toLongOrNull())
-        }
-
-        val el = s.element
-        return el.kids("Initialization").firstOrNull()?.let { ref(it, "sourceURL", "range") } to
-            el.kids("SegmentURL").map { ref(it, "media", "mediaRange") }
-    }
-
-    private fun register(ref: Ref): DownloadFragment = fragments.getOrPut(ref) {
-        var name = URI(ref.url).path.substringAfterLast('/').ifEmpty { "segment" }
-        if (ref.start != null) {
-            val stem = name.substringBeforeLast('.')
-            name = "${stem}_${ref.start}-${ref.end ?: ""}${name.removePrefix(stem)}"
-        }
-        var unique = "${prefix}_$name"
-        var i = 1
-        while (!usedNames.add(unique)) unique = "${name}_${i++}_$name"
-        DownloadFragment(unique, ref.url, ref.start, ref.end)
-    }
-
-    private fun periodSeconds(mpd: Element, period: Element): Double? =
-        period.attr("duration").parseSeconds()
-            ?: mpd.attr("mediaPresentationDuration").parseSeconds()
-                ?.minus(period.attr("start").parseSeconds() ?: 0.0)
-
-    private fun resolveBaseUrl(parent: String, el: Element): String {
-        return el.kids("BaseUrl").firstOrNull()
-            ?.text()
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?.let {
-                resolveUrl(parent, it)
+        val out = mutableListOf<Pair<Long, Long>>()
+        var time = 0L
+        var number = start
+        timeline.forEach { s ->
+            s.t?.let { time = it }
+            val repeat = s.r ?: 0L
+            val count = if (repeat >= 0) {
+                repeat + 1
+            } else {
+                ceil((end - time) / s.d).toLong()
             }
-            ?: parent
+            (0 until count).forEach { _ ->
+                out.add(number++ to time)
+                time += s.d
+            }
+        }
+        return out
     }
 
-    private fun String.parseSeconds(): Double? =
-        takeIf { it.isNotBlank() }?.let { Duration.parse(it.uppercase()).toMillis() / 1000.0 }
+    private fun resolveBaseUrl(baseUrl: String, urls: List<BaseURL>): String {
+        val relative = urls.firstOrNull()?.value?.trim() ?: return baseUrl
+        return resolveUrl(baseUrl, relative)
+    }
 
     companion object {
-        private val rangeRegex = Regex("""(\d+)-(\d*)""")
-        private val tokenRegex = Regex("""\$(RepresentationID|Number|Bandwidth|Time)(?:%0(\d+)d)?\$|\$\$""")
+        private val templateRegex = Regex("""\$(RepresentationID|Number|Bandwidth|Time)?(%0(\d+)d)?\$""")
     }
 }
-
-private fun Element.kids(name: String): List<Element> =
-    children().filter { it.normalName() == name.lowercase() }

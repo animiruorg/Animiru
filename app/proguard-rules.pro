@@ -98,3 +98,8 @@
     public <init>();
     public void destroy();
 }
+
+# AM -->
+# Required by mpd-parser
+-keep class io.lindstrom.mpd.** { *; }
+# <-- AM

@@ -7,8 +7,11 @@ gms-cast = "22.3.1"
 localbroadcastmanager = "1.1.0"
 media = "1.7.0"
 mediarouter = "1.8.1"
+mpd-parser = "0.23"
 nanohttpd = "2.3.1"
 seeker = "1.2.2"
+stax-api = "1.0-2"
+stax2-api = "4.2.2"
 torrserver = "0.1.1"
 truetypeparser = "2.1.4"
 
@@ -19,8 +22,11 @@ compose-constraintlayout = { module = "androidx.constraintlayout:constraintlayou
 ffmpeg-kit = { module = "io.github.animiruorg:ffmpeg-kit-next", version.ref = "ffmpeg-kit" }
 localbroadcastmanager = { module = "androidx.localbroadcastmanager:localbroadcastmanager", version.ref = "localbroadcastmanager" }
 mediasession = { module = "androidx.media:media", version.ref = "media" }
+mpd-parser = { module = "io.lindstrom:mpd-parser", version.ref = "mpd-parser" }
 nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
 seeker = { module = "io.github.2307vivek:seeker", version.ref = "seeker" }
+stax-api = { module = "javax.xml.stream:stax-api", version.ref = "stax-api" }
+stax2-api = { module = "org.codehaus.woodstox:stax2-api", version.ref = "stax2-api" }
 torrserver = { module = "io.github.secozzi:torrserver", version.ref = "torrserver" }
 truetypeparser = { module = "io.github.yubyf:truetypeparser-light", version.ref = "truetypeparser" }
 
