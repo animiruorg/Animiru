@@ -370,6 +370,11 @@ dependencies {
 
     // torrserver
     implementation(aniyomilibs.torrserver)
+
+    // Downloader
+    implementation(aniyomilibs.mpd.parser)
+    implementation(aniyomilibs.stax.api)
+    implementation(aniyomilibs.stax2.api)
     // <-- AY
 
     // AM (CAST) -->
