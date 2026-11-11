@@ -23,6 +23,10 @@ import eu.kanade.tachiyomi.ui.player.utils.ChapterUtils
 import eu.kanade.tachiyomi.util.lang.Hash.md5
 import eu.kanade.tachiyomi.util.storage.toFFmpegString
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -39,6 +43,7 @@ import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.seconds
 
 enum class DownloadType {
     Hls,
@@ -511,21 +516,30 @@ class VideoDownloader(
             .set("Range", "bytes=0-1023")
             .build()
 
-        client.get(url, probeHeaders).use {
-            if (!it.isSuccessful) return DownloadType.Direct
+        return flow {
+            client.get(url, probeHeaders).use {
+                val source = it.body.source()
+                source.request(1024)
+                val len = minOf(source.buffer.size, 1024L)
+                val text = source.buffer.peek().readUtf8(len).trim()
 
-            val source = it.body.source()
-            source.request(1024)
-            val len = minOf(source.buffer.size, 1024L)
-            val text = source.buffer.peek().readUtf8(len).trim()
-
-            when {
-                text.startsWith("#EXTM3U") -> return DownloadType.Hls
-                text.startsWith("<") && text.contains("<MPD") -> return DownloadType.Dash
+                when {
+                    text.startsWith("#EXTM3U") -> emit(DownloadType.Hls)
+                    text.startsWith("<") && text.contains("<MPD") -> emit(DownloadType.Dash)
+                    else -> emit(DownloadType.Direct)
+                }
             }
         }
-
-        return DownloadType.Direct
+            // Retry 3 times, waiting 2, 4 and 8 seconds between attempts.
+            .retryWhen { _, attempt ->
+                if (attempt < 3) {
+                    delay((2L shl attempt.toInt()).seconds)
+                    true
+                } else {
+                    false
+                }
+            }
+            .first()
     }
 
     private suspend fun merge(
@@ -646,6 +660,7 @@ class VideoDownloader(
         }
 
         val command = listOf(
+            "-hide_banner",
             videoInput, subtitleInputs, audioInputs, chapterInput,
             "-map 0:v", audioMaps, "-map 0:a?", subtitleMaps, "-map 0:s? -map 0:t?",
             "-f matroska -c:a copy -c:v copy -c:s copy",
@@ -740,7 +755,7 @@ class VideoDownloader(
 
         val ffprobeCommand = FFmpegKitConfig.parseArguments(
             listOf(
-                "-v error",
+                "-v error -hide_banner",
                 "-show_entries format=duration",
                 "-show_entries chapter=start_time,end_time:chapter_tags=title",
                 "-of json -o \"$durationFilePath\"",
