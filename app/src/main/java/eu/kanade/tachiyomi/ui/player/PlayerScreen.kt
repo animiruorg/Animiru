@@ -44,13 +44,13 @@ import eu.kanade.tachiyomi.ui.player.components.MpvSurface
 import eu.kanade.tachiyomi.ui.player.components.OrientationOverlay
 import eu.kanade.tachiyomi.ui.player.components.SystemAwakeOverlay
 import eu.kanade.tachiyomi.ui.player.components.SystemBarOverlay
-import eu.kanade.tachiyomi.ui.player.controls.DoubleTapToSeekOvals
 import eu.kanade.tachiyomi.ui.player.controls.GestureHandler
 import eu.kanade.tachiyomi.ui.player.controls.LocalPlayerButtonsClickEvent
 import eu.kanade.tachiyomi.ui.player.controls.PlayerControls
 import eu.kanade.tachiyomi.ui.player.controls.PlayerDialogs
 import eu.kanade.tachiyomi.ui.player.controls.PlayerPanels
 import eu.kanade.tachiyomi.ui.player.controls.PlayerSheets
+import eu.kanade.tachiyomi.ui.player.controls.components.DoubleTapToSeekOvals
 import eu.kanade.tachiyomi.ui.player.controls.components.panels.SubColorType
 import eu.kanade.tachiyomi.ui.player.controls.components.panels.resetColors
 import eu.kanade.tachiyomi.ui.player.controls.components.panels.resetTypography
@@ -66,6 +66,7 @@ import tachiyomi.presentation.core.util.collectAsState
 import tachiyomi.source.local.isLocal
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(InternalVoyagerApi::class)
 @Composable
@@ -227,7 +228,8 @@ fun PlayerScreen(
 
             GestureHandler(
                 modifier = Modifier.fillMaxSize(),
-                viewModel = viewModel,
+                areControlsLocked = uiData.isControlsLocked,
+                onGestureEvent = viewModel::handleGestureEvent,
                 interactionSource = interactionSource,
             )
 
@@ -236,6 +238,14 @@ fun PlayerScreen(
                 text = playbackData.seekText,
                 interactionSource = interactionSource,
             )
+
+            LaunchedEffect(playbackData.doubleTapSeekAmount) {
+                delay(0.8.seconds)
+                viewModel.updateSeekAmount(0)
+                viewModel.updateSeekText(null)
+                delay(0.1.seconds)
+                viewModel.hideSeekBar()
+            }
 
             SystemAwakeOverlay(
                 paused = playbackData.paused,

@@ -1,345 +1,210 @@
 package eu.kanade.tachiyomi.ui.player.controls
 
-import android.view.WindowManager
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.indication
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.LocalRippleConfiguration
-import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import eu.kanade.presentation.player.components.LeftSideOvalShape
-import eu.kanade.presentation.player.components.RightSideOvalShape
-import eu.kanade.presentation.theme.playerRippleConfiguration
-import eu.kanade.tachiyomi.ui.player.Panels
-import eu.kanade.tachiyomi.ui.player.PlayerViewModel
-import eu.kanade.tachiyomi.ui.player.Sheets
-import eu.kanade.tachiyomi.ui.player.controls.components.DoubleTapSeekTriangles
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import mihon.app.di.appGraph
-import tachiyomi.i18n.aniyomi.AYMR
-import tachiyomi.presentation.core.i18n.pluralStringResource
-import tachiyomi.presentation.core.util.collectAsState
-import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.time.Duration.Companion.seconds
+
+private enum class ActiveGesture {
+    None,
+    LongPress,
+    PanX,
+    PanY,
+    Transform,
+}
+
+enum class GesturePosition {
+    Left,
+    Middle,
+    Right,
+}
+
+sealed interface GestureEvent {
+    data class DoubleTap(val gesturePosition: GesturePosition) : GestureEvent
+    data class LongPressChange(val start: Boolean) : GestureEvent
+    data class LongPressSwipe(val deltaX: Float) : GestureEvent
+    data class PanXChange(val start: Boolean) : GestureEvent
+    data class PanX(val deltaX: Float) : GestureEvent
+    data class PanYChange(val left: Boolean, val start: Boolean) : GestureEvent
+    data class PanY(val left: Boolean, val deltaY: Float) : GestureEvent
+    data object Tap : GestureEvent
+    data class Transform(
+        val zoom: Float,
+        val pos: Offset,
+    ) : GestureEvent
+}
 
 @Composable
 fun GestureHandler(
-    modifier: Modifier = Modifier,
-    viewModel: PlayerViewModel,
+    modifier: Modifier,
+    areControlsLocked: Boolean,
     interactionSource: MutableInteractionSource,
+    onGestureEvent: (GestureEvent) -> Unit,
 ) {
-    val context = LocalContext.current
-    val haptics = LocalHapticFeedback.current
-    val playerPreferences = remember { context.appGraph.playerPreferences }
-    val gesturePreferences = remember { context.appGraph.gesturePreferences }
-    val audioPreferences = remember { context.appGraph.audioPreferences }
-    val brightnessManager = remember { context.appGraph.brightnessManager }
-
-    val allowGesturesInPanels by playerPreferences.allowGestures.collectAsState()
-    val horizontalGesture by gesturePreferences.gestureHorizontalSeek.collectAsState()
-    val gestureVolumeBrightness by gesturePreferences.gestureVolumeBrightness.collectAsState()
-    val swapVolumeBrightness by gesturePreferences.swapVolumeBrightness.collectAsState()
-    val showSeekbar by gesturePreferences.showSeekBar.collectAsState()
-    val volumeBoostingCap by audioPreferences.volumeBoostCap.collectAsState()
-
-    val uiData by viewModel.uiData.collectAsStateWithLifecycle()
-    val stateData by viewModel.stateData.collectAsStateWithLifecycle()
-    val playbackData by viewModel.playbackData.collectAsStateWithLifecycle()
-
-    val position by viewModel.propFlow<Int>("time-pos").collectAsStateWithLifecycle()
-    val duration by viewModel.propFlow<Int>("duration").collectAsStateWithLifecycle()
-    val currentMPVVolume by viewModel.propFlow<Int>("volume").collectAsStateWithLifecycle()
-
-    var isDoubleTapSeeking by remember { mutableStateOf(false) }
-    var isLongPressing by remember { mutableStateOf(false) }
-
-    LaunchedEffect(playbackData.doubleTapSeekAmount) {
-        delay(800.milliseconds)
-        isDoubleTapSeeking = true
-        viewModel.updateSeekAmount(0)
-        viewModel.updateSeekText(null)
-        delay(100.milliseconds)
-        viewModel.hideSeekBar()
-    }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeGestures)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        if (isDoubleTapSeeking) return@detectTapGestures
-                        if (uiData.controlsShown) viewModel.hideControls() else viewModel.showControls()
-                    },
-                    onDoubleTap = {
-                        if (uiData.isControlsLocked || isDoubleTapSeeking) return@detectTapGestures
-                        if (it.x > size.width * 3 / 5) {
-                            if (!playbackData.isSeekingForwards) viewModel.updateSeekAmount(0)
-                            viewModel.handleRightDoubleTap()
-                            isDoubleTapSeeking = true
-                        } else if (it.x < size.width * 2 / 5) {
-                            if (playbackData.isSeekingForwards) viewModel.updateSeekAmount(0)
-                            viewModel.handleLeftDoubleTap()
-                            isDoubleTapSeeking = true
-                        } else {
-                            viewModel.handleCenterDoubleTap()
-                        }
-                    },
-                    onPress = {
-                        if (uiData.panelShown != Panels.None && !allowGesturesInPanels) {
-                            viewModel.setPanel(Panels.None)
-                        }
-                        val press = PressInteraction.Press(
-                            it.copy(x = if (it.x > size.width * 3 / 5) it.x - size.width * 0.6f else it.x),
-                        )
-                        if (!uiData.isControlsLocked && isDoubleTapSeeking && playbackData.doubleTapSeekAmount != 0) {
-                            if (it.x > size.width * 3 / 5) {
-                                if (!playbackData.isSeekingForwards) viewModel.updateSeekAmount(0)
-                                viewModel.handleRightDoubleTap()
-                            } else if (it.x < size.width * 2 / 5) {
-                                if (playbackData.isSeekingForwards) viewModel.updateSeekAmount(0)
-                                viewModel.handleLeftDoubleTap()
-                            } else {
-                                viewModel.handleCenterDoubleTap()
-                            }
-                        } else {
-                            isDoubleTapSeeking = false
-                        }
-                        interactionSource.emit(press)
-                        tryAwaitRelease()
-                        if (isLongPressing) {
-                            isLongPressing = false
-                        }
-                        interactionSource.emit(PressInteraction.Release(press))
-                    },
-                    onLongPress = {
-                        if (uiData.isControlsLocked) return@detectTapGestures
-                        if (!isLongPressing) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            isLongPressing = true
-                            viewModel.pause()
-                            viewModel.setSheet(Sheets.Screenshot)
-                        }
-                    },
-                )
-            }
-            .pointerInput(uiData.isControlsLocked) {
-                if (!horizontalGesture || uiData.isControlsLocked) return@pointerInput
-
-                var startingPosition = position ?: 0
-                var startingX = 0f
-
-                fun dragEnd() {
-                    viewModel.updateIsSeeking(false)
-                    viewModel.seekTo(playbackData.seekPosition.toInt().coerceIn(0, duration ?: 0))
-                    viewModel.updateGestureSeekAmount(null)
-                    viewModel.hideSeekBar()
+            .pointerInput(areControlsLocked) {
+                if (areControlsLocked) {
+                    return@pointerInput
                 }
 
-                detectHorizontalDragGestures(
-                    onDragStart = {
-                        startingPosition = position ?: 0
-                        startingX = it.x
-                        viewModel.updateIsSeeking(true)
-                    },
-                    onDragEnd = { dragEnd() },
-                    onDragCancel = { dragEnd() },
-                    onHorizontalDrag = { change, dragAmount ->
-                        if ((position ?: 0) <= 0f && dragAmount < 0) return@detectHorizontalDragGestures
-                        if ((position ?: 0) >= (duration ?: 0) && dragAmount > 0) return@detectHorizontalDragGestures
-                        calculateNewHorizontalGestureValue(startingPosition, startingX, change.position.x, 0.15f).let {
-                            viewModel.updateGestureSeekAmount(
-                                Pair(
-                                    startingPosition,
-                                    (it - startingPosition)
-                                        .coerceIn(0 - startingPosition, ((duration ?: 0) - startingPosition)),
-                                ),
-                            )
-                            viewModel.updateSeekPos(it.toFloat().coerceIn(0f, duration?.toFloat() ?: 0f))
-                        }
+                val touchSlop = viewConfiguration.touchSlop
+                val doubleTapTimeout = viewConfiguration.doubleTapTimeoutMillis
+                var lastUpTime = 0L
+                var isDoubletapping = false
+                var doubleTapJob: Job? = null
+                var singleTapJob: Job? = null
 
-                        if (showSeekbar) viewModel.showSeekBar()
-                    },
-                )
-            }
-            .pointerInput(uiData.isControlsLocked) {
-                if (!gestureVolumeBrightness || uiData.isControlsLocked) return@pointerInput
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val downTime = down.uptimeMillis
 
-                var startingY = 0f
-                var mpvVolumeStartingY = 0f
-                var originalVolume = playbackData.currentVolume
-                var originalMPVVolume = currentMPVVolume
-                var originalBrightness = playbackData.currentBrightness
-                val brightnessGestureSens = 0.001f
-                val volumeGestureSens = 0.001f * stateData.maxVolume
-                val mpvVolumeGestureSens = 0.001f * volumeBoostingCap
-                val isIncreasingVolumeBoost: (Float) -> Boolean = {
-                    volumeBoostingCap > 0 &&
-                        playbackData.currentVolume == stateData.maxVolume &&
-                        (currentMPVVolume ?: 100) - 100 < volumeBoostingCap &&
-                        it < 0
-                }
-                val isDecreasingVolumeBoost: (Float) -> Boolean = {
-                    volumeBoostingCap > 0 &&
-                        playbackData.currentVolume == stateData.maxVolume &&
-                        (currentMPVVolume ?: 100) - 100 in 1..volumeBoostingCap &&
-                        it > 0
-                }
+                    var totalPanX = 0f
+                    var totalPanY = 0f
 
-                detectVerticalDragGestures(
-                    onDragEnd = { startingY = 0f },
-                    onDragStart = {
-                        startingY = 0f
-                        mpvVolumeStartingY = 0f
-                        originalVolume = playbackData.currentVolume
-                        originalMPVVolume = currentMPVVolume
-                        originalBrightness = playbackData.currentBrightness
-                            .takeUnless { it == WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
-                            ?: brightnessManager.getCurrentBrightness()
-                    },
-                ) { change, amount ->
-                    val changeVolume: () -> Unit = {
-                        if (isIncreasingVolumeBoost(amount) || isDecreasingVolumeBoost(amount)) {
-                            if (mpvVolumeStartingY == 0f) {
-                                startingY = 0f
-                                originalVolume = playbackData.currentVolume
-                                mpvVolumeStartingY = change.position.y
-                            }
-                            viewModel.changeMPVVolumeTo(
-                                calculateNewVerticalGestureValue(
-                                    originalMPVVolume ?: 100,
-                                    mpvVolumeStartingY,
-                                    change.position.y,
-                                    mpvVolumeGestureSens,
+                    val startingX = down.position.x
+                    val startingY = down.position.y
+
+                    val isLeft = startingX < size.width / 2
+                    var activeGesture = ActiveGesture.None
+                    var isLongPress = false
+
+                    singleTapJob?.cancel()
+
+                    val longPressJob = scope.launch {
+                        delay(viewConfiguration.longPressTimeoutMillis)
+                        isLongPress = true
+                        activeGesture = ActiveGesture.LongPress
+                        onGestureEvent(GestureEvent.LongPressChange(start = true))
+                    }
+
+                    // Check for drags and such
+                    var upTime = 0L
+                    do {
+                        val event = awaitPointerEvent()
+                        val pointerInputs = event.changes
+
+                        val panChange = event.calculatePan()
+                        if (pointerInputs.size > 1 &&
+                            (activeGesture == ActiveGesture.None || activeGesture == ActiveGesture.Transform)
+                        ) {
+                            longPressJob.cancel()
+                            activeGesture = ActiveGesture.Transform
+
+                            val zoomChange = event.calculateZoom()
+                            if (zoomChange != 1f || panChange != Offset.Zero) {
+                                onGestureEvent(
+                                    GestureEvent.Transform(zoomChange, panChange),
                                 )
-                                    .coerceIn(100..volumeBoostingCap + 100),
-                            )
-                        } else {
-                            if (startingY == 0f) {
-                                mpvVolumeStartingY = 0f
-                                originalMPVVolume = currentMPVVolume
-                                startingY = change.position.y
                             }
-                            viewModel.changeVolumeTo(
-                                calculateNewVerticalGestureValue(
-                                    originalVolume,
-                                    startingY,
-                                    change.position.y,
-                                    volumeGestureSens,
-                                ),
-                            )
                         }
-                        viewModel.displayVolumeSlider(true)
+
+                        totalPanX += panChange.x
+                        totalPanY += panChange.y
+
+                        if (!isLongPress && (abs(totalPanX) > touchSlop || abs(totalPanY) > touchSlop)) {
+                            longPressJob.cancel()
+                            if (activeGesture == ActiveGesture.None) {
+                                activeGesture = if (abs(totalPanX) > abs(totalPanY)) {
+                                    onGestureEvent(GestureEvent.PanXChange(start = true))
+                                    ActiveGesture.PanX
+                                } else {
+                                    onGestureEvent(GestureEvent.PanYChange(left = isLeft, start = true))
+                                    ActiveGesture.PanY
+                                }
+                            }
+                        }
+
+                        when (activeGesture) {
+                            ActiveGesture.LongPress -> {
+                                onGestureEvent(GestureEvent.LongPressSwipe(panChange.x))
+                            }
+                            ActiveGesture.PanX -> {
+                                onGestureEvent(GestureEvent.PanX(panChange.x))
+                            }
+                            ActiveGesture.PanY -> {
+                                onGestureEvent(
+                                    GestureEvent.PanY(isLeft, panChange.y),
+                                )
+                            }
+                            ActiveGesture.None -> {
+                                // Ignore
+                            }
+                            ActiveGesture.Transform -> {
+                                // Ignore
+                            }
+                        }
+
+                        upTime = if (activeGesture == ActiveGesture.None) pointerInputs.first().uptimeMillis else 0
+                        pointerInputs.forEach { it.consume() }
+                    } while (pointerInputs.any { it.pressed } && scope.isActive)
+
+                    // Finger(s) released
+                    scope.ensureActive()
+                    longPressJob.cancel()
+
+                    when (activeGesture) {
+                        ActiveGesture.None -> {
+                            val tapTimeDelta = downTime - lastUpTime
+                            if (isDoubletapping || (lastUpTime > 0 && tapTimeDelta < doubleTapTimeout)) {
+                                val position = if (startingX > size.width * 3 / 5) {
+                                    GesturePosition.Right
+                                } else if (startingX < size.width * 2 / 5) {
+                                    GesturePosition.Left
+                                } else {
+                                    GesturePosition.Middle
+                                }
+
+                                onGestureEvent(GestureEvent.DoubleTap(position))
+                                isDoubletapping = true
+                                doubleTapJob?.cancel()
+                                doubleTapJob = scope.launch {
+                                    delay(0.8.seconds)
+                                    isDoubletapping = false
+                                }
+                            } else {
+                                singleTapJob = scope.launch {
+                                    delay(doubleTapTimeout)
+                                    onGestureEvent(GestureEvent.Tap)
+                                }
+                            }
+                        }
+                        ActiveGesture.LongPress -> {
+                            onGestureEvent(GestureEvent.LongPressChange(start = false))
+                        }
+                        ActiveGesture.PanX -> {
+                            onGestureEvent(GestureEvent.PanXChange(start = false))
+                        }
+                        ActiveGesture.PanY -> {
+                            onGestureEvent(GestureEvent.PanYChange(left = isLeft, start = false))
+                        }
+                        ActiveGesture.Transform -> {}
                     }
-                    val changeBrightness: () -> Unit = {
-                        if (startingY == 0f) startingY = change.position.y
-                        viewModel.changeBrightnessTo(
-                            calculateNewVerticalGestureValue(
-                                originalBrightness,
-                                startingY,
-                                change.position.y,
-                                brightnessGestureSens,
-                            ),
-                        )
-                        viewModel.displayBrightnessSlider(true)
-                    }
-                    if (swapVolumeBrightness) {
-                        if (change.position.x > size.width / 2) changeBrightness() else changeVolume()
-                    } else {
-                        if (change.position.x < size.width / 2) changeBrightness() else changeVolume()
-                    }
+
+                    lastUpTime = upTime
                 }
             },
     )
-}
-
-@Composable
-fun DoubleTapToSeekOvals(
-    amount: Int,
-    text: String?,
-    interactionSource: MutableInteractionSource,
-    modifier: Modifier = Modifier,
-) {
-    val alpha by animateFloatAsState(if (amount == 0) 0f else 0.2f, label = "double_tap_animation_alpha")
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = if (amount > 0) Alignment.CenterEnd else Alignment.CenterStart,
-    ) {
-        CompositionLocalProvider(
-            LocalRippleConfiguration provides playerRippleConfiguration,
-        ) {
-            if (amount != 0 || text != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.4f), // 2 fifths
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(if (amount > 0) RightSideOvalShape else LeftSideOvalShape)
-                            .background(Color.White.copy(alpha))
-                            .indication(interactionSource, ripple()),
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        DoubleTapSeekTriangles(isForward = amount > 0)
-                        Text(
-                            text = text ?: pluralStringResource(AYMR.plurals.seconds, amount, amount),
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center,
-                            color = Color.White,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-fun calculateNewVerticalGestureValue(originalValue: Int, startingY: Float, newY: Float, sensitivity: Float): Int {
-    return originalValue + ((startingY - newY) * sensitivity).toInt()
-}
-
-fun calculateNewVerticalGestureValue(originalValue: Float, startingY: Float, newY: Float, sensitivity: Float): Float {
-    return originalValue + ((startingY - newY) * sensitivity)
-}
-
-fun calculateNewHorizontalGestureValue(originalValue: Int, startingX: Float, newX: Float, sensitivity: Float): Int {
-    return originalValue + ((newX - startingX) * sensitivity).toInt()
-}
-
-fun calculateNewHorizontalGestureValue(originalValue: Float, startingX: Float, newX: Float, sensitivity: Float): Float {
-    return originalValue + ((newX - startingX) * sensitivity)
 }

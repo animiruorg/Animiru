@@ -8,6 +8,7 @@ import android.net.Uri
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.net.toUri
@@ -79,6 +80,8 @@ import eu.kanade.tachiyomi.ui.player.components.HosterState
 import eu.kanade.tachiyomi.ui.player.components.MAX_BRIGHTNESS
 import eu.kanade.tachiyomi.ui.player.components.MIN_BRIGHTNESS
 import eu.kanade.tachiyomi.ui.player.components.getChangedAt
+import eu.kanade.tachiyomi.ui.player.controls.GestureEvent
+import eu.kanade.tachiyomi.ui.player.controls.GesturePosition
 import eu.kanade.tachiyomi.ui.player.controls.components.IndexedSegment
 import eu.kanade.tachiyomi.ui.player.domain.AudioManager
 import eu.kanade.tachiyomi.ui.player.domain.BrightnessManager
@@ -169,6 +172,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.log2
+import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -222,7 +227,7 @@ class PlayerViewModel(
     private val getCustomButtons: GetCustomButtons,
     private val trackSelect: TrackSelect,
     private val audioManager: AudioManager,
-    brightnessManager: BrightnessManager,
+    private val brightnessManager: BrightnessManager,
     private val coverManager: LocalCoverManager,
     private val backgroundManager: LocalBackgroundManager,
     private val thumbnailManager: LocalEpisodeThumbnailManager,
@@ -604,6 +609,60 @@ class PlayerViewModel(
             MPVPlayer.Event.FileLoaded -> fileLoaded()
             is MPVPlayer.Event.LuaEvent -> handleLuaInvocation(event.property, event.value)
             is MPVPlayer.Event.TrackLoadFailure -> onTrackLoadedFailure(event.url)
+        }
+    }
+
+    fun handleGestureEvent(event: GestureEvent) {
+        when (event) {
+            is GestureEvent.DoubleTap -> {
+                when (event.gesturePosition) {
+                    GesturePosition.Left -> {
+                        if (playbackData.value.isSeekingForwards) {
+                            updateSeekAmount(0)
+                        }
+                        handleLeftDoubleTap()
+                    }
+                    GesturePosition.Middle -> handleCenterDoubleTap()
+                    GesturePosition.Right -> {
+                        if (!playbackData.value.isSeekingForwards) {
+                            updateSeekAmount(0)
+                        }
+                        handleRightDoubleTap()
+                    }
+                }
+            }
+            is GestureEvent.LongPressChange -> {
+                if (event.start) onDoubleSpeedStart() else onDoubleSpeedEnd()
+            }
+            is GestureEvent.LongPressSwipe -> {
+                onDoubleSpeedChange(event.deltaX)
+            }
+            is GestureEvent.PanX -> {
+                onDragSeekChange(event.deltaX)
+            }
+            is GestureEvent.PanXChange -> {
+                if (event.start) onDragSeekStart() else onDragSeekEnd()
+            }
+            is GestureEvent.PanY -> {
+                if ((event.left && swapVolumeAndBrightness) || (!event.left && !swapVolumeAndBrightness)) {
+                    onVolumeGestureChange(event.deltaY)
+                } else {
+                    onBrightnessGestureChange(event.deltaY)
+                }
+            }
+            is GestureEvent.PanYChange -> {
+                if ((event.left && swapVolumeAndBrightness) || (!event.left && !swapVolumeAndBrightness)) {
+                    if (event.start) onVolumeGestureStart() else onVolumeGestureEnd()
+                } else {
+                    if (event.start) onBrightnessGestureStart() else onBrightnessGestureEnd()
+                }
+            }
+            GestureEvent.Tap -> {
+                if (uiData.value.controlsShown) hideControls() else showControls()
+            }
+            is GestureEvent.Transform -> {
+                onTransformChange(event.zoom, event.pos)
+            }
         }
     }
 
@@ -2609,12 +2668,120 @@ class PlayerViewModel(
         }
     }
 
+    private var originalSpeed = 0.0
+    private var speed = 0.0
+    fun onDoubleSpeedStart() {
+        originalSpeed = mpv.getPropertyDouble("speed") ?: 1.0
+        speed = 2.0
+        setSpeed(speed)
+    }
+
+    fun onDoubleSpeedChange(deltaX: Float) {
+        speed = (speed + deltaX * (speed.coerceAtMost(2.5)) / 1000.0)
+            .coerceIn(0.25, 4.0)
+        if (deltaX != 0f) {
+            setSpeed(speed)
+        }
+    }
+
+    fun onDoubleSpeedEnd() {
+        mpv.setPropertyDouble("speed", originalSpeed)
+        speed = 0.0
+        updateUiData { it.copy(playerUpdate = PlayerUpdates.None) }
+    }
+
+    private fun setSpeed(speed: Double) {
+        mpv.setPropertyDouble("speed", speed)
+        updateUiData { it.copy(playerUpdate = PlayerUpdates.DoubleSpeed(speed.toFloat())) }
+    }
+
+    private var zoom = 1f
+    private var offset = Offset.Zero
+    fun onTransformChange(deltaZoom: Float, deltaPan: Offset) {
+        zoom *= deltaZoom
+        offset += deltaPan
+
+        val newZoom = log2(zoom)
+        val panx = (offset.x / (2.5f * stateData.value.videoWidth))
+        val pany = (offset.y / (2.5f * stateData.value.videoHeight))
+
+        mpv.setPropertyFloat("video-zoom", newZoom)
+        mpv.setPropertyFloat("video-pan-x", panx)
+        mpv.setPropertyFloat("video-pan-y", pany)
+
+        updateUiData { it.copy(playerUpdate = PlayerUpdates.Transform(zoom.times(100f).roundToInt())) }
+    }
+
+    private var brightness = 0f
+    fun onBrightnessGestureStart() {
+        brightness = playbackData.value.currentBrightness
+            .takeUnless { it == WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
+            ?: brightnessManager.getCurrentBrightness()
+        displayBrightnessSlider(true)
+    }
+
+    fun onBrightnessGestureChange(deltaY: Float) {
+        val deltaY = -deltaY // Drap up -> negative deltaY
+        brightness = (brightness + deltaY * 0.001f)
+            .coerceIn(MIN_BRIGHTNESS, MAX_BRIGHTNESS)
+        changeBrightnessTo(brightness)
+    }
+
+    fun onBrightnessGestureEnd() {
+        brightness = 0f
+    }
+
     fun changeBrightnessTo(brightness: Float) {
-        updatePlaybackData { it.copy(currentBrightness = brightness.coerceIn(MIN_BRIGHTNESS, MAX_BRIGHTNESS)) }
+        updatePlaybackData { it.copy(currentBrightness = brightness) }
     }
 
     fun displayBrightnessSlider(show: Boolean) {
         updateUiData { it.copy(isBrightnessSliderShown = show) }
+    }
+
+    private var systemVolume = 0f
+    private var mpvVolume = 0f
+    fun onVolumeGestureStart() {
+        systemVolume = playbackData.value.currentVolume.toFloat()
+        mpvVolume = (mpv.getPropertyInt("volume") ?: 100).toFloat()
+        displayVolumeSlider(true)
+    }
+
+    fun onVolumeGestureChange(deltaY: Float) {
+        val deltaY = -deltaY // Drap up -> negative deltaY
+
+        val boostCap = stateData.value.volumeBoostCap ?: audioPreferences.volumeBoostCap.get()
+        val isBoost = boostCap > 0 &&
+            systemVolume >= maxVolume &&
+            (mpvVolume > 100 || (mpvVolume == 100f && deltaY > 0f))
+
+        val volumeGestureSens = 0.001f * stateData.value.maxVolume
+        val mpvVolumeGestureSens = 0.0005f * boostCap
+
+        if (isBoost) {
+            systemVolume = maxVolume.toFloat()
+            mpvVolume = (mpvVolume + deltaY * mpvVolumeGestureSens)
+                .coerceIn(100f, 100f + boostCap)
+
+            val newMpvVolume = mpvVolume.roundToInt()
+            if (newMpvVolume != mpv.getPropertyInt("volume")) {
+                changeMPVVolumeTo(newMpvVolume)
+            }
+        } else {
+            mpvVolume = 100f
+            systemVolume = (systemVolume + deltaY * volumeGestureSens)
+                .coerceIn(0f, maxVolume.toFloat())
+
+            val newVolume = systemVolume.roundToInt()
+            if (newVolume != playbackData.value.currentVolume) {
+                changeVolumeTo(newVolume)
+            }
+        }
+    }
+
+    fun onVolumeGestureEnd() {
+        systemVolume = 0f
+        mpvVolume = 0f
     }
 
     fun changeVolumeBy(change: Int) {
@@ -2833,6 +3000,39 @@ class PlayerViewModel(
     private operator fun <T> List<T>.component6(): T = get(5)
 
     // === Seeking ===
+
+    private var startingPosition = 0
+    fun onDragSeekStart() {
+        startingPosition = mpv.getPropertyInt("time-pos") ?: 0
+        updatePlaybackData { it.copy(seekPosition = startingPosition.toFloat()) }
+        updateIsSeeking(true)
+    }
+
+    fun onDragSeekChange(deltaX: Float) {
+        if (deltaX == 0f) return
+
+        val duration = playbackData.value.duration
+        val newSeekPos = (playbackData.value.seekPosition + deltaX * 0.15f)
+            .coerceIn(0f, duration.toFloat())
+        updatePlaybackData { it.copy(seekPosition = newSeekPos) }
+        updateGestureSeekAmount(
+            Pair(
+                startingPosition,
+                (newSeekPos.toInt() - startingPosition)
+                    .coerceIn(0 - startingPosition, (duration - startingPosition)),
+            ),
+        )
+        if (showSeekBar) {
+            showSeekBar()
+        }
+    }
+
+    fun onDragSeekEnd() {
+        updateIsSeeking(false)
+        seekTo(playbackData.value.seekPosition.toInt().coerceIn(0, playbackData.value.duration))
+        updateGestureSeekAmount(null)
+        hideSeekBar()
+    }
 
     fun updateGestureSeekAmount(value: Pair<Int, Int>?) {
         updatePlaybackData { it.copy(gestureSeekAmount = value, isGestureSeeking = value != null) }

@@ -162,6 +162,10 @@
     <string name="player_pref_subtitle_black_bars_summary">Display subtitles on black bars when available</string>
     <string name="player_pref_subtitle_system_fonts">Include system fonts</string>
 
+    <!-- Player - misc -->
+    <string name="player_speed" translatable="false">%.2fx</string>
+    <string name="player_zoom" translatable="false">%d%%</string>
+
     <!-- Player - deband -->
     <string name="player_sheets_video_settings_title">Video settings</string>
     <string name="player_sheets_deband_title">Deband</string>

@@ -20,8 +20,10 @@ package eu.kanade.tachiyomi.ui.player.controls.components
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,8 +31,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import mihon.icons.materialsymbols.MaterialSymbols
+import mihon.icons.materialsymbols.rounded.KeyboardDoubleArrowRight
+import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.padding
+import tachiyomi.presentation.core.i18n.stringResource
 
 @Composable
 fun PlayerUpdate(
@@ -54,5 +61,24 @@ fun TextPlayerUpdate(
 ) {
     PlayerUpdate(modifier) {
         Text(text)
+    }
+}
+
+@Composable
+fun MultipleSpeedPlayerUpdate(currentSpeed: Float, modifier: Modifier = Modifier) {
+    PlayerUpdate(modifier) {
+        Row(
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Text(
+                stringResource(AMMR.strings.player_speed, currentSpeed),
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Icon(
+                MaterialSymbols.Rounded.KeyboardDoubleArrowRight,
+                null,
+            )
+        }
     }
 }

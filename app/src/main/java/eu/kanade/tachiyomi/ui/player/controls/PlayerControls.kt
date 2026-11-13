@@ -37,6 +37,7 @@ import eu.kanade.tachiyomi.ui.player.PlayerViewModel.PlayerEvent
 import eu.kanade.tachiyomi.ui.player.Sheets
 import eu.kanade.tachiyomi.ui.player.controls.components.BrightnessSlider
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
+import eu.kanade.tachiyomi.ui.player.controls.components.MultipleSpeedPlayerUpdate
 import eu.kanade.tachiyomi.ui.player.controls.components.SeekbarWithTimers
 import eu.kanade.tachiyomi.ui.player.controls.components.TextPlayerUpdate
 import eu.kanade.tachiyomi.ui.player.controls.components.ThumbnailPreview
@@ -44,6 +45,7 @@ import eu.kanade.tachiyomi.ui.player.controls.components.VolumeSlider
 import kotlinx.coroutines.delay
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.roundedfilled.Lock
+import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 import kotlin.math.roundToInt
@@ -203,15 +205,18 @@ fun PlayerControls(
                     linkTo(parent.top, parent.bottom, bias = 0.2f)
                 },
             ) {
-                when (uiData.playerUpdate) {
+                when (val p = uiData.playerUpdate) {
                     PlayerUpdates.None -> {}
-                    PlayerUpdates.DoubleSpeed -> {}
+                    is PlayerUpdates.DoubleSpeed -> MultipleSpeedPlayerUpdate(p.speed)
                     is PlayerUpdates.AspectRatio -> TextPlayerUpdate(
-                        stringResource(uiData.playerUpdate.aspect.titleRes),
+                        stringResource(p.aspect.titleRes),
                     )
-                    is PlayerUpdates.ShowText -> TextPlayerUpdate(uiData.playerUpdate.value)
+                    is PlayerUpdates.ShowText -> TextPlayerUpdate(p.value)
                     is PlayerUpdates.ShowTextResource -> TextPlayerUpdate(
-                        stringResource(uiData.playerUpdate.textResource),
+                        stringResource(p.textResource),
+                    )
+                    is PlayerUpdates.Transform -> TextPlayerUpdate(
+                        stringResource(AMMR.strings.player_zoom, p.zoom),
                     )
                 }
             }
@@ -480,7 +485,7 @@ private fun PlayerControlsPreview() {
             uiData = PlayerViewModel.PlayerUiData(
                 animeTitle = "ef - a tale of memories.",
                 mediaTitle = "Ep. 2 - Upon a Time",
-                playerUpdate = PlayerUpdates.DoubleSpeed,
+                playerUpdate = PlayerUpdates.DoubleSpeed(2f),
             ),
             playbackData = PlayerViewModel.PlayerPlaybackData(
                 currentVolume = 0,
