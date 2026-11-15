@@ -12,4 +12,4 @@
 -->
 
 ### Before submitting a pull request, I acknowledge that:
-- [ ] This pull request complies with this project's [**NO AI / NO LLM POLICY**](https://github.com/animiruorg/Animiru/blob/master/.NO_AI/README.md)
+- [ ] This pull request complies with this project's [**NO AI / NO LLM POLICY**](https://github.com/animiruorg/Animiru/blob/animiru-new-main/.NO_AI/README.md)
