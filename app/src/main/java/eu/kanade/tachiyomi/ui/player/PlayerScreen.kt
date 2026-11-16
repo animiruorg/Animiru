@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.player
 
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,13 +46,13 @@ import eu.kanade.tachiyomi.ui.player.components.MpvSurface
 import eu.kanade.tachiyomi.ui.player.components.OrientationOverlay
 import eu.kanade.tachiyomi.ui.player.components.SystemAwakeOverlay
 import eu.kanade.tachiyomi.ui.player.components.SystemBarOverlay
-import eu.kanade.tachiyomi.ui.player.controls.DoubleTapToSeekOvals
 import eu.kanade.tachiyomi.ui.player.controls.GestureHandler
 import eu.kanade.tachiyomi.ui.player.controls.LocalPlayerButtonsClickEvent
 import eu.kanade.tachiyomi.ui.player.controls.PlayerControls
 import eu.kanade.tachiyomi.ui.player.controls.PlayerDialogs
 import eu.kanade.tachiyomi.ui.player.controls.PlayerPanels
 import eu.kanade.tachiyomi.ui.player.controls.PlayerSheets
+import eu.kanade.tachiyomi.ui.player.controls.components.DoubleTapToSeekOvals
 import eu.kanade.tachiyomi.ui.player.controls.components.panels.SubColorType
 import eu.kanade.tachiyomi.ui.player.controls.components.panels.resetColors
 import eu.kanade.tachiyomi.ui.player.controls.components.panels.resetTypography
@@ -66,6 +68,7 @@ import tachiyomi.presentation.core.util.collectAsState
 import tachiyomi.source.local.isLocal
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(InternalVoyagerApi::class)
 @Composable
@@ -79,6 +82,7 @@ fun PlayerScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val uiPreferences = remember { appGraph.uiPreferences }
     val playerPreferences = remember { appGraph.playerPreferences }
+    val gesturePreferences = remember { appGraph.gesturePreferences }
     val audioPreferences = remember { appGraph.audioPreferences }
     val subtitlePreferences = remember { appGraph.subtitlePreferences }
     val decoderPreferences = remember { appGraph.decoderPreferences }
@@ -219,15 +223,25 @@ fun PlayerScreen(
             val remaining by viewModel.propFlow<Int>("playtime-remaining").collectAsStateWithLifecycle()
             val playbackSpeed by viewModel.propFlow<Float>("speed").collectAsStateWithLifecycle()
 
+            val configuration = LocalConfiguration.current
+            val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
             MpvSurface(
                 modifier = Modifier.fillMaxSize(),
                 mpv = viewModel.mpv,
                 videoOutput = viewModel.videoOutput,
             )
 
+            val zoomEnabled by gesturePreferences.gestureZoom.collectAsState()
+            val panEnabled by gesturePreferences.gesturePan.collectAsState()
+            val longPressEnabled by gesturePreferences.gestureLongPress.collectAsState()
             GestureHandler(
                 modifier = Modifier.fillMaxSize(),
-                viewModel = viewModel,
+                zoomEnabled = zoomEnabled,
+                panEnabled = panEnabled,
+                longPressEnabled = longPressEnabled,
+                areControlsLocked = uiData.isControlsLocked,
+                onGestureEvent = viewModel::handleGestureEvent,
                 interactionSource = interactionSource,
             )
 
@@ -236,6 +250,14 @@ fun PlayerScreen(
                 text = playbackData.seekText,
                 interactionSource = interactionSource,
             )
+
+            LaunchedEffect(playbackData.doubleTapSeekAmount) {
+                delay(0.8.seconds)
+                viewModel.updateSeekAmount(0)
+                viewModel.updateSeekText(null)
+                delay(0.1.seconds)
+                viewModel.hideSeekBar()
+            }
 
             SystemAwakeOverlay(
                 paused = playbackData.paused,
@@ -269,6 +291,7 @@ fun PlayerScreen(
                 LocalContentColor provides Color.White,
             ) {
                 PlayerControls(
+                    isLandscape = isLandscape,
                     stateData = stateData,
                     uiData = uiData,
                     playbackData = playbackData,
@@ -369,10 +392,13 @@ fun PlayerScreen(
                     onShare = viewModel::shareImage,
                     onSave = viewModel::saveImage,
                     takeScreenshot = viewModel::takeScreenshot,
-                    onDismissScreenshot = {
-                        viewModel.setSheet(Sheets.None)
-                        viewModel.unpause()
-                    },
+                    frameCount = playbackData.totalFrames,
+                    currentFrame = playbackData.currentFrame,
+                    paused = playbackData.paused,
+                    onPlayPause = viewModel::pauseUnpause,
+                    onPreviousFrame = viewModel::previousFrame,
+                    onNextFrame = viewModel::nextFrame,
+                    onDismissScreenshot = { viewModel.setSheet(Sheets.None) },
                     onOpenPanel = viewModel::setPanel,
                     onDismissRequest = { viewModel.setSheet(Sheets.None) },
                     dismissSheet = uiData.dismissSheet,

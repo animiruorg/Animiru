@@ -22,9 +22,9 @@ enum class Panels {
     VideoFilters,
 }
 
-sealed class Dialogs {
-    data object None : Dialogs()
-    data object EpisodeList : Dialogs()
+sealed interface Dialogs {
+    data object None : Dialogs
+    data object EpisodeList : Dialogs
     data class IntegerPicker(
         val defaultValue: Int,
         val minValue: Int,
@@ -34,13 +34,14 @@ sealed class Dialogs {
         val title: String,
         val onChange: (Int) -> Unit,
         val onDismissRequest: () -> Unit,
-    ) : Dialogs()
+    ) : Dialogs
 }
 
-sealed class PlayerUpdates {
-    data object None : PlayerUpdates()
-    data object DoubleSpeed : PlayerUpdates()
-    data class AspectRatio(val aspect: VideoAspect) : PlayerUpdates()
-    data class ShowText(val value: String) : PlayerUpdates()
-    data class ShowTextResource(val textResource: StringResource) : PlayerUpdates()
+sealed interface PlayerUpdates {
+    data object None : PlayerUpdates
+    data class DoubleSpeed(val speed: Float) : PlayerUpdates
+    data class AspectRatio(val aspect: VideoAspect) : PlayerUpdates
+    data class ShowText(val value: String) : PlayerUpdates
+    data class ShowTextResource(val textResource: StringResource) : PlayerUpdates
+    data class Transform(val zoom: Int) : PlayerUpdates
 }

@@ -37,13 +37,17 @@ import eu.kanade.tachiyomi.ui.player.PlayerViewModel.PlayerEvent
 import eu.kanade.tachiyomi.ui.player.Sheets
 import eu.kanade.tachiyomi.ui.player.controls.components.BrightnessSlider
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
+import eu.kanade.tachiyomi.ui.player.controls.components.MultipleSpeedPlayerUpdate
 import eu.kanade.tachiyomi.ui.player.controls.components.SeekbarWithTimers
 import eu.kanade.tachiyomi.ui.player.controls.components.TextPlayerUpdate
 import eu.kanade.tachiyomi.ui.player.controls.components.ThumbnailPreview
 import eu.kanade.tachiyomi.ui.player.controls.components.VolumeSlider
 import kotlinx.coroutines.delay
+import mihon.icons.custommaterialsymbols.CustomMaterialSymbols
+import mihon.icons.custommaterialsymbols.rounded.ResetZoom
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.roundedfilled.Lock
+import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 import kotlin.math.roundToInt
@@ -54,6 +58,7 @@ val LocalPlayerButtonsClickEvent = staticCompositionLocalOf { {} }
 
 @Composable
 fun PlayerControls(
+    isLandscape: Boolean,
     stateData: PlayerViewModel.PlayerStateData,
     uiData: PlayerViewModel.PlayerUiData,
     playbackData: PlayerViewModel.PlayerPlaybackData,
@@ -98,6 +103,7 @@ fun PlayerControls(
             val seekbar = createRef()
             val (playerUpdates) = createRefs()
             val skipButton = createRef()
+            val resetTransform = createRef()
 
             LaunchedEffect(playbackData.currentVolume, mpvVolume, uiData.isVolumeSliderShown) {
                 delay(2.seconds)
@@ -203,15 +209,18 @@ fun PlayerControls(
                     linkTo(parent.top, parent.bottom, bias = 0.2f)
                 },
             ) {
-                when (uiData.playerUpdate) {
+                when (val p = uiData.playerUpdate) {
                     PlayerUpdates.None -> {}
-                    PlayerUpdates.DoubleSpeed -> {}
+                    is PlayerUpdates.DoubleSpeed -> MultipleSpeedPlayerUpdate(p.speed)
                     is PlayerUpdates.AspectRatio -> TextPlayerUpdate(
-                        stringResource(uiData.playerUpdate.aspect.titleRes),
+                        stringResource(p.aspect.titleRes),
                     )
-                    is PlayerUpdates.ShowText -> TextPlayerUpdate(uiData.playerUpdate.value)
+                    is PlayerUpdates.ShowText -> TextPlayerUpdate(p.value)
                     is PlayerUpdates.ShowTextResource -> TextPlayerUpdate(
-                        stringResource(uiData.playerUpdate.textResource),
+                        stringResource(p.textResource),
+                    )
+                    is PlayerUpdates.Transform -> TextPlayerUpdate(
+                        stringResource(AMMR.strings.player_zoom, p.zoom),
                     )
                 }
             }
@@ -314,10 +323,14 @@ fun PlayerControls(
                     fadeOut(playerControlsExitAnimationSpec())
                 },
                 modifier = Modifier.constrainAs(topLeftControls) {
+                    if (isLandscape) {
+                        end.linkTo(topRightControls.start)
+                    } else {
+                        end.linkTo(parent.end)
+                    }
                     top.linkTo(parent.top, MaterialTheme.padding.medium)
                     start.linkTo(parent.start)
                     width = Dimension.fillToConstraints
-                    end.linkTo(topRightControls.start)
                 },
             ) {
                 TopLeftPlayerControls(
@@ -343,7 +356,11 @@ fun PlayerControls(
                     fadeOut(playerControlsExitAnimationSpec())
                 },
                 modifier = Modifier.constrainAs(topRightControls) {
-                    top.linkTo(parent.top, MaterialTheme.padding.medium)
+                    if (isLandscape) {
+                        top.linkTo(parent.top, MaterialTheme.padding.medium)
+                    } else {
+                        top.linkTo(topLeftControls.bottom)
+                    }
                     end.linkTo(parent.end)
                 },
             ) {
@@ -391,6 +408,31 @@ fun PlayerControls(
             }
 
             AnimatedVisibility(
+                visible = uiData.controlsShown && !uiData.isControlsLocked && uiData.showResetTransform,
+                enter = if (!uiData.reduceMotion) {
+                    slideInVertically(playerControlsEnterAnimationSpec()) { it } +
+                        fadeIn(playerControlsEnterAnimationSpec())
+                } else {
+                    fadeIn(playerControlsEnterAnimationSpec())
+                },
+                exit = if (!uiData.reduceMotion) {
+                    slideOutVertically(playerControlsExitAnimationSpec()) { it } +
+                        fadeOut(playerControlsExitAnimationSpec())
+                } else {
+                    fadeOut(playerControlsExitAnimationSpec())
+                },
+                modifier = Modifier.constrainAs(resetTransform) {
+                    start.linkTo(seekbar.start, MaterialTheme.padding.small)
+                    bottom.linkTo(seekbar.top)
+                },
+            ) {
+                ControlsButton(
+                    icon = CustomMaterialSymbols.Rounded.ResetZoom,
+                    onClick = { onPlayerEvent(PlayerEvent.ResetTransform) },
+                )
+            }
+
+            AnimatedVisibility(
                 visible = uiData.controlsShown && !uiData.isControlsLocked,
                 enter = if (!uiData.reduceMotion) {
                     slideInHorizontally(playerControlsEnterAnimationSpec()) { it } +
@@ -415,6 +457,7 @@ fun PlayerControls(
                     castError = stateData.isErrorCasting,
                     isPipAvailable = stateData.isPipAvailable,
                     onPipClick = { onPlayerEvent(PlayerEvent.EnterPip) },
+                    onScrenshotClick = { onPlayerEvent(PlayerEvent.SetSheet(Sheets.Screenshot)) },
                     onAspectClick = { onPlayerEvent(PlayerEvent.ChangeAspect) },
                 )
             }
@@ -434,10 +477,15 @@ fun PlayerControls(
                     fadeOut(playerControlsExitAnimationSpec())
                 },
                 modifier = Modifier.constrainAs(bottomLeftControls) {
-                    bottom.linkTo(parent.bottom, MaterialTheme.padding.small)
+                    if (isLandscape) {
+                        bottom.linkTo(parent.bottom, MaterialTheme.padding.small)
+                        end.linkTo(bottomRightControls.start)
+                    } else {
+                        bottom.linkTo(bottomRightControls.top)
+                        end.linkTo(parent.end)
+                    }
                     start.linkTo(seekbar.start)
                     width = Dimension.fillToConstraints
-                    end.linkTo(bottomRightControls.start)
                 },
             ) {
                 BottomLeftPlayerControls(
@@ -472,6 +520,7 @@ fun PlayerControls(
 private fun PlayerControlsPreview() {
     MaterialTheme {
         PlayerControls(
+            isLandscape = true,
             stateData = PlayerViewModel.PlayerStateData(
                 maxVolume = 0,
                 isEpisodeOnline = true,
@@ -480,7 +529,7 @@ private fun PlayerControlsPreview() {
             uiData = PlayerViewModel.PlayerUiData(
                 animeTitle = "ef - a tale of memories.",
                 mediaTitle = "Ep. 2 - Upon a Time",
-                playerUpdate = PlayerUpdates.DoubleSpeed,
+                playerUpdate = PlayerUpdates.DoubleSpeed(2f),
             ),
             playbackData = PlayerViewModel.PlayerPlaybackData(
                 currentVolume = 0,

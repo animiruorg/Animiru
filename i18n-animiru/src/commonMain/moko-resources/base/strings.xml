@@ -157,10 +157,21 @@
     <!-- Player prefs - internal player -->
     <string name="player_pref_switch_on_failure">Switch video on loading failure</string>
 
+    <!-- Player prefs - Gestures -->
+    <string name="player_pref_gesture_zoom">Enable zoom gesture</string>
+    <string name="player_pref_gesture_pan">Enable pan gesture</string>
+    <string name="player_pref_gesture_long_press">Enable long press gesture</string>
+    <string name="player_pref_gesture_long_press_summary">Swipe left/right to decrease/increase speed</string>
+
     <!-- Player prefs - subtitles -->
     <string name="player_pref_subtitle_black_bars">Render on black bars</string>
     <string name="player_pref_subtitle_black_bars_summary">Display subtitles on black bars when available</string>
     <string name="player_pref_subtitle_system_fonts">Include system fonts</string>
+
+    <!-- Player - misc -->
+    <string name="player_speed" translatable="false">%.2fx</string>
+    <string name="player_zoom" translatable="false">%d%%</string>
+    <string name="player_frame">Frame: %1$d / %2$d</string>
 
     <!-- Player - deband -->
     <string name="player_sheets_video_settings_title">Video settings</string>

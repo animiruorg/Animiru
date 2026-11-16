@@ -102,6 +102,12 @@ fun PlayerSheets(
     onShare: (() -> InputStream) -> Unit,
     onSave: (() -> InputStream) -> Unit,
     takeScreenshot: (Boolean) -> InputStream?,
+    frameCount: Int,
+    currentFrame: Int,
+    paused: Boolean,
+    onPlayPause: () -> Unit,
+    onPreviousFrame: () -> Unit,
+    onNextFrame: () -> Unit,
     onDismissScreenshot: () -> Unit,
 
     onOpenPanel: (Panels) -> Unit,
@@ -212,6 +218,12 @@ fun PlayerSheets(
                 onShare = onShare,
                 onSave = onSave,
                 takeScreenshot = takeScreenshot,
+                frameCount = frameCount,
+                currentFrame = currentFrame,
+                paused = paused,
+                onPlayPause = onPlayPause,
+                onPreviousFrame = onPreviousFrame,
+                onNextFrame = onNextFrame,
                 onDismissRequest = onDismissScreenshot,
             )
         }
