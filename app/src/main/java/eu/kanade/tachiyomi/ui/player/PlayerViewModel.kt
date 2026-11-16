@@ -2521,6 +2521,7 @@ class PlayerViewModel(
      * @param autoPlay whether the episode is switching due to auto play
      */
     fun changeEpisode(episodeId: Long?, autoPlay: Boolean = false) {
+        hasUpdatedSeen.set(false)
         if (stateData.value.isCasting) {
             castManager.stopRemoteMediaClient()
             updateCastUiData { it.copy(isLoadingEpisode = true) }
@@ -3403,6 +3404,8 @@ class PlayerViewModel(
         writeEpisodeProgress(playerEpisode, onComplete = false)
     }
 
+    private val hasUpdatedSeen = AtomicBoolean(false)
+
     /**
      * Writes the progress of [episode] on the app scope, so it's saved even when the player is closing.
      */
@@ -3417,7 +3420,7 @@ class PlayerViewModel(
         // Immediate and through the mutex, which is fair, so the writes land in the order they were made
         appScope.launch(Dispatchers.Main.immediate) {
             progressWrites.withLock {
-                if (onComplete) updateEpisodeProgressOnComplete(episode)
+                if (onComplete && hasUpdatedSeen.compareAndSet(false, true)) updateEpisodeProgressOnComplete(episode)
                 updateEpisode.await(
                     EpisodeUpdate(episode.id) {
                         if (onComplete) seen = true
@@ -3565,7 +3568,7 @@ class PlayerViewModel(
      */
     private suspend fun deleteEpisodeIfNeeded(chosenEpisode: Episode) {
         // Determine which episode should be deleted and enqueue
-        val currentEpisodePosition = stateData.value.currentPlaylist.indexOf(chosenEpisode)
+        val currentEpisodePosition = stateData.value.currentPlaylist.indexOfFirst { it.id == chosenEpisode.id }
         val removeAfterSeenSlots = downloadPreferences.removeAfterSeenSlots.get()
         val episodeToDelete = stateData.value.currentPlaylist.getOrNull(
             currentEpisodePosition - removeAfterSeenSlots,
