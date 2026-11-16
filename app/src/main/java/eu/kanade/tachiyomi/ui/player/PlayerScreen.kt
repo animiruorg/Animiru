@@ -82,6 +82,7 @@ fun PlayerScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val uiPreferences = remember { appGraph.uiPreferences }
     val playerPreferences = remember { appGraph.playerPreferences }
+    val gesturePreferences = remember { appGraph.gesturePreferences }
     val audioPreferences = remember { appGraph.audioPreferences }
     val subtitlePreferences = remember { appGraph.subtitlePreferences }
     val decoderPreferences = remember { appGraph.decoderPreferences }
@@ -231,8 +232,14 @@ fun PlayerScreen(
                 videoOutput = viewModel.videoOutput,
             )
 
+            val zoomEnabled by gesturePreferences.gestureZoom.collectAsState()
+            val panEnabled by gesturePreferences.gesturePan.collectAsState()
+            val longPressEnabled by gesturePreferences.gestureLongPress.collectAsState()
             GestureHandler(
                 modifier = Modifier.fillMaxSize(),
+                zoomEnabled = zoomEnabled,
+                panEnabled = panEnabled,
+                longPressEnabled = longPressEnabled,
                 areControlsLocked = uiData.isControlsLocked,
                 onGestureEvent = viewModel::handleGestureEvent,
                 interactionSource = interactionSource,

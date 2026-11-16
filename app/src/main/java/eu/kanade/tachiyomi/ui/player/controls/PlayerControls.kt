@@ -43,6 +43,8 @@ import eu.kanade.tachiyomi.ui.player.controls.components.TextPlayerUpdate
 import eu.kanade.tachiyomi.ui.player.controls.components.ThumbnailPreview
 import eu.kanade.tachiyomi.ui.player.controls.components.VolumeSlider
 import kotlinx.coroutines.delay
+import mihon.icons.custommaterialsymbols.CustomMaterialSymbols
+import mihon.icons.custommaterialsymbols.rounded.ResetZoom
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.roundedfilled.Lock
 import tachiyomi.i18n.animiru.AMMR
@@ -101,6 +103,7 @@ fun PlayerControls(
             val seekbar = createRef()
             val (playerUpdates) = createRefs()
             val skipButton = createRef()
+            val resetTransform = createRef()
 
             LaunchedEffect(playbackData.currentVolume, mpvVolume, uiData.isVolumeSliderShown) {
                 delay(2.seconds)
@@ -401,6 +404,31 @@ fun PlayerControls(
                     onPressSkipIntroButton = { onPlayerEvent(PlayerEvent.SkipIntro) },
                     onCustomButtonClick = { onPlayerEvent(PlayerEvent.ExecuteCustomButton(false)) },
                     onCustomButtonLongClick = { onPlayerEvent(PlayerEvent.ExecuteCustomButton(true)) },
+                )
+            }
+
+            AnimatedVisibility(
+                visible = uiData.controlsShown && !uiData.isControlsLocked && uiData.showResetTransform,
+                enter = if (!uiData.reduceMotion) {
+                    slideInVertically(playerControlsEnterAnimationSpec()) { it } +
+                        fadeIn(playerControlsEnterAnimationSpec())
+                } else {
+                    fadeIn(playerControlsEnterAnimationSpec())
+                },
+                exit = if (!uiData.reduceMotion) {
+                    slideOutVertically(playerControlsExitAnimationSpec()) { it } +
+                        fadeOut(playerControlsExitAnimationSpec())
+                } else {
+                    fadeOut(playerControlsExitAnimationSpec())
+                },
+                modifier = Modifier.constrainAs(resetTransform) {
+                    start.linkTo(seekbar.start, MaterialTheme.padding.small)
+                    bottom.linkTo(seekbar.top)
+                },
+            ) {
+                ControlsButton(
+                    icon = CustomMaterialSymbols.Rounded.ResetZoom,
+                    onClick = { onPlayerEvent(PlayerEvent.ResetTransform) },
                 )
             }
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -55,6 +56,9 @@ sealed interface GestureEvent {
 @Composable
 fun GestureHandler(
     modifier: Modifier,
+    zoomEnabled: Boolean,
+    panEnabled: Boolean,
+    longPressEnabled: Boolean,
     areControlsLocked: Boolean,
     interactionSource: MutableInteractionSource,
     onGestureEvent: (GestureEvent) -> Unit,
@@ -66,10 +70,6 @@ fun GestureHandler(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeGestures)
             .pointerInput(areControlsLocked) {
-                if (areControlsLocked) {
-                    return@pointerInput
-                }
-
                 val touchSlop = viewConfiguration.touchSlop
                 val doubleTapTimeout = viewConfiguration.doubleTapTimeoutMillis
                 var lastUpTime = 0L
@@ -80,6 +80,12 @@ fun GestureHandler(
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val downTime = down.uptimeMillis
+
+                    if (areControlsLocked) {
+                        onGestureEvent(GestureEvent.Tap)
+                        waitForUpOrCancellation()
+                        return@awaitEachGesture
+                    }
 
                     var totalPanX = 0f
                     var totalPanY = 0f
@@ -94,6 +100,7 @@ fun GestureHandler(
                     singleTapJob?.cancel()
 
                     val longPressJob = scope.launch {
+                        if (!longPressEnabled) return@launch
                         delay(viewConfiguration.longPressTimeoutMillis)
                         isLongPress = true
                         activeGesture = ActiveGesture.LongPress
@@ -108,7 +115,8 @@ fun GestureHandler(
 
                         val panChange = event.calculatePan()
                         if (pointerInputs.size > 1 &&
-                            (activeGesture == ActiveGesture.None || activeGesture == ActiveGesture.Transform)
+                            (activeGesture == ActiveGesture.None || activeGesture == ActiveGesture.Transform) &&
+                            (zoomEnabled || panEnabled)
                         ) {
                             longPressJob.cancel()
                             activeGesture = ActiveGesture.Transform
@@ -116,7 +124,10 @@ fun GestureHandler(
                             val zoomChange = event.calculateZoom()
                             if (zoomChange != 1f || panChange != Offset.Zero) {
                                 onGestureEvent(
-                                    GestureEvent.Transform(zoomChange, panChange),
+                                    GestureEvent.Transform(
+                                        if (zoomEnabled) zoomChange else 1f,
+                                        if (panEnabled) panChange else Offset.Zero,
+                                    ),
                                 )
                             }
                         }

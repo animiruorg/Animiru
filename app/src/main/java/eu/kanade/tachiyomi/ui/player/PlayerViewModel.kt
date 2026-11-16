@@ -171,9 +171,11 @@ import java.io.File
 import java.io.InputStream
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log2
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -393,6 +395,19 @@ class PlayerViewModel(
                 .launchIn(viewModelScope)
 
             combine(
+                propFlow<Float>("video-zoom"),
+                propFlow<Float>("video-pan-x"),
+                propFlow<Float>("video-pan-y"),
+            ) { zoom, x, y -> Triple(zoom, x, y) }
+                .onEach { (zoom, x, y) ->
+                    val isTransformed =
+                        zoom?.let { 2f.pow(it) }?.times(100)?.roundToInt() != 100 || abs(x ?: 0f) > 0.001f ||
+                            abs(y ?: 0f) > 0.001f
+                    updateUiData { it.copy(showResetTransform = isTransformed) }
+                }
+                .launchIn(viewModelScope)
+
+            combine(
                 propFlow<Double>("video-params/aspect"),
                 propFlow<Int>("video-params/rotate"),
             ) { aspect, rotation -> aspect to rotation }
@@ -580,6 +595,9 @@ class PlayerViewModel(
             }
             PlayerEvent.PlayPause -> {
                 pauseUnpause()
+            }
+            PlayerEvent.ResetTransform -> {
+                onResetTransform()
             }
             is PlayerEvent.Seek -> {
                 updateSeekPos(event.position.toFloat())
@@ -2725,7 +2743,15 @@ class PlayerViewModel(
         mpv.setPropertyFloat("video-pan-x", panx)
         mpv.setPropertyFloat("video-pan-y", pany)
 
-        updateUiData { it.copy(playerUpdate = PlayerUpdates.Transform(zoom.times(100f).roundToInt())) }
+        if (deltaZoom != 1f) {
+            updateUiData { it.copy(playerUpdate = PlayerUpdates.Transform(zoom.times(100f).roundToInt())) }
+        }
+    }
+
+    fun onResetTransform() {
+        mpv.setPropertyFloat("video-zoom", 0f)
+        mpv.setPropertyFloat("video-pan-x", 0f)
+        mpv.setPropertyFloat("video-pan-y", 0f)
     }
 
     private var brightness = 0f
@@ -3968,6 +3994,7 @@ class PlayerViewModel(
         val primaryButtonTitle: String = "",
         val primaryButton: CustomButton? = null,
         val skipIntroText: String? = null,
+        val showResetTransform: Boolean = false,
 
         // Prefs
         val reduceMotion: Boolean = false,
@@ -4016,6 +4043,7 @@ class PlayerViewModel(
         data class LockControls(val lock: Boolean) : PlayerEvent
         data class NextEpisode(val next: Boolean) : PlayerEvent
         data object PlayPause : PlayerEvent
+        data object ResetTransform : PlayerEvent
         data class Seek(val position: Int) : PlayerEvent
         data class SeekFinished(val position: Int) : PlayerEvent
         data class SetAutoPlay(val value: Boolean) : PlayerEvent

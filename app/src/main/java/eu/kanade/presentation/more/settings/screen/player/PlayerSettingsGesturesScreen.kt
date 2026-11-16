@@ -23,6 +23,7 @@ import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.SearchableSettings
 import mihon.app.di.appGraph
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.animiru.AMMR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.WheelTextPicker
 import tachiyomi.presentation.core.i18n.stringResource
@@ -40,6 +41,7 @@ object PlayerSettingsGesturesScreen : SearchableSettings {
 
         return listOf(
             getSlidersGroup(gesturePreferences = gesturePreferences),
+            getGesturesGroup(gesturePreferences = gesturePreferences),
             getSeekingGroup(gesturePreferences = gesturePreferences),
             getDoubleTapGroup(gesturePreferences = gesturePreferences),
             getMediaControlsGroup(gesturePreferences = gesturePreferences),
@@ -61,6 +63,32 @@ object PlayerSettingsGesturesScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = swapVol,
                     title = stringResource(AYMR.strings.pref_controls_swap_vol_brightness),
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getGesturesGroup(gesturePreferences: GesturePreferences): Preference.PreferenceGroup {
+        val zoomGesture = gesturePreferences.gestureZoom
+        val panGesture = gesturePreferences.gesturePan
+        val longPressGesture = gesturePreferences.gestureLongPress
+
+        return Preference.PreferenceGroup(
+            title = stringResource(AYMR.strings.pref_player_gestures),
+            preferenceItems = listOf(
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = zoomGesture,
+                    title = stringResource(AMMR.strings.player_pref_gesture_zoom),
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = panGesture,
+                    title = stringResource(AMMR.strings.player_pref_gesture_pan),
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = longPressGesture,
+                    title = stringResource(AMMR.strings.player_pref_gesture_long_press),
+                    subtitle = stringResource(AMMR.strings.player_pref_gesture_long_press_summary),
                 ),
             ),
         )

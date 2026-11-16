@@ -20,6 +20,13 @@ class GesturePreferences(
     )
     val swapVolumeBrightness: Preference<Boolean> = preferenceStore.getBoolean("pref_swap_volume_and_brightness", false)
 
+    // Gestures
+    val gestureZoom: Preference<Boolean> = preferenceStore.getBoolean("pref_gesture_zoom", true)
+
+    val gesturePan: Preference<Boolean> = preferenceStore.getBoolean("pref_gesture_pan", true)
+
+    val gestureLongPress: Preference<Boolean> = preferenceStore.getBoolean("pref_gesture_long_press", true)
+
     // Seeking
 
     val gestureHorizontalSeek: Preference<Boolean> = preferenceStore.getBoolean("pref_gesture_horizontal_seek", true)
