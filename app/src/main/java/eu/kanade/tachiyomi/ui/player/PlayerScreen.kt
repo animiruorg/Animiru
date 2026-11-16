@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.player
 
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -220,6 +222,9 @@ fun PlayerScreen(
             val remaining by viewModel.propFlow<Int>("playtime-remaining").collectAsStateWithLifecycle()
             val playbackSpeed by viewModel.propFlow<Float>("speed").collectAsStateWithLifecycle()
 
+            val configuration = LocalConfiguration.current
+            val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
             MpvSurface(
                 modifier = Modifier.fillMaxSize(),
                 mpv = viewModel.mpv,
@@ -279,6 +284,7 @@ fun PlayerScreen(
                 LocalContentColor provides Color.White,
             ) {
                 PlayerControls(
+                    isLandscape = isLandscape,
                     stateData = stateData,
                     uiData = uiData,
                     playbackData = playbackData,

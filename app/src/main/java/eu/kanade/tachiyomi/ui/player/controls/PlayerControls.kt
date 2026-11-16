@@ -56,6 +56,7 @@ val LocalPlayerButtonsClickEvent = staticCompositionLocalOf { {} }
 
 @Composable
 fun PlayerControls(
+    isLandscape: Boolean,
     stateData: PlayerViewModel.PlayerStateData,
     uiData: PlayerViewModel.PlayerUiData,
     playbackData: PlayerViewModel.PlayerPlaybackData,
@@ -319,10 +320,14 @@ fun PlayerControls(
                     fadeOut(playerControlsExitAnimationSpec())
                 },
                 modifier = Modifier.constrainAs(topLeftControls) {
+                    if (isLandscape) {
+                        end.linkTo(topRightControls.start)
+                    } else {
+                        end.linkTo(parent.end)
+                    }
                     top.linkTo(parent.top, MaterialTheme.padding.medium)
                     start.linkTo(parent.start)
                     width = Dimension.fillToConstraints
-                    end.linkTo(topRightControls.start)
                 },
             ) {
                 TopLeftPlayerControls(
@@ -348,7 +353,11 @@ fun PlayerControls(
                     fadeOut(playerControlsExitAnimationSpec())
                 },
                 modifier = Modifier.constrainAs(topRightControls) {
-                    top.linkTo(parent.top, MaterialTheme.padding.medium)
+                    if (isLandscape) {
+                        top.linkTo(parent.top, MaterialTheme.padding.medium)
+                    } else {
+                        top.linkTo(topLeftControls.bottom)
+                    }
                     end.linkTo(parent.end)
                 },
             ) {
@@ -440,10 +449,15 @@ fun PlayerControls(
                     fadeOut(playerControlsExitAnimationSpec())
                 },
                 modifier = Modifier.constrainAs(bottomLeftControls) {
-                    bottom.linkTo(parent.bottom, MaterialTheme.padding.small)
+                    if (isLandscape) {
+                        bottom.linkTo(parent.bottom, MaterialTheme.padding.small)
+                        end.linkTo(bottomRightControls.start)
+                    } else {
+                        bottom.linkTo(bottomRightControls.top)
+                        end.linkTo(parent.end)
+                    }
                     start.linkTo(seekbar.start)
                     width = Dimension.fillToConstraints
-                    end.linkTo(bottomRightControls.start)
                 },
             ) {
                 BottomLeftPlayerControls(
@@ -478,6 +492,7 @@ fun PlayerControls(
 private fun PlayerControlsPreview() {
     MaterialTheme {
         PlayerControls(
+            isLandscape = true,
             stateData = PlayerViewModel.PlayerStateData(
                 maxVolume = 0,
                 isEpisodeOnline = true,
