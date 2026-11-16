@@ -43,6 +43,7 @@ import dev.zacsweers.metro.AssistedInject
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
+import eu.kanade.core.util.throttleWithReset
 import eu.kanade.domain.anime.interactor.SetAnimeViewerFlags
 import eu.kanade.domain.anime.interactor.UpdateAnime
 import eu.kanade.domain.base.BasePreferences
@@ -439,6 +440,21 @@ class PlayerViewModel(
             propFlow<Int>("time-pos")
                 .filterNotNull()
                 .onEach { onSecondReached(it) }
+                .launchIn(viewModelScope)
+
+            propFlow<Int>("estimated-frame-count")
+                .filterNotNull()
+                .onEach { v ->
+                    updatePlaybackData { it.copy(totalFrames = v) }
+                }
+                .launchIn(viewModelScope)
+
+            propFlow<Int>("estimated-frame-number")
+                .filterNotNull()
+                .throttleWithReset(1.seconds, 0.1.seconds)
+                .onEach { v ->
+                    updatePlaybackData { it.copy(currentFrame = v) }
+                }
                 .launchIn(viewModelScope)
 
             propFlow<Boolean>("pause")
@@ -3001,6 +3017,14 @@ class PlayerViewModel(
 
     // === Seeking ===
 
+    fun nextFrame() {
+        mpv.command("frame-step", "1", "seek")
+    }
+
+    fun previousFrame() {
+        mpv.command("frame-back-step")
+    }
+
     private var startingPosition = 0
     fun onDragSeekStart() {
         startingPosition = mpv.getPropertyInt("time-pos") ?: 0
@@ -3965,6 +3989,8 @@ class PlayerViewModel(
         val paused: Boolean = false,
         val position: Int = 0,
         val duration: Int = 0,
+        val currentFrame: Int = 0,
+        val totalFrames: Int = 0,
         val currentVolume: Int,
         val currentBrightness: Float,
         val currentOrientation: Int? = null,

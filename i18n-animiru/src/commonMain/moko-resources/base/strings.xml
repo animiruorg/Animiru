@@ -165,6 +165,7 @@
     <!-- Player - misc -->
     <string name="player_speed" translatable="false">%.2fx</string>
     <string name="player_zoom" translatable="false">%d%%</string>
+    <string name="player_frame">Frame: %1$d / %2$d</string>
 
     <!-- Player - deband -->
     <string name="player_sheets_video_settings_title">Video settings</string>

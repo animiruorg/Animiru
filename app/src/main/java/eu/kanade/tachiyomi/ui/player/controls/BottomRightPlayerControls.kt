@@ -25,6 +25,7 @@ import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
 import eu.kanade.tachiyomi.util.system.castIncluded
 import mihon.icons.materialsymbols.MaterialSymbols
 import mihon.icons.materialsymbols.rounded.AspectRatio
+import mihon.icons.materialsymbols.rounded.PhotoCamera
 import mihon.icons.materialsymbols.rounded.PictureInPictureAlt
 import tachiyomi.cast.CastButton
 import tachiyomi.presentation.core.components.material.padding
@@ -37,6 +38,7 @@ fun BottomRightPlayerControls(
     isPipAvailable: Boolean,
     onAspectClick: () -> Unit,
     onPipClick: () -> Unit,
+    onScrenshotClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier) {
@@ -47,6 +49,12 @@ fun BottomRightPlayerControls(
                 verticalSpacing = MaterialTheme.padding.small,
             )
         }
+
+        ControlsButton(
+            MaterialSymbols.Rounded.PhotoCamera,
+            onClick = onScrenshotClick,
+            verticalSpacing = MaterialTheme.padding.small,
+        )
 
         if (isPipAvailable) {
             ControlsButton(

@@ -420,6 +420,7 @@ fun PlayerControls(
                     castError = stateData.isErrorCasting,
                     isPipAvailable = stateData.isPipAvailable,
                     onPipClick = { onPlayerEvent(PlayerEvent.EnterPip) },
+                    onScrenshotClick = { onPlayerEvent(PlayerEvent.SetSheet(Sheets.Screenshot)) },
                     onAspectClick = { onPlayerEvent(PlayerEvent.ChangeAspect) },
                 )
             }

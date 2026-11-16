@@ -379,10 +379,13 @@ fun PlayerScreen(
                     onShare = viewModel::shareImage,
                     onSave = viewModel::saveImage,
                     takeScreenshot = viewModel::takeScreenshot,
-                    onDismissScreenshot = {
-                        viewModel.setSheet(Sheets.None)
-                        viewModel.unpause()
-                    },
+                    frameCount = playbackData.totalFrames,
+                    currentFrame = playbackData.currentFrame,
+                    paused = playbackData.paused,
+                    onPlayPause = viewModel::pauseUnpause,
+                    onPreviousFrame = viewModel::previousFrame,
+                    onNextFrame = viewModel::nextFrame,
+                    onDismissScreenshot = { viewModel.setSheet(Sheets.None) },
                     onOpenPanel = viewModel::setPanel,
                     onDismissRequest = { viewModel.setSheet(Sheets.None) },
                     dismissSheet = uiData.dismissSheet,
