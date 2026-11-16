@@ -13,6 +13,8 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 ### Added
 - Add new display modes for related anime ([@Secozzi](https://github.com/Secozzi)) ([#267](https://github.com/animiruorg/Animiru/pull/267))
+- Add new gestures: zoom, pan, and long press to speed up ([@Secozzi](https://github.com/Secozzi)) ([#272](https://github.com/animiruorg/Animiru/pull/272))
+- Add per-frame navigation ([@Secozzi](https://github.com/Secozzi)) ([#272](https://github.com/animiruorg/Animiru/pull/272))
 
 ### Changed
 - Added icons to topbar overflow menus ([@Secozzi](https://github.com/Secozzi)) ([#267](https://github.com/animiruorg/Animiru/pull/267))
