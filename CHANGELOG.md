@@ -19,6 +19,10 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ### Changed
 - Added icons to topbar overflow menus ([@Secozzi](https://github.com/Secozzi)) ([#267](https://github.com/animiruorg/Animiru/pull/267))
 
+### Fixed
+- Fix tracking being called multiple times when episode is watched ([@Secozzi](https://github.com/Secozzi)) ([#273](https://github.com/animiruorg/Animiru/pull/273))
+- Fix episodes not being deleted after being seen ([@Secozzi](https://github.com/Secozzi)) ([#273](https://github.com/animiruorg/Animiru/pull/273))
+
 ## [v0.20.1.1] - 2026-11-03
 ### Fixed
 - Fix crash during database migration ([@Secozzi](https://github.com/Secozzi)) ([#262](https://github.com/animiruorg/Animiru/pull/262))
