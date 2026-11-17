@@ -22,6 +22,9 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ### Fixed
 - Fix tracking being called multiple times when episode is watched ([@Secozzi](https://github.com/Secozzi)) ([#273](https://github.com/animiruorg/Animiru/pull/273))
 - Fix episodes not being deleted after being seen ([@Secozzi](https://github.com/Secozzi)) ([#273](https://github.com/animiruorg/Animiru/pull/273))
+- Fix proguard for http servers ([@Secozzi](https://github.com/Secozzi)) ([#274](https://github.com/animiruorg/Animiru/pull/274))
+- Fix pause/resume for http servers ([@Secozzi](https://github.com/Secozzi)) ([#274](https://github.com/animiruorg/Animiru/pull/274))
+- Fix relations being displayed over description ([@Secozzi](https://github.com/Secozzi)) ([#274](https://github.com/animiruorg/Animiru/pull/274))
 
 ## [v0.20.1.1] - 2026-11-03
 ### Fixed
