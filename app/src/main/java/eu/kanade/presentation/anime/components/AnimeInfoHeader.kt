@@ -43,7 +43,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,7 +59,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -842,7 +840,7 @@ private fun AnimeSummary(
         targetValue = if (expanded) 1f else 0f,
         label = "summary",
     )
-    var infoHeight by remember { mutableIntStateOf(0) }
+
     Layout(
         modifier = modifier.clipToBounds(),
         contents = listOf(
@@ -855,11 +853,7 @@ private fun AnimeSummary(
                 )
             },
             {
-                Column(
-                    modifier = Modifier.onSizeChanged { size ->
-                        infoHeight = size.height
-                    },
-                ) {
+                Column {
                     AnimeNotesSection(
                         content = notes,
                         expanded = expanded,
@@ -914,11 +908,11 @@ private fun AnimeSummary(
         val shrunkHeight = shrunk.single()
             .measure(constraints)
             .height
-        val heightDelta = infoHeight - shrunkHeight
         val scrimHeight = 24.dp.roundToPx()
 
         val actualPlaceable = actual.single()
             .measure(constraints)
+        val heightDelta = actualPlaceable.height - shrunkHeight
         // AY -->
         val relatedPlaceable = related.single()
             .measure(constraints)
