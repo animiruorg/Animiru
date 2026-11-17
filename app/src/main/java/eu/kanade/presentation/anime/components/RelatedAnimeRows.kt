@@ -166,15 +166,13 @@ fun RelatedAnimeSingleRow(
                 key = { _, r -> r.id },
             ) { i, r ->
                 Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall)) {
-                    if (i == 0) {
-                        Text(
-                            text = relation.name,
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(
-                                horizontal = MaterialTheme.padding.small,
-                            ),
-                        )
-                    }
+                    Text(
+                        text = if (i == 0) relation.name else "",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(
+                            horizontal = MaterialTheme.padding.small,
+                        ),
+                    )
 
                     Box(modifier = Modifier.width(RELATED_ITEM_WIDTH)) {
                         RelatedAnimeItem(
