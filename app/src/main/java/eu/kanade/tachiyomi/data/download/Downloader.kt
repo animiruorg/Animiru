@@ -65,6 +65,7 @@ import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import mihon.core.metro.AppCoroutineScope
 import okhttp3.Headers
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import tachiyomi.core.common.i18n.stringResource
@@ -230,7 +231,19 @@ class Downloader(
         cancelDownloaderJob()
         queueState.value
             .filter { it.status == Download.State.DOWNLOADING }
-            .forEach { it.status = Download.State.QUEUE }
+            .forEach {
+                it.status = Download.State.QUEUE
+                if (it.isUsingHttpServer) {
+                    it.video = it.video?.copy(
+                        videoUrl = it.video!!.videoUrl.toHttpUrl()
+                            .newBuilder()
+                            .port(1)
+                            .build()
+                            .toString(),
+                    )
+                    it.isUsingHttpServer = false
+                }
+            }
         isPaused = true
     }
 
@@ -531,6 +544,7 @@ class Downloader(
                             httpServer = download.source.createHttpServer()
                             httpServer?.start()
                             download.video = download.video?.copyHttpServer(httpServer?.listeningPort ?: 0)
+                            download.isUsingHttpServer = true
                         }
 
                         // Start torrent server if needed
