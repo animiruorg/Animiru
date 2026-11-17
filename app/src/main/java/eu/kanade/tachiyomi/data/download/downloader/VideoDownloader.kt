@@ -103,8 +103,6 @@ class VideoDownloader(
     private val journalFactory: DownloadJournal.Factory,
     private val json: Json,
 ) {
-    private val client = network.client
-
     suspend fun download(
         download: Download,
         destDir: UniFile,
@@ -273,7 +271,7 @@ class VideoDownloader(
         destDir: UniFile,
         name: String,
     ): PlaylistResult {
-        val type = getType(url, headers)
+        val type = getType(client, url, headers)
 
         return when (type) {
             DownloadType.Hls -> hlsDownloader.parsePlaylist(url, headers, client, name)
@@ -295,7 +293,7 @@ class VideoDownloader(
     ): String {
         return when (playlistResult) {
             is PlaylistResult.Url -> {
-                val type = getType(playlistResult.url, headers)
+                val type = getType(client, playlistResult.url, headers)
 
                 when (type) {
                     DownloadType.Hls -> hlsDownloader.download(
@@ -393,7 +391,7 @@ class VideoDownloader(
                     return "-allowed_extensions ALL -i \"$url\""
                 }
 
-                val type = getType(url, headers)
+                val type = getType(client, url, headers)
 
                 when (type) {
                     DownloadType.Hls -> hlsDownloader.download(
@@ -460,9 +458,9 @@ class VideoDownloader(
         }
     }
 
-    private suspend fun getType(url: String, headers: Headers): DownloadType {
+    private suspend fun getType(client: OkHttpClient, url: String, headers: Headers): DownloadType {
         return when {
-            url.startsWith("http") -> getHttpType(url, headers)
+            url.startsWith("http") -> getHttpType(client, url, headers)
             else -> getFileType(url)
         }
     }
@@ -486,7 +484,7 @@ class VideoDownloader(
         return DownloadType.Direct
     }
 
-    private suspend fun getHttpType(url: String, headers: Headers): DownloadType {
+    private suspend fun getHttpType(client: OkHttpClient, url: String, headers: Headers): DownloadType {
         val path = url.toHttpUrl().encodedPath
         if (path.endsWith(".m3u8")) return DownloadType.Hls
         if (path.endsWith(".mpd")) return DownloadType.Dash
