@@ -13,10 +13,11 @@ data class Download(
     val source: AnimeHttpSource,
     val anime: Anime,
     val episode: Episode,
-    // AY -->
+    // AM -->
     val changeDownloader: Boolean = false,
     var video: Video? = null,
-    // <-- AY
+    var isUsingHttpServer: Boolean = false,
+    // <-- AM
 ) {
 
     @Transient
