@@ -29,8 +29,8 @@ android {
     defaultConfig {
         applicationId = "xyz.Quickdev.Animiru.mi"
 
-        versionCode = 157
-        versionName = "0.20.1.1"
+        versionCode = 158
+        versionName = "0.20.1.2"
 
         buildConfigField("boolean", "UPDATER_ENABLED", "${Config.enableUpdater}")
         // AM -->
